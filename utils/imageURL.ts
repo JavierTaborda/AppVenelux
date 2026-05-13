@@ -1,0 +1,1 @@
+export const imageURL = process.env.EXPO_PUBLIC_IMAGES_URL!

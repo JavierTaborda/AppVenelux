@@ -1,0 +1,76 @@
+{
+  "expo": {
+    "name": "Venelux App",
+    "slug": "veneluxapp",
+    "version": "1.0.0",
+    "owner": "cyberluxexpo",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "appvenelux",
+    "userInterfaceStyle": "automatic",
+    "platforms": ["ios", "android", "web"],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.venelux.mobile",
+      "infoPlist": {
+        "NSFaceIDUsageDescription": "Esta app usa Face ID para autenticación segura.",
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.venelux.mobile",
+      "versionCode": 1
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/images/icon.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/splash-icon-light.png",
+          "resizeMode": "cover",
+          "backgroundColor": "#ffffff",
+          "dark": {
+            "image": "./assets/images/splash-icon-dark.png",
+            "backgroundColor": "#000000"
+          },
+          "android": {
+            "statusBarTranslucent": true,
+            "backgroundColor": "#ffffff",
+            "navigationBarColor": "#ffffff"
+          },
+          "ios": {
+            "backgroundColor": "#ffffff"
+          }
+        }
+      ],
+      [
+        "expo-secure-store",
+        {
+          "configureAndroidBackup": true,
+          "faceIDPermission": "Allow $(PRODUCT_NAME) to access your Face ID biometric data."
+        }
+      ],
+      "@react-native-community/datetimepicker",
+      "expo-font",
+      "expo-image"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "3dd0ad5f-50d3-43a5-a923-e6eca916e4a2"
+      }
+    }
+  }
+}
