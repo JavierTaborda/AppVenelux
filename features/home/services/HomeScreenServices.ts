@@ -5,3 +5,4 @@ export const getPedidos = async (user?: string) => {
 
   return response.data;
 };
+  

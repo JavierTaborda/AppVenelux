@@ -143,14 +143,30 @@ export default function TabLayout() {
 
       {/*  not shown in tab bar */}
 
-      {/* <Tabs.Screen
-        name="(returnReport)/index"
+      <Tabs.Screen
+        name="(request)/index"
         options={{
           href: null,
           headerShown: true,
-          title: "Registrar Devolución",
+          title: "Solicitudes  ",
         }}
-      /> */}
+      />
+      <Tabs.Screen
+        name="(request)/create"
+        options={{
+          href: null,
+          headerShown: true,
+          title: "Crear Solicitud",
+        }}
+      />
+      <Tabs.Screen
+        name="(request)/[id]"
+        options={{
+          href: null,
+          headerShown: true,
+          title: "Estado Solicitud ",
+        }}
+      />
     </Tabs>
   );
 }

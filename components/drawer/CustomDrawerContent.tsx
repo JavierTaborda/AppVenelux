@@ -2,6 +2,7 @@ import { useAuthStore } from "@/stores/useAuthStore";
 import { DrawerContentScrollView } from "@react-navigation/drawer";
 import { useSegments } from "expo-router";
 import { Image, Text, View } from "react-native";
+import { DrawerItem } from "./DrawerItem";
 
 export default function CustomDrawerContent(props: any) {
   const { session, role, name } = useAuthStore();
@@ -41,6 +42,20 @@ export default function CustomDrawerContent(props: any) {
           href="/(main)/(tabs)/(orders)/orderApproval"
           currentPath={currentPath}
         /> */}
+
+        <DrawerItem
+          //emoji={emojis.list}
+          //emoji={emojis.approved}
+          // icon="bag-check"
+          label="Solicitudes"
+          href="/(main)/(tabs)/(request)"
+          currentPath={currentPath}
+        />
+        <DrawerItem
+          label="Crear solicitud"
+          href="/(main)/(tabs)/(request)/create"
+          currentPath={currentPath}
+        />
       </View>
     </DrawerContentScrollView>
   );
