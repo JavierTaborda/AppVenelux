@@ -109,7 +109,7 @@ export default function CreateRequestScreen() {
         canRefresh={false}
         handleRefresh={() => {}}
         title="Seleccionar items"
-        subtitle="Elige productos para agregar a la solicitud"
+        subtitle=""
         numColumns={2}
       />
 
