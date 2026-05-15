@@ -1,5 +1,4 @@
 import CustomImagen from "@/components/ui/CustomImagen";
-import { Ionicons } from "@expo/vector-icons";
 import { Pressable, Text, View } from "react-native";
 import type { RequestItem } from "../types/request";
 
@@ -21,11 +20,19 @@ export default function SelectableItemCard({
   return (
     <View className="flex-1 m-2 bg-componentbg dark:bg-componentbg-dark rounded-xl overflow-hidden shadow-md">
       <Pressable onPress={onPress} className="flex-1">
-        <View className="w-full h-36 bg-transparent">
+        <View className="w-full h-36 bg-transparent. pt-4">
           <CustomImagen img={item.imagen1} />
         </View>
+        <View className="absolute top-2 right-2 px-2 py-1 rounded-full bg-primary/10 dark:bg-primary-dark/20 border border-primary/30 dark:border-primary-dark/40">
+          <Text
+            numberOfLines={1}
+            className="text-[10px] font-semibold text-primary dark:text-primary-dark"
+          >
+            {100} unidades
+          </Text>
+        </View>
 
-        <View className="p-2 flex-1 justify-between">
+        <View className="p-2 flex-row justify-between relative">
           <View>
             <Text
               numberOfLines={2}
@@ -41,10 +48,10 @@ export default function SelectableItemCard({
             </Text>
           </View>
 
-          <View className="mt-3 flex-row items-center justify-between">
+          {/* <View className="mt-3 flex-row items-center justify-between">
             <View className="flex-row items-center">
               <Pressable onPress={onDec} className="p-2 bg-gray-100 rounded-md">
-                <Ionicons name="remove" size={16} color="#333" />
+                   <Ionicons name="remove" size={16} color="#333" />
               </Pressable>
               <Text className="mx-3 text-sm font-semibold">{selected}</Text>
               <Pressable onPress={onInc} className="p-2 bg-gray-100 rounded-md">
@@ -58,7 +65,7 @@ export default function SelectableItemCard({
             >
               <Text className="text-white font-semibold text-sm">Agregar</Text>
             </Pressable>
-          </View>
+          </View> */}
         </View>
       </Pressable>
     </View>

@@ -167,6 +167,14 @@ export default function TabLayout() {
           title: "Estado Solicitud ",
         }}
       />
+      <Tabs.Screen
+        name="(request)/product/[id]"
+        options={{
+          href: null,
+          headerShown: true,
+          title: "Detalle Producto",
+        }}
+      />
     </Tabs>
   );
 }

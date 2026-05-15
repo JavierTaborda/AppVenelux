@@ -1,13 +1,17 @@
 import ScreenSearchLayout from "@/components/screens/ScreenSearchLayout";
+import BottomModal from "@/components/ui/BottomModal";
 import CustomFlatList from "@/components/ui/CustomFlatList";
 import { useMemo, useState } from "react";
 import { Alert, Pressable, Text, View } from "react-native";
 import SelectableItemCard from "../components/SelectableItemCard";
 import { useRequest } from "../hooks/useRequest";
 import type { RequestItem } from "../types/request";
+import ProductDetailScreen from "./ProductDetailScreen";
 
 export default function CreateRequestScreen() {
   const { requests, createRequest } = useRequest();
+  const [modalVisible, setModalVisible] = useState(false);
+  const [modalItem, setModalItem] = useState<RequestItem | null>(null);
   const [selected, setSelected] = useState<Record<string, number>>({});
   const [submitting, setSubmitting] = useState(false);
 
@@ -102,7 +106,10 @@ export default function CreateRequestScreen() {
             selected={selected[keyOf(item)] || 0}
             onInc={() => inc(item)}
             onDec={() => dec(item)}
-            onPress={() => {}}
+            onPress={() => {
+              setModalItem(item);
+              setModalVisible(true);
+            }}
           />
         )}
         refreshing={false}
@@ -132,6 +139,19 @@ export default function CreateRequestScreen() {
           </Text>
         </Pressable>
       </View>
+
+      {modalItem && (
+        <BottomModal
+          visible={modalVisible}
+          onClose={() => setModalVisible(false)}
+          heightPercentage={0.9}
+        >
+          <ProductDetailScreen
+            item={modalItem}
+            onClose={() => setModalVisible(false)}
+          />
+        </BottomModal>
+      )}
     </ScreenSearchLayout>
   );
 }
