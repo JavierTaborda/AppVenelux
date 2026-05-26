@@ -1,10 +1,12 @@
 import ScreenSearchLayout from "@/components/screens/ScreenSearchLayout";
 import BottomModal from "@/components/ui/BottomModal";
 import CustomFlatList from "@/components/ui/CustomFlatList";
+import SelectedItemsFab from "@/features/request/components/SelectedItemsFab";
 import { useMemo, useState } from "react";
 import { Alert, Pressable, Text, View } from "react-native";
 import SelectableItemCard from "../components/SelectableItemCard";
 import { useRequest } from "../hooks/useRequest";
+import { useSelectedItemsStore } from "../stores/useSelectedItemsStore";
 import type { RequestItem } from "../types/request";
 import ProductDetailScreen from "./ProductDetailScreen";
 
@@ -12,35 +14,31 @@ export default function CreateRequestScreen() {
   const { requests, createRequest } = useRequest();
   const [modalVisible, setModalVisible] = useState(false);
   const [modalItem, setModalItem] = useState<RequestItem | null>(null);
-  const [selected, setSelected] = useState<Record<string, number>>({});
+  const selected = useSelectedItemsStore((s) => s.selected);
+  const incByItem = useSelectedItemsStore((s) => s.incByItem);
+  const decByItem = useSelectedItemsStore((s) => s.decByItem);
+  const getQuantityByItem = useSelectedItemsStore((s) => s.getQuantityByItem);
+  const clearSelected = useSelectedItemsStore((s) => s.clear);
   const [submitting, setSubmitting] = useState(false);
 
   const items = useMemo(() => {
     const map = new Map<string, RequestItem>();
     (requests || []).forEach((r) => {
       r.items.forEach((it) => {
-        const key = it.codart || it.description;
+        const key = it.codart;
         if (!map.has(key)) map.set(key, it);
       });
     });
     return Array.from(map.values());
   }, [requests]);
 
-  const keyOf = (it: RequestItem) => it.codart || it.description;
+  const keyOf = (it: RequestItem) => it.codart;
 
   const inc = (it: RequestItem) => {
-    const k = keyOf(it);
-    setSelected((s) => ({ ...s, [k]: (s[k] || 0) + 1 }));
+    incByItem(it);
   };
   const dec = (it: RequestItem) => {
-    const k = keyOf(it);
-    setSelected((s) => {
-      const next = { ...s };
-      const val = (next[k] || 0) - 1;
-      if (val <= 0) delete next[k];
-      else next[k] = val;
-      return next;
-    });
+    decByItem(it);
   };
 
   const totalQty = Object.values(selected).reduce((a, b) => a + b, 0);
@@ -49,10 +47,10 @@ export default function CreateRequestScreen() {
   const handleCreate = async () => {
     if (totalQty === 0) return Alert.alert("Selecciona al menos un item");
     const payloadItems = items
-      .filter((it) => (selected[keyOf(it)] || 0) > 0)
+      .filter((it) => getQuantityByItem(it) > 0)
       .map((it) => ({
         description: it.description,
-        quantity: selected[keyOf(it)],
+        quantity: getQuantityByItem(it),
         codart: it.codart,
         marca: it.marca,
         noparte: it.noparte,
@@ -67,7 +65,7 @@ export default function CreateRequestScreen() {
         items: payloadItems,
       });
       Alert.alert("Éxito", "Solicitud creada correctamente");
-      setSelected({});
+      clearSelected();
     } catch (err) {
       Alert.alert("Error", "No se pudo crear la solicitud");
     } finally {
@@ -103,7 +101,7 @@ export default function CreateRequestScreen() {
         renderItem={({ item }) => (
           <SelectableItemCard
             item={item}
-            selected={selected[keyOf(item)] || 0}
+            selected={getQuantityByItem(item)}
             onInc={() => inc(item)}
             onDec={() => dec(item)}
             onPress={() => {
@@ -115,7 +113,7 @@ export default function CreateRequestScreen() {
         refreshing={false}
         canRefresh={false}
         handleRefresh={() => {}}
-        title="Seleccionar items"
+        title="105 items disponibles"
         subtitle=""
         numColumns={2}
       />
@@ -152,6 +150,7 @@ export default function CreateRequestScreen() {
           />
         </BottomModal>
       )}
+      <SelectedItemsFab />
     </ScreenSearchLayout>
   );
 }

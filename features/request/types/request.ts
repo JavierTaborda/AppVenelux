@@ -10,6 +10,7 @@ export interface RequestItem {
   marca: string;
   noparte: string;
     description: string;
+    unidad: string;
   imagen1: string;
   imagen2: string;
   imagen3: string;

@@ -32,12 +32,12 @@ export const appTheme = {
 
   dark: {
     primary: {
-      DEFAULT: "rgb(80, 220, 255)",
+      DEFAULT: "rgb(0, 170, 230)",
       light: "rgb(0, 140, 200)",
       pale: "rgb(135, 255, 135)",
     },
     secondary: {
-      DEFAULT: "rgb(150, 235, 255)",
+      DEFAULT: "rgb(59, 130, 246)",
       light: "rgb(187, 247, 208)",
     },
     accent: {
