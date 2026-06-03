@@ -1,7 +1,9 @@
 import { useAuthStore } from "@/stores/useAuthStore";
-import { DrawerContentScrollView } from "@react-navigation/drawer";
 import { useSegments } from "expo-router";
 import { Image, Text, View } from "react-native";
+import {
+  DrawerContentScrollView,
+} from "expo-router/build/react-navigation/drawer";
 import { DrawerItem } from "./DrawerItem";
 
 export default function CustomDrawerContent(props: any) {

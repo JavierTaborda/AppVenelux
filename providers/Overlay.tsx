@@ -67,7 +67,7 @@ export default function Overlay() {
     return stopAutoHide;
   }, [visible]);
 
-  if (!visible) return null;
+  if (!visible) return null; 
 
   // config per type
   const configs = {
@@ -106,7 +106,7 @@ export default function Overlay() {
         <Animated.View
           entering={FadeIn.duration(200)}
           exiting={FadeOut.duration(250)}
-          style={[StyleSheet.absoluteFillObject]}
+          style={[StyleSheet.absoluteFillO bject]}
           className="bg-black/70"
         />
 

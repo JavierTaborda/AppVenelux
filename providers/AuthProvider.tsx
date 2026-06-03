@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { View } from "react-native";
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -36,12 +36,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // estilos animados
   const splashStyle = useAnimatedStyle(() => ({
-    ...StyleSheet.absoluteFillObject,
     opacity: splashOpacity.value,
   }));
 
   const contentStyle = useAnimatedStyle(() => ({
-    ...StyleSheet.absoluteFillObject,
     opacity: contentOpacity.value,
   }));
 
@@ -128,12 +126,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   return (
     <View className="flex-1 bg-background dark:bg-dark-background">
       {showSplash && (
-        <Animated.View style={splashStyle}>
+        <Animated.View className="absolute " style={splashStyle}>
           <SplashScreen />
         </Animated.View>
       )}
       {!showSplash && (
-        <Animated.View style={contentStyle}>{children}</Animated.View>
+        <Animated.View className="flex-1" style={contentStyle}>
+          {children}
+        </Animated.View>
       )}
     </View>
   );

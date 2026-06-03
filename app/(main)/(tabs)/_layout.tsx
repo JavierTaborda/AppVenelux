@@ -1,8 +1,7 @@
 import { useThemeStore } from "@/stores/useThemeStore";
 import { appTheme } from "@/utils/appTheme";
 import { Ionicons } from "@expo/vector-icons";
-import type { BottomTabBarButtonProps } from "@react-navigation/bottom-tabs";
-import { DrawerToggleButton } from "@react-navigation/drawer";
+import { DrawerToggleButton } from "expo-router/build/react-navigation/drawer";
 import { Tabs } from "expo-router";
 import { Pressable, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -41,7 +40,7 @@ export default function TabLayout() {
           />
         ),
         //Button styles of tab
-        tabBarButton: (props: BottomTabBarButtonProps) => {
+        tabBarButton: (props: any) => {
           const {
             onPress,
             onLongPress,
