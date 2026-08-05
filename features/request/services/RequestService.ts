@@ -111,7 +111,7 @@ export const RequestService = {
       return items;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response?.status === 404) {
-        console.warn('[RequestService.fetchRequests] Endpoint not found:', error.config?.url);
+        // Requests endpoint is optional in some environments.
         requestCache = [];
         notify();
         return [];
@@ -143,10 +143,24 @@ export const RequestService = {
     }
   },
 
+  async getMaterialsAll(): Promise<VeneluxMaterial[]> {
+    try {
+      const response = await api.get('/venelux/materials/all');
+      const parsed = parseMaterialsResponse(response.data as unknown);
+      return parsed.data;
+    } catch (error) {
+      // if (axios.isAxiosError(error) && error.response?.status === 404) {
+      //   console.warn('[RequestService.getMaterialsAll] Endpoint not found, trying fallback:', error.config?.url);
+      //   const fallback = await this.getMaterialsPage({ page: 1, pageSize: 1000 });
+      //   return fallback.data;
+      // }
+      throw error;
+    }
+  },
+
   async getMaterials(): Promise<VeneluxMaterial[]> {
     try {
-      const page = await this.getMaterialsPage({ page: 1, pageSize: 1000 });
-      return page.data;
+      return await this.getMaterialsAll();
     } catch (error) {
       if (axios.isAxiosError(error) && error.response?.status === 404) {
         console.warn('[RequestService.getMaterials] Endpoint not found:', error.config?.url);

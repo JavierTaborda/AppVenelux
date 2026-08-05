@@ -16,7 +16,7 @@ import {
 } from "react-native";
 
 export default function SelectedItemsFab() {
-  const { materials } = useRequest();
+  const { materials } = useRequest({ autoFetchRequests: false });
   const selected = useSelectedItemsStore((s) => s.selected);
   const incByItem = useSelectedItemsStore((s) => s.incByItem);
   const decByItem = useSelectedItemsStore((s) => s.decByItem);

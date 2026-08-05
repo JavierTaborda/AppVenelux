@@ -18,7 +18,7 @@ import {
 
 import { useScrollHeader } from "@/hooks/useScrollHeader";
 import { appTheme } from "@/utils/appTheme";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@react-native-vector-icons/ionicons";
 import TitleText from "./TitleText";
 
 type Props<T> = {
@@ -63,8 +63,8 @@ function CustomFlashList<T>({
 
   cooldown,
 
-  estimatedItemSize = 170,
-  drawDistance = 400,
+  estimatedItemSize = 250,
+  drawDistance = 250,
 
   ListEmptyComponent,
 
@@ -84,7 +84,7 @@ function CustomFlashList<T>({
 
   onEndReached,
   onEndReachedThreshold = 0.5,
-  removeClippedSubviews = Platform.OS === "android",
+  removeClippedSubviews = true,
 }: Props<T>) {
   const listRef = useRef<FlashListRef<T>>(null);
 
@@ -202,7 +202,7 @@ function CustomFlashList<T>({
         ListHeaderComponent={ListHeader}
         ListEmptyComponent={EmptyComponent}
         contentContainerStyle={[
-          { paddingHorizontal: 12 },
+          { paddingHorizontal: 12, paddingBottom: 0 },
           contentContainerStyle,
         ]}
       />

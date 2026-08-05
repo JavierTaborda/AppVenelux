@@ -8,7 +8,15 @@ type CreateRequestPayload = {
   items: Array<Partial<VeneluxMaterial> & { quantity: number }>;
 };
 
-export function useRequest() {
+type UseRequestOptions = {
+  autoFetchMaterials?: boolean;
+  autoFetchRequests?: boolean;
+};
+
+export function useRequest({
+  autoFetchMaterials = true,
+  autoFetchRequests = true,
+}: UseRequestOptions = {}) {
   const [materials, setMaterials] = useState<VeneluxMaterial[]>([]);
   const [requests, setRequests] = useState<Request[]>([]);
   const [loading, setLoading] = useState(false);
@@ -18,20 +26,15 @@ export function useRequest() {
   const [loadingMoreMaterials, setLoadingMoreMaterials] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    console.log('useRequest hook mounted, fetching materials and requests');
-    void fetchMaterials();
-  }, []);
-
   const fetchMaterials = useCallback(async () => {
     setLoading(true);
     try {
       setError(null);
-      const result = await RequestService.getMaterialsPage({ page: 1, pageSize: 50 });
-      setMaterials(result.data);
-      setTotalMaterials(result.total);
-      setMaterialsPage(result.page);
-      setMaterialsLastPage(result.lastPage);
+      const allMaterials = await RequestService.getMaterialsAll();
+      setMaterials(allMaterials);
+      setTotalMaterials(allMaterials.length);
+      setMaterialsPage(1);
+      setMaterialsLastPage(1);
     //  console.log('Fetched materials page:', result);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'No se pudo cargar materiales';
@@ -42,26 +45,31 @@ export function useRequest() {
     }
   }, []);
 
-  const loadMoreMaterials = useCallback(async () => {
-    if (loading || loadingMoreMaterials || materialsPage >= materialsLastPage) return;
+  useEffect(() => {
+    if (!autoFetchMaterials) return;
+    void fetchMaterials();
+  }, [autoFetchMaterials, fetchMaterials]);
 
-    setLoadingMoreMaterials(true);
-    try {
-      setError(null);
-      const nextPage = materialsPage + 1;
-      const result = await RequestService.getMaterialsPage({ page: nextPage, pageSize: 50 });
-      setMaterials((prev) => [...prev, ...result.data]);
-      setTotalMaterials(result.total);
-      setMaterialsPage(result.page);
-      setMaterialsLastPage(result.lastPage);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'No se pudo cargar mas materiales';
-      setError(message);
-      console.warn('[useRequest.loadMoreMaterials]', message);
-    } finally {
-      setLoadingMoreMaterials(false);
-    }
-  }, [loading, loadingMoreMaterials, materialsPage, materialsLastPage]);
+        // const loadMoreMaterials = useCallback(async () => {
+  //   if (loading || loadingMoreMaterials || materialsPage >= materialsLastPage) return;
+
+  //   setLoadingMoreMaterials(true);
+  //   try {
+  //     setError(null);
+  //     const nextPage = materialsPage + 1;
+  //     const result = await RequestService.getMaterialsPage({ page: nextPage, pageSize: 50 });
+  //     setMaterials((prev) => [...prev, ...result.data]);
+  //     setTotalMaterials(result.total);
+  //     setMaterialsPage(result.page);
+  //     setMaterialsLastPage(result.lastPage);
+  //   } catch (err) {
+  //     const message = err instanceof Error ? err.message : 'No se pudo cargar mas materiales';
+  //     setError(message);
+  //     console.warn('[useRequest.loadMoreMaterials]', message);
+  //   } finally {
+  //     setLoadingMoreMaterials(false);
+  //   }
+  // }, [loading, loadingMoreMaterials, materialsPage, materialsLastPage]);
 
   const fetchRequests = useCallback(async () => {
     setLoading(true);
@@ -80,10 +88,12 @@ export function useRequest() {
 
   useEffect(() => {
     const unsub = RequestService.subscribe((data) => setRequests(data));
-    // ensure initial load (in case service fetches from remote later)
-    void fetchRequests();
+    if (autoFetchRequests) {
+      // ensure initial load (in case service fetches from remote later)
+      void fetchRequests();
+    }
     return unsub;
-  }, [fetchRequests]);
+  }, [autoFetchRequests, fetchRequests]);
 
   // const createRequest = useCallback(
   //   async (payload: CreateRequestPayload) => {
@@ -109,7 +119,7 @@ export function useRequest() {
     loadingMoreMaterials,
     error,
     fetchMaterials,
-    loadMoreMaterials,
+    //1loadMoreMaterials,
     fetchRequests,
     updateStatus,
   } as const;

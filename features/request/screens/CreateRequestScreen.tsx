@@ -11,7 +11,7 @@ import type { VeneluxMaterial } from "../types/request";
 import ProductDetailScreen from "./ProductDetailScreen";
 
 export default function CreateRequestScreen() {
-  const { materials, loadMoreMaterials } = useRequest();
+  const { materials } = useRequest({ autoFetchRequests: false });
   const [modalVisible, setModalVisible] = useState(false);
   const [modalItem, setModalItem] = useState<VeneluxMaterial | null>(null);
   const selected = useSelectedItemsStore((s) => s.selected);
@@ -89,8 +89,8 @@ export default function CreateRequestScreen() {
         title={`${items.length} `}
         subtitle={`Materiales disponibles`}
         numColumns={1}
-        estimatedItemSize={170}
-        onEndReached={loadMoreMaterials}
+        //estimatedItemSize={170}
+        //onEndReached={loadMoreMaterials}
         // contentContainerStyle={{ paddingBottom: 210 }}
       />
 
