@@ -3,22 +3,20 @@ import CustomFlatList from "@/components/ui/CustomFlatList";
 import CustomImagen from "@/components/ui/CustomImagen";
 import { useRequest } from "@/features/request/hooks/useRequest";
 import { useSelectedItemsStore } from "@/features/request/stores/useSelectedItemsStore";
-import type { RequestItem } from "@/features/request/types/request";
+import type { VeneluxMaterial } from "@/features/request/types/request";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import {
-  Alert,
-  Platform,
-  Pressable,
-  Text,
-  ToastAndroid,
-  View,
+    Alert,
+    Platform,
+    Pressable,
+    Text,
+    ToastAndroid,
+    View,
 } from "react-native";
 
 export default function SelectedItemsFab() {
-  const router = useRouter();
-  const { requests } = useRequest();
+  const { materials } = useRequest();
   const selected = useSelectedItemsStore((s) => s.selected);
   const incByItem = useSelectedItemsStore((s) => s.incByItem);
   const decByItem = useSelectedItemsStore((s) => s.decByItem);
@@ -26,19 +24,10 @@ export default function SelectedItemsFab() {
 
   const [visible, setVisible] = useState(false);
 
-  // Memorizar la lista completa de ítems disponibles
-  const items = useMemo(() => {
-    const map = new Map<string, RequestItem>();
-    (requests || []).forEach((r) => {
-      r.items.forEach((it) => {
-        const key = it.codart || it.description;
-        if (!map.has(key)) map.set(key, it);
-      });
-    });
-    return Array.from(map.values());
-  }, [requests]);
+  const items = useMemo(() => materials || [], [materials]);
 
-  const keyOf = (it: RequestItem) => it.codart || it.description;
+  const keyOf = (it: VeneluxMaterial) =>
+    String(it.codigo || it.codart || it.material);
 
   const getQuantityByItem = useSelectedItemsStore((s) => s.getQuantityByItem);
 
@@ -147,17 +136,17 @@ export default function SelectedItemsFab() {
                     {/* Detalles del Producto */}
                     <View className="flex-row items-center flex-1 pr-3">
                       <View className="w-16 h-16 rounded-xl overflow-hidden bg-neutral-100 border border-neutral-200/50">
-                        <CustomImagen img={item.imagen1} />
+                        <CustomImagen img={item.imagen1 ?? ""} />
                       </View>
                       <View className="ml-3 flex-1 justify-center">
                         <Text
                           className="text-sm font-semibold text-neutral-800 dark:text-neutral-100"
                           numberOfLines={1}
                         >
-                          {item.description}
+                          {item.material}
                         </Text>
                         <Text className="text-xs text-neutral-400 font-medium mt-0.5">
-                          Cod: {item.codart}
+                          Cod: {item.codigo}
                         </Text>
                         <Text
                           className="text-xs text-neutral-500 mt-1"

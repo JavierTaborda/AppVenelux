@@ -63,8 +63,8 @@ function CustomFlashList<T>({
 
   cooldown,
 
-  estimatedItemSize = 250,
-  drawDistance = 250,
+  estimatedItemSize = 170,
+  drawDistance = 400,
 
   ListEmptyComponent,
 
@@ -84,7 +84,7 @@ function CustomFlashList<T>({
 
   onEndReached,
   onEndReachedThreshold = 0.5,
-  removeClippedSubviews = true,
+  removeClippedSubviews = Platform.OS === "android",
 }: Props<T>) {
   const listRef = useRef<FlashListRef<T>>(null);
 
@@ -202,7 +202,7 @@ function CustomFlashList<T>({
         ListHeaderComponent={ListHeader}
         ListEmptyComponent={EmptyComponent}
         contentContainerStyle={[
-          { paddingHorizontal: 12, paddingBottom: 200 },
+          { paddingHorizontal: 12 },
           contentContainerStyle,
         ]}
       />

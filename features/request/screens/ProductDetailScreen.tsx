@@ -6,11 +6,11 @@ import { Alert, Pressable, ScrollView, Text, View } from "react-native";
 
 import { useRequest } from "../hooks/useRequest";
 import { useSelectedItemsStore } from "../stores/useSelectedItemsStore";
-import type { RequestItem } from "../types/request";
+import type { VeneluxMaterial } from "../types/request";
 
 interface Props {
   productId?: string;
-  item?: RequestItem;
+  item?: VeneluxMaterial;
   onClose?: () => void;
 }
 
@@ -41,16 +41,21 @@ export default function ProductDetailScreen({
     (id
       ? requests
           .flatMap((r) => r.items)
-          .find(
-            (it) => (it.codart || it.description) === decodeURIComponent(id),
-          )
+          .find((it) => it.codigo === decodeURIComponent(id))
       : undefined);
+
+  const productLabel =
+    found?.material ??
+    (found as { description?: string; descripcion?: string } | undefined)
+      ?.description ??
+    (found as { description?: string; descripcion?: string } | undefined)
+      ?.descripcion ??
+    "";
 
   useEffect(() => {
     if (found) {
       const stored = getQuantityByItem(found); // returns 0 if not selected
-      const max = found.quantity ?? Number.MAX_SAFE_INTEGER;
-      const initial = Math.min(Math.max(0, stored ?? 0), max);
+      const initial = Math.max(0, stored ?? 0);
       setQty(initial);
     }
   }, [found, getQuantityByItem]);
@@ -79,26 +84,26 @@ export default function ProductDetailScreen({
         contentContainerStyle={{ paddingBottom: 140 }}
       >
         {/* IMAGE */}
-        <View className="w-full h-[240px] bg-componentbg dark:bg-bgimages items-center justify-center rounded-b-[40px] overflow-hidden">
-          <CustomImagen img={found.imagen1} content="contain" />
+        <View className="w-full h-[220px] bg-componentbg dark:bg-bgimages items-center justify-center rounded-b-[40px] overflow-hidden">
+          <CustomImagen img={found.imagen1 ?? ""} content="contain" />
         </View>
 
         {/* CONTENT */}
-        <View className="px-3 mt-3">
+        <View className="px-3 mt-1">
           {/* TITLE + ACTIONS */}
           <View className="flex-row justify-between items-start">
             <View className="flex-1 pr-3">
-              <Text className="text-2xl font-extrabold text-foreground dark:text-dark-foreground mt-1 leading-9">
-                {found.codart} - {found.description}
+              <Text className="text-xl font-extrabold text-foreground dark:text-dark-foreground mt-1 leading-6">
+                {found.codigo} - {productLabel}
               </Text>
               <Text className="text-base text-zinc-500 mt-1">
-                Parte #{found.noparte}
+                Parte #{found.nroparte ?? found.noparte ?? "-"}
               </Text>
             </View>
           </View>
 
           {/* INFO CARD */}
-          <View className="bg-componentbg dark:bg-dark-componentbg rounded-3xl p-5 mt-3">
+          <View className="bg-componentbg dark:bg-dark-componentbg rounded-3xl p-5 mt-1">
             <Text className="text-lg font-bold text-foreground dark:text-dark-foreground mb-1">
               Detalles
             </Text>
@@ -106,7 +111,7 @@ export default function ProductDetailScreen({
             <View className="flex-row justify-between py-2.5 border-b border-zinc-100">
               <Text className="text-zinc-400">Código</Text>
               <Text className="font-semibold text-foreground dark:text-dark-foreground">
-                {found.codart}
+                {found.codigo}
               </Text>
             </View>
 
@@ -126,7 +131,7 @@ export default function ProductDetailScreen({
             <View className="flex-row justify-between py-2.5">
               <Text className="text-zinc-500">Disponibles</Text>
               <Text className="font-semibold text-foreground dark:text-dark-foreground">
-                {found.quantity ?? "-"}
+                -
               </Text>
             </View>
           </View>
@@ -151,20 +156,8 @@ export default function ProductDetailScreen({
                 <Text className="mx-6 text-lg font-bold">{qty}</Text>
 
                 <Pressable
-                  onPress={() =>
-                    setQty((q) =>
-                      Math.min(
-                        found.quantity ?? Number.MAX_SAFE_INTEGER,
-                        q + 1,
-                      ),
-                    )
-                  }
-                  disabled={qty >= (found.quantity ?? Number.MAX_SAFE_INTEGER)}
-                  className={
-                    qty >= (found.quantity ?? Number.MAX_SAFE_INTEGER)
-                      ? "w-10 h-10 rounded-xl bg-gray-300 items-center justify-center"
-                      : "w-10 h-10 rounded-xl bg-secondary dark:bg-dark-secondary items-center justify-center"
-                  }
+                  onPress={() => setQty((q) => q + 1)}
+                  className="w-10 h-10 rounded-xl bg-secondary dark:bg-dark-secondary items-center justify-center"
                 >
                   <Text className="text-xl font-bold text-white">+</Text>
                 </Pressable>
@@ -223,10 +216,9 @@ export default function ProductDetailScreen({
           onPress={() => {
             if (!found) return;
             if (qty === 0) return; // disabled
-            const k = found.codart || found.description;
+            const k = String(found.codigo || found.codart || productLabel);
             const next = { ...selectedMap } as Record<string, number>;
-            const max = found.quantity ?? Number.MAX_SAFE_INTEGER;
-            const capped = Math.min(Math.max(qty, 0), max);
+            const capped = Math.max(qty, 0);
             if (capped <= 0) delete next[k];
             else next[k] = capped;
             setSelected(next);

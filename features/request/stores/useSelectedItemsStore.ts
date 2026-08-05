@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { RequestItem } from "../types/request";
+import type { VeneluxMaterial } from "../types/request";
 
 type SelectedMap = Record<string, number>;
 
@@ -9,16 +9,17 @@ interface SelectedItemsStore {
   inc: (key: string) => void;
   dec: (key: string) => void;
   getQuantity: (key: string) => number;
-  // Typed helpers that accept a RequestItem
-  incByItem: (item: RequestItem) => void;
-  decByItem: (item: RequestItem) => void;
-  removeByItem: (item: RequestItem) => void;
-  getQuantityByItem: (item: RequestItem) => number;
+  // Typed helpers that accept a VeneluxMaterial
+  incByItem: (item: VeneluxMaterial) => void;
+  decByItem: (item: VeneluxMaterial) => void;
+  removeByItem: (item: VeneluxMaterial) => void;
+  getQuantityByItem: (item: VeneluxMaterial) => number;
   clear: () => void;
 }
 
 export const useSelectedItemsStore = create<SelectedItemsStore>((set, get) => {
-  const keyOf = (item: RequestItem) => item.codart || item.description;
+  const keyOf = (item: VeneluxMaterial) =>
+    String(item.codigo || item.codart || item.material);
 
   return {
     selected: {},
@@ -39,8 +40,6 @@ export const useSelectedItemsStore = create<SelectedItemsStore>((set, get) => {
       const k = keyOf(item);
       set((state) => {
         const current = state.selected[k] || 0;
-        const max = item.quantity ?? Number.MAX_SAFE_INTEGER;
-        if (current >= max) return { selected: state.selected };
         return { selected: { ...state.selected, [k]: current + 1 } };
       });
     },

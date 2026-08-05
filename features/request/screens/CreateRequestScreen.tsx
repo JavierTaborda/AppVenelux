@@ -3,17 +3,17 @@ import BottomModal from "@/components/ui/BottomModal";
 import CustomFlatList from "@/components/ui/CustomFlatList";
 import SelectedItemsFab from "@/features/request/components/SelectedItemsFab";
 import { useMemo, useState } from "react";
-import { Alert, Pressable, Text, View } from "react-native";
+import { Alert } from "react-native";
 import SelectableItemCard from "../components/SelectableItemCard";
 import { useRequest } from "../hooks/useRequest";
 import { useSelectedItemsStore } from "../stores/useSelectedItemsStore";
-import type { RequestItem } from "../types/request";
+import type { VeneluxMaterial } from "../types/request";
 import ProductDetailScreen from "./ProductDetailScreen";
 
 export default function CreateRequestScreen() {
-  const { requests, createRequest } = useRequest();
+  const { materials, loadMoreMaterials } = useRequest();
   const [modalVisible, setModalVisible] = useState(false);
-  const [modalItem, setModalItem] = useState<RequestItem | null>(null);
+  const [modalItem, setModalItem] = useState<VeneluxMaterial | null>(null);
   const selected = useSelectedItemsStore((s) => s.selected);
   const incByItem = useSelectedItemsStore((s) => s.incByItem);
   const decByItem = useSelectedItemsStore((s) => s.decByItem);
@@ -21,23 +21,14 @@ export default function CreateRequestScreen() {
   const clearSelected = useSelectedItemsStore((s) => s.clear);
   const [submitting, setSubmitting] = useState(false);
 
-  const items = useMemo(() => {
-    const map = new Map<string, RequestItem>();
-    (requests || []).forEach((r) => {
-      r.items.forEach((it) => {
-        const key = it.codart;
-        if (!map.has(key)) map.set(key, it);
-      });
-    });
-    return Array.from(map.values());
-  }, [requests]);
+  const items = useMemo(() => materials, [materials]);
 
-  const keyOf = (it: RequestItem) => it.codart;
+  const keyOf = (it: VeneluxMaterial) => it.codigo;
 
-  const inc = (it: RequestItem) => {
+  const inc = (it: VeneluxMaterial) => {
     incByItem(it);
   };
-  const dec = (it: RequestItem) => {
+  const dec = (it: VeneluxMaterial) => {
     decByItem(it);
   };
 
@@ -46,31 +37,13 @@ export default function CreateRequestScreen() {
 
   const handleCreate = async () => {
     if (totalQty === 0) return Alert.alert("Selecciona al menos un item");
-    const payloadItems = items
-      .filter((it) => getQuantityByItem(it) > 0)
-      .map((it) => ({
-        description: it.description,
-        quantity: getQuantityByItem(it),
-        codart: it.codart,
-        marca: it.marca,
-        noparte: it.noparte,
-        imagen1: it.imagen1,
-      }));
-
-    try {
-      setSubmitting(true);
-      await createRequest({
-        title: `Solicitud - ${new Date().toLocaleString()}`,
-        description: "Creada desde selector",
-        items: payloadItems,
-      });
-      Alert.alert("Éxito", "Solicitud creada correctamente");
-      clearSelected();
-    } catch (err) {
-      Alert.alert("Error", "No se pudo crear la solicitud");
-    } finally {
-      setSubmitting(false);
-    }
+    setSubmitting(true);
+    clearSelected();
+    Alert.alert(
+      "Listo",
+      "Selección guardada localmente. La creación de request está deshabilitada por ahora.",
+    );
+    setSubmitting(false);
   };
 
   return (
@@ -92,7 +65,7 @@ export default function CreateRequestScreen() {
       //     ) : (
       //       extraFilters
       //     )
-      //   }
+      //   }i
       onFilterPress={() => true}
     >
       <CustomFlatList
@@ -113,36 +86,19 @@ export default function CreateRequestScreen() {
         refreshing={false}
         canRefresh={false}
         handleRefresh={() => {}}
-        title="105 items disponibles"
-        subtitle=""
-        numColumns={2}
+        title={`${items.length} `}
+        subtitle={`Materiales disponibles`}
+        numColumns={1}
+        estimatedItemSize={170}
+        onEndReached={loadMoreMaterials}
+        // contentContainerStyle={{ paddingBottom: 210 }}
       />
-
-      <View className="absolute left-3 right-3 bottom-4 bg-white rounded-xl p-3 flex-row items-center justify-between shadow-lg">
-        <View>
-          <Text className="font-bold text-foreground">
-            {distinctCount} artículos
-          </Text>
-          <Text className="text-xs text-mutedForeground">
-            {totalQty} unidades seleccionadas
-          </Text>
-        </View>
-
-        <Pressable
-          onPress={handleCreate}
-          className="bg-primary px-4 py-2 rounded-md"
-        >
-          <Text className="text-white font-bold">
-            {submitting ? "Enviando..." : "Crear solicitud"}
-          </Text>
-        </Pressable>
-      </View>
 
       {modalItem && (
         <BottomModal
           visible={modalVisible}
           onClose={() => setModalVisible(false)}
-          heightPercentage={0.9}
+          heightPercentage={0.8}
         >
           <ProductDetailScreen
             item={modalItem}

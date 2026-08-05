@@ -1,9 +1,9 @@
 import CustomImagen from "@/components/ui/CustomImagen";
 import { Pressable, Text, View } from "react-native";
-import type { RequestItem } from "../types/request";
+import type { VeneluxMaterial } from "../types/request";
 
 type Props = {
-  item: RequestItem;
+  item: VeneluxMaterial;
   selected?: number;
   onInc: () => void;
   onDec: () => void;
@@ -17,43 +17,99 @@ export default function SelectableItemCard({
   onDec,
   onPress,
 }: Props) {
+  const brandLabel = item.marca ?? "Sin marca";
+  const partLabel = item.noparte ?? item.nroparte ?? "Sin parte";
+
   return (
-    <View className="flex-1 m-2 bg-componentbg dark:bg-dark-componentbg rounded-xl overflow-hidden shadow-md">
-      <Pressable onPress={onPress} className="flex-1">
-        <View className="w-full h-36 bg-transparent pt-4">
-          <CustomImagen img={item.imagen1} />
-        </View>
-        <View className="absolute top-1 right-2 px-2 py-1 rounded-full bg-primary/15 dark:bg-dark-background/75 border border-primary/30 dark:border-primary-dark/40">
-          <Text
-            numberOfLines={1}
-            className="text-[10px] font-semibold text-primary dark:text-dark-primary"
-          >
-            {selected > 0
-              ? `${selected} seleccionadas`
-              : `${item.quantity} disponibles`}
-          </Text>
+    <View className="mx-3 mb-2 overflow-hidden rounded-3xl border border-zinc-200/70 bg-componentbg dark:bg-dark-background ">
+      <Pressable
+        onPress={onPress}
+        className="min-h-36 flex-row active:opacity-95"
+      >
+        <View className="relative w-32 self-stretch overflow-hidden bg-bgimages">
+          <View className="">
+            <CustomImagen img={item.imagen1 ?? ""} content="cover" />
+          </View>
+
+          <View className="absolute inset-x-0 bottom-0 h-10 bg-black/10" />
+
+          <View className="absolute top-3 left-3 rounded-full border border-zinc-200 bg-white/95 px-2.5 py-1">
+            <Text className="text-[10px] font-semibold tracking-wide text-zinc-500">
+              {item.unidad ?? "Pieza"}
+            </Text>
+          </View>
         </View>
 
-        <View className="p-2 flex-row justify-between relative">
+        <View className="flex-1 justify-between p-4">
           <View>
-            <Text
-              numberOfLines={2}
-              className="text-sm font-bold text-foreground dark:text-dark-foreground"
-            >
-              {item.codart} - {item.description}
+            <View className="flex-row items-start justify-between gap-b">
+              <View className="flex-1">
+                <Text
+                  numberOfLines={2}
+                  className="mt-0.5 text-base font-bold leading-5 text-zinc-900 dark:text-dark-foreground"
+                >
+                  {item.material}
+                </Text>
+                <Text
+                  numberOfLines={1}
+                  className="mt-1 text-[11px] font-semibold uppercase tracking-[1px] text-zinc-600"
+                >
+                  {item.codigo}
+                </Text>
+              </View>
+
+              <View
+                className={
+                  selected > 0
+                    ? "px-3 py-1.5 rounded-full bg-primary"
+                    : "px-3 py-1.5 rounded-full bg-zinc-100"
+                }
+              >
+                <Text
+                  className={
+                    selected > 0
+                      ? "text-[11px] font-bold text-white"
+                      : "text-[11px] font-bold text-zinc-600"
+                  }
+                >
+                  {selected > 0 ? `${selected} en bolsa` : "Disponible"}
+                </Text>
+              </View>
+            </View>
+
+            <Text numberOfLines={1} className="mt-1 text-sm text-zinc-500">
+              Parte: {partLabel}
             </Text>
+
             <Text
               numberOfLines={1}
-              className="text-sm text-zinc-800 dark:text-zinc-300 mt-0.5"
+              className="mt-0.5 text-sm font-semibold text-zinc-700"
             >
-              {item.marca} - {item.noparte}
+              {brandLabel}
             </Text>
-            <Text
-              numberOfLines={1}
-              className="text-sm text-mutedForeground dark:text-dark-mutedForeground mt-0.5"
-            >
-              Fabricante
-            </Text>
+
+            {/* <View className="mt-2.5 flex-row flex-wrap gap-2">
+              {item.linea ? (
+                <View className="rounded-full bg-zinc-100 px-2.5 py-1">
+                  <Text
+                    numberOfLines={1}
+                    className="text-[11px] font-medium text-zinc-600"
+                  >
+                    {item.linea}
+                  </Text>
+                </View>
+              ) : null}
+              {item.categoria ? (
+                <View className="rounded-full bg-emerald-50 px-2.5 py-1">
+                  <Text
+                    numberOfLines={1}
+                    className="text-[11px] font-medium text-emerald-700"
+                  >
+                    {item.categoria}
+                  </Text>
+                </View>
+              ) : null}
+            </View> */}
           </View>
         </View>
       </Pressable>
