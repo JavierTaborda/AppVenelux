@@ -27,7 +27,12 @@ export default function CreateRequestScreen() {
 
   const items = useMemo(() => materials, [materials]);
 
-  const keyOf = (it: VeneluxMaterial) => it.codigo;
+  const keyOf = (it: VeneluxMaterial, index: number) => {
+    const code = it.codigo?.trim() || "sin-codigo";
+    const part = (it.noparte ?? it.nroparte ?? "sin-parte").trim();
+    const codart = it.codart != null ? String(it.codart) : "sin-codart";
+    return `${code}-${codart}-${part}-${index}`;
+  };
 
   const inc = (it: VeneluxMaterial) => {
     incByItem(it);
@@ -116,7 +121,7 @@ export default function CreateRequestScreen() {
     >
       <CustomFlatList
         data={items}
-        keyExtractor={(item) => keyOf(item)}
+        keyExtractor={(item, index) => keyOf(item, index)}
         renderItem={({ item }) => (
           <SelectableItemCard
             item={item}
@@ -135,8 +140,7 @@ export default function CreateRequestScreen() {
         title={`${items.length} `}
         subtitle={`Materiales disponibles`}
         numColumns={1}
-        removeClippedSubviews={true}
-        drawDistance={100}
+        estimatedItemSize={170}
         //onEndReached={loadMoreMaterials}
         contentContainerStyle={{ paddingBottom: 210 }}
       />
