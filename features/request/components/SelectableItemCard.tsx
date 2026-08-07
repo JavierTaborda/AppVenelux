@@ -70,7 +70,7 @@ export default function SelectableItemCard({
                       : "text-[11px] font-bold text-zinc-600"
                   }
                 >
-                  {selected > 0 ? `${selected} en bolsa` : "Disponible"}
+                  {selected > 0 ? `${selected} Solicitado` : "Disponible"}
                 </Text>
               </View>
             </View>

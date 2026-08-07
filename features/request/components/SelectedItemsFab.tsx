@@ -5,15 +5,16 @@ import { useRequest } from "@/features/request/hooks/useRequest";
 import { useSelectedItemsStore } from "@/features/request/stores/useSelectedItemsStore";
 import type { VeneluxMaterial } from "@/features/request/types/request";
 import { Ionicons } from "@expo/vector-icons";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
-    Alert,
-    Platform,
-    Pressable,
-    Text,
-    ToastAndroid,
-    View,
+  Alert,
+  Platform,
+  Pressable,
+  Text,
+  ToastAndroid,
+  View,
 } from "react-native";
+import Animated, { FadeInDown, FadeOutDown } from "react-native-reanimated";
 
 export default function SelectedItemsFab() {
   const { materials } = useRequest({ autoFetchRequests: false });
@@ -39,6 +40,12 @@ export default function SelectedItemsFab() {
 
   const totalQty = Object.values(selected).reduce((a, b) => a + b, 0);
   const distinctCount = Object.keys(selected).length;
+
+  useEffect(() => {
+    if (totalQty === 0 && visible) {
+      setVisible(false);
+    }
+  }, [totalQty, visible]);
 
   const handleClear = () => {
     if (totalQty === 0) return;
@@ -69,35 +76,44 @@ export default function SelectedItemsFab() {
   return (
     <>
       {/* FAB - Botón Flotante de la Bolsa */}
-      <Pressable
-        className="absolute right-4 bottom-48 bg-primary rounded-full w-16 h-16 items-center justify-center shadow-2xl z-50"
-        onPress={() => setVisible(true)}
-        accessibilityRole="button"
-        accessibilityLabel={`Ver bolsa, ${totalQty} unidades`}
-        android_ripple={{ color: "rgba(255,255,255,0.08)", borderless: true }}
-      >
-        <Ionicons name="bag" size={22} color="white" />
-        {totalQty > 0 && (
-          <View className="absolute -top-2 -right-2 bg-red-600 rounded-full w-6 h-6 items-center justify-center">
-            <Text className="text-white text-xs">{totalQty}</Text>
-          </View>
-        )}
-      </Pressable>
+      {totalQty > 0 && (
+        <Animated.View
+          entering={FadeInDown.duration(220)}
+          exiting={FadeOutDown.duration(180)}
+          className="absolute right-4 bottom-48 z-50"
+        >
+          <Pressable
+            className="bg-primary rounded-full w-16 h-16 items-center justify-center shadow-2xl"
+            onPress={() => setVisible(true)}
+            accessibilityRole="button"
+            accessibilityLabel={`Ver bolsa, ${totalQty} unidades`}
+            android_ripple={{
+              color: "rgba(255,255,255,0.08)",
+              borderless: true,
+            }}
+          >
+            <Ionicons name="bag" size={22} color="white" />
+            <View className="absolute -top-2 -right-2 bg-red-600 rounded-full w-6 h-6 items-center justify-center">
+              <Text className="text-white text-xs">{totalQty}</Text>
+            </View>
+          </Pressable>
+        </Animated.View>
+      )}
 
       {/* Modal inferior de la Bolsa */}
       <BottomModal
         visible={visible}
         onClose={() => setVisible(false)}
-        heightPercentage={0.85}
+        heightPercentage={0.8}
       >
-        <View className="flex-1 px-2">
+        <View className="flex-1">
           {/* Header del Modal */}
-          <View className="flex-row justify-between items-center pb-4 mb-2 border-b border-zinc-100 dark:border-zinc-800">
+          <View className="flex-row justify-between items-center pb-4 mb-2 border-b border-zinc-100 dark:border-zinc-800 bg-componentbg dark:bg-dark-componentbg px-3 pt-2 rounded-t-2xl">
             <View>
-              <Text className="text-xl font-bold tracking-tight text-neutral-900 dark:text-neutral-50">
-                Mi bolsa
+              <Text className="text-2xl font-extrabold tracking-tight text-neutral-900 dark:text-neutral-50">
+                Resumen
               </Text>
-              <Text className="text-xs text-neutral-400 mt-0.5">
+              <Text className="text-xs text-neutral-600 dark:text-neutral-100 mt-0.5">
                 {distinctCount} {distinctCount === 1 ? "artículo" : "artículos"}{" "}
                 · {totalQty} {totalQty === 1 ? "unidad" : "unidades"}
               </Text>
@@ -128,11 +144,11 @@ export default function SelectedItemsFab() {
               refreshing={false}
               canRefresh={false}
               handleRefresh={() => {}}
-              contentContainerStyle={{ paddingBottom: 100 }} // Espacio para que el botón no tape el último item
+              contentContainerStyle={{ paddingBottom: 100 }}
               renderItem={({ item }) => {
                 const itemQty = getQuantityByItem(item);
                 return (
-                  <View className="flex-row items-center justify-between py-4 border-b border-neutral-100 dark:border-neutral-800">
+                  <View className="flex-row items-center justify-between py-4 border-b border-neutral-100 dark:border-neutral-800 bg-componentbg dark:bg-dark-componentbg rounded-3xl px-3 mb-2">
                     {/* Detalles del Producto */}
                     <View className="flex-row items-center flex-1 pr-3">
                       <View className="w-16 h-16 rounded-xl overflow-hidden bg-neutral-100 border border-neutral-200/50">
@@ -160,19 +176,19 @@ export default function SelectedItemsFab() {
                     {/* Stepper de cantidad estilo "Shop" (Contenedor tipo píldora) */}
                     <View className="flex-row items-center bg-neutral-100 dark:bg-neutral-800 rounded-full p-1 border border-neutral-200/40">
                       <Pressable
-                        className="w-8 h-8 items-center justify-center rounded-full active:bg-neutral-200 dark:active:bg-neutral-700"
+                        className="w-10 h-10 items-center justify-center rounded-full active:bg-neutral-200 dark:active:bg-neutral-700"
                         onPress={() => decByItem(item)}
                       >
                         {itemQty === 1 ? (
                           <Ionicons
                             name="trash-outline"
-                            size={15}
+                            size={18}
                             color="#6B7280"
                           />
                         ) : (
                           <Ionicons
                             name="remove"
-                            size={16}
+                            size={18}
                             color="#1F2937"
                             className="dark:text-white"
                           />
@@ -184,12 +200,12 @@ export default function SelectedItemsFab() {
                       </Text>
 
                       <Pressable
-                        className="w-8 h-8 items-center justify-center rounded-full bg-white dark:bg-neutral-700 shadow-sm active:bg-neutral-100"
+                        className="w-10 h-10 items-center justify-center rounded-full bg-white dark:bg-neutral-700 shadow-sm active:bg-neutral-100"
                         onPress={() => incByItem(item)}
                       >
                         <Ionicons
                           name="add"
-                          size={16}
+                          size={18}
                           color="#1F2937"
                           className="dark:text-white"
                         />
@@ -209,13 +225,13 @@ export default function SelectedItemsFab() {
             className={`w-full h-14 rounded-xl flex-row items-center justify-center space-x-2 ${
               totalQty === 0
                 ? "bg-neutral-200 dark:bg-neutral-800"
-                : "bg-black dark:bg-white active:opacity-90"
+                : "bg-primary dark:bg-white active:opacity-90"
             }`}
           >
             <Text
-              className={`text-base font-bold ${totalQty === 0 ? "text-neutral-400" : "text-white dark:text-black"}`}
+              className={`text-lg font-bold ${totalQty === 0 ? "text-neutral-400" : "text-white dark:text-black"}`}
             >
-              Agregar a la solicitud
+              Confirmar solicitud de materiales
             </Text>
             {totalQty > 0 && (
               <View className="bg-neutral-800 dark:bg-neutral-200 rounded-md px-1.5 py-0.5 ml-1">

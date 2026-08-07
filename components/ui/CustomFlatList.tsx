@@ -50,6 +50,7 @@ type Props<T> = {
   onEndReached?: () => void;
   onEndReachedThreshold?: number;
   removeClippedSubviews?: boolean;
+  paddingHorizontal?: number;
 };
 
 function CustomFlashList<T>({
@@ -85,6 +86,7 @@ function CustomFlashList<T>({
   onEndReached,
   onEndReachedThreshold = 0.5,
   removeClippedSubviews = true,
+  paddingHorizontal,
 }: Props<T>) {
   const listRef = useRef<FlashListRef<T>>(null);
 
@@ -202,7 +204,10 @@ function CustomFlashList<T>({
         ListHeaderComponent={ListHeader}
         ListEmptyComponent={EmptyComponent}
         contentContainerStyle={[
-          { paddingHorizontal: 12, paddingBottom: 0 },
+          {
+            paddingHorizontal: paddingHorizontal === 0 ? 0 : paddingHorizontal,
+            paddingBottom: 0,
+          },
           contentContainerStyle,
         ]}
       />

@@ -11,8 +11,29 @@ import type { VeneluxMaterial } from "../types/request";
 import { exportMaterialsCsv } from "../utils/materialsCsv";
 import ProductDetailScreen from "./ProductDetailScreen";
 
+const MATERIAL_SKELETON_ITEMS = Array.from(
+  { length: 8 },
+  (_, i) => `material-skeleton-${i}`,
+);
+
+function MaterialSkeletonCard() {
+  return (
+    <View className="mx-3 mb-2 overflow-hidden rounded-3xl border border-zinc-200/70 bg-componentbg dark:bg-dark-componentbg p-5">
+      <View className="flex-row gap-3">
+        <View className="h-24 w-24 rounded-2xl bg-zinc-200 dark:bg-zinc-700 animate-pulse" />
+        <View className="flex-1 gap-2">
+          <View className="h-4 w-5/6 rounded-full bg-zinc-200 dark:bg-zinc-700 animate-pulse" />
+          <View className="h-3 w-1/2 rounded-full bg-zinc-200 dark:bg-zinc-700 animate-pulse" />
+          <View className="h-3 w-2/3 rounded-full bg-zinc-200 dark:bg-zinc-700 animate-pulse" />
+          <View className="h-3 w-1/3 rounded-full bg-zinc-200 dark:bg-zinc-700 animate-pulse" />
+        </View>
+      </View>
+    </View>
+  );
+}
+
 export default function CreateRequestScreen() {
-  const { materials, searchText, setSearchText } = useRequest({
+  const { materials, searchText, setSearchText, loading } = useRequest({
     autoFetchRequests: false,
   });
   const [modalVisible, setModalVisible] = useState(false);
@@ -88,13 +109,21 @@ export default function CreateRequestScreen() {
       extraFiltersComponent={
         <>
           <View className="flex-row items-center gap-2">
-            <View className=" bg-gray-300 dark:bg-gray-700  items-center px-14 py-5 rounded-full  animate-pulse "></View>
-            <View className=" bg-gray-300 dark:bg-gray-700  items-center px-14 py-5 rounded-full  animate-pulse "></View>
+            {loading && (
+              <>
+                <View className="bg-gray-300 dark:bg-gray-700 items-center px-14 py-5 rounded-full animate-pulse" />
+                <View className="bg-gray-300 dark:bg-gray-700 items-center px-14 py-5 rounded-full animate-pulse" />
+                <View className="bg-gray-300 dark:bg-gray-700 items-center px-14 py-5 rounded-full animate-pulse" />
+              </>
+            )}
             <View className=" bg-gray-300 dark:bg-gray-700  items-center px-14 py-5 rounded-full  animate-pulse "></View>
 
+            <View className=" bg-gray-300 dark:bg-gray-700  items-center px-14 py-5 rounded-full  animate-pulse "></View>
+
+            <View className=" bg-gray-300 dark:bg-gray-700  items-center px-14 py-5 rounded-full  animate-pulse "></View>
             <Pressable
               onPress={handleExportCsv}
-              disabled={exporting}
+              disabled={exporting || loading || materials.length === 0}
               className="bg-primary dark:bg-dark-primary rounded-full px-4 py-2"
             >
               <Text className="text-white font-semibold text-sm">
@@ -104,46 +133,49 @@ export default function CreateRequestScreen() {
           </View>
         </>
       }
-      //   extraFiltersComponent={
-      //     loading ? (
-      //       <>
-      //         <View className="flex-row gap-3 items-center w-full ">
-      //           <View className=" bg-gray-300 dark:bg-gray-700  items-center px-14 py-5 rounded-full  animate-pulse "></View>
-      //           <View className=" bg-gray-300 dark:bg-gray-700  items-center px-14 py-5 rounded-full  animate-pulse "></View>
-      //           <View className=" bg-gray-300 dark:bg-gray-700  items-center px-14 py-5 rounded-full  animate-pulse "></View>
-      //         </View>
-      //       </>
-      //     ) : (
-      //       extraFilters
-      //     )
-      //   }i
       onFilterPress={() => {}}
     >
-      <CustomFlatList
-        data={items}
-        keyExtractor={(item, index) => keyOf(item, index)}
-        renderItem={({ item }) => (
-          <SelectableItemCard
-            item={item}
-            selected={getQuantityByItem(item)}
-            onInc={() => inc(item)}
-            onDec={() => dec(item)}
-            onPress={() => {
-              setModalItem(item);
-              setModalVisible(true);
-            }}
-          />
-        )}
-        refreshing={false}
-        canRefresh={false}
-        handleRefresh={() => {}}
-        title={`${items.length} `}
-        subtitle={`Materiales disponibles`}
-        numColumns={1}
-        estimatedItemSize={170}
-        //onEndReached={loadMoreMaterials}
-        contentContainerStyle={{ paddingBottom: 210 }}
-      />
+      {loading && items.length === 0 ? (
+        <CustomFlatList
+          data={MATERIAL_SKELETON_ITEMS}
+          keyExtractor={(item) => item}
+          renderItem={() => <MaterialSkeletonCard />}
+          refreshing={false}
+          canRefresh={false}
+          handleRefresh={() => {}}
+          title={"Cargando"}
+          subtitle={"Materiales disponibles"}
+          numColumns={1}
+          estimatedItemSize={170}
+          contentContainerStyle={{ paddingBottom: 210 }}
+        />
+      ) : (
+        <CustomFlatList
+          data={items}
+          keyExtractor={(item, index) => keyOf(item, index)}
+          renderItem={({ item }) => (
+            <SelectableItemCard
+              item={item}
+              selected={getQuantityByItem(item)}
+              onInc={() => inc(item)}
+              onDec={() => dec(item)}
+              onPress={() => {
+                setModalItem(item);
+                setModalVisible(true);
+              }}
+            />
+          )}
+          refreshing={false}
+          canRefresh={false}
+          handleRefresh={() => {}}
+          title={`${items.length} `}
+          subtitle={"Materiales disponibles"}
+          numColumns={1}
+          estimatedItemSize={170}
+          //onEndReached={loadMoreMaterials}
+          contentContainerStyle={{ paddingBottom: 210 }}
+        />
+      )}
 
       {modalItem && (
         <BottomModal
