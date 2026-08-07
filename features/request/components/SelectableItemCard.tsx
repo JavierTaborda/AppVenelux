@@ -21,17 +21,15 @@ export default function SelectableItemCard({
   const partLabel = item.noparte ?? item.nroparte ?? "Sin parte";
 
   return (
-    <View className="mx-3 mb-2 overflow-hidden rounded-3xl border border-zinc-200/70 bg-componentbg dark:bg-dark-background ">
+    <View className="mx-3 mb-2 overflow-hidden rounded-3xl border border-zinc-200/70 bg-componentbg dark:bg-dark-componentbg ">
       <Pressable
         onPress={onPress}
         className="min-h-36 flex-row active:opacity-95"
       >
-        <View className="relative w-32 self-stretch overflow-hidden bg-bgimages">
+        <View className="relative w-32  bg-bgimages dark:bg-dark-componentbg">
           <View className="">
-            <CustomImagen img={item.imagen1 ?? ""} content="cover" />
+            <CustomImagen img={item.imagen1 ?? ""} />
           </View>
-
-          <View className="absolute inset-x-0 bottom-0 h-10 bg-black/10" />
 
           <View className="absolute top-3 left-3 rounded-full border border-zinc-200 bg-white/95 px-2.5 py-1">
             <Text className="text-[10px] font-semibold tracking-wide text-zinc-500">
@@ -52,7 +50,7 @@ export default function SelectableItemCard({
                 </Text>
                 <Text
                   numberOfLines={1}
-                  className="mt-1 text-[11px] font-semibold uppercase tracking-[1px] text-zinc-600"
+                  className="mt-1 text-[11px] font-semibold uppercase tracking-[1px] text-zinc-600 dark:text-dark-foreground"
                 >
                   {item.codigo}
                 </Text>
@@ -61,7 +59,7 @@ export default function SelectableItemCard({
               <View
                 className={
                   selected > 0
-                    ? "px-3 py-1.5 rounded-full bg-primary"
+                    ? "px-3 py-1.5 rounded-full bg-primary dark:bg-dark-primary"
                     : "px-3 py-1.5 rounded-full bg-zinc-100"
                 }
               >
@@ -77,13 +75,16 @@ export default function SelectableItemCard({
               </View>
             </View>
 
-            <Text numberOfLines={1} className="mt-1 text-sm text-zinc-500">
+            <Text
+              numberOfLines={1}
+              className="mt-1 text-sm text-zinc-500 dark:text-dark-foreground"
+            >
               Parte: {partLabel}
             </Text>
 
             <Text
               numberOfLines={1}
-              className="mt-0.5 text-sm font-semibold text-zinc-700"
+              className="mt-0.5 text-sm font-semibold text-zinc-700 dark:text-dark-foreground"
             >
               {brandLabel}
             </Text>

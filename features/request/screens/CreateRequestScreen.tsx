@@ -3,15 +3,18 @@ import BottomModal from "@/components/ui/BottomModal";
 import CustomFlatList from "@/components/ui/CustomFlatList";
 import SelectedItemsFab from "@/features/request/components/SelectedItemsFab";
 import { useMemo, useState } from "react";
-import { Alert } from "react-native";
+import { Alert, Pressable, Text, View } from "react-native";
 import SelectableItemCard from "../components/SelectableItemCard";
 import { useRequest } from "../hooks/useRequest";
 import { useSelectedItemsStore } from "../stores/useSelectedItemsStore";
 import type { VeneluxMaterial } from "../types/request";
+import { exportMaterialsCsv } from "../utils/materialsCsv";
 import ProductDetailScreen from "./ProductDetailScreen";
 
 export default function CreateRequestScreen() {
-  const { materials } = useRequest({ autoFetchRequests: false });
+  const { materials, searchText, setSearchText } = useRequest({
+    autoFetchRequests: false,
+  });
   const [modalVisible, setModalVisible] = useState(false);
   const [modalItem, setModalItem] = useState<VeneluxMaterial | null>(null);
   const selected = useSelectedItemsStore((s) => s.selected);
@@ -20,6 +23,7 @@ export default function CreateRequestScreen() {
   const getQuantityByItem = useSelectedItemsStore((s) => s.getQuantityByItem);
   const clearSelected = useSelectedItemsStore((s) => s.clear);
   const [submitting, setSubmitting] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   const items = useMemo(() => materials, [materials]);
 
@@ -46,13 +50,55 @@ export default function CreateRequestScreen() {
     setSubmitting(false);
   };
 
+  const handleExportCsv = async () => {
+    if (materials.length === 0) {
+      Alert.alert("Sin datos", "No hay materiales para exportar.");
+      return;
+    }
+
+    setExporting(true);
+    try {
+      const result = await exportMaterialsCsv(materials);
+      Alert.alert(
+        "Exportacion completada",
+        `Se exportaron ${materials.length} materiales.\nArchivo: ${result}`,
+      );
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "No se pudo exportar la data";
+      Alert.alert("Error al exportar", message);
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <ScreenSearchLayout
-      searchText={"searchText"}
-      setSearchText={() => {}}
+      searchText={searchText}
+      setSearchText={setSearchText}
       placeholder="Código o descripción..."
       headerVisible={true}
       extrafilter={true}
+      showfilterButton={false}
+      extraFiltersComponent={
+        <>
+          <View className="flex-row items-center gap-2">
+            <View className=" bg-gray-300 dark:bg-gray-700  items-center px-14 py-5 rounded-full  animate-pulse "></View>
+            <View className=" bg-gray-300 dark:bg-gray-700  items-center px-14 py-5 rounded-full  animate-pulse "></View>
+            <View className=" bg-gray-300 dark:bg-gray-700  items-center px-14 py-5 rounded-full  animate-pulse "></View>
+
+            <Pressable
+              onPress={handleExportCsv}
+              disabled={exporting}
+              className="bg-primary dark:bg-dark-primary rounded-full px-4 py-2"
+            >
+              <Text className="text-white font-semibold text-sm">
+                {exporting ? "Exportando..." : "Exportar Excel (CSV)"}
+              </Text>
+            </Pressable>
+          </View>
+        </>
+      }
       //   extraFiltersComponent={
       //     loading ? (
       //       <>
@@ -66,7 +112,7 @@ export default function CreateRequestScreen() {
       //       extraFilters
       //     )
       //   }i
-      onFilterPress={() => true}
+      onFilterPress={() => {}}
     >
       <CustomFlatList
         data={items}
@@ -89,9 +135,10 @@ export default function CreateRequestScreen() {
         title={`${items.length} `}
         subtitle={`Materiales disponibles`}
         numColumns={1}
-        //estimatedItemSize={170}
+        removeClippedSubviews={true}
+        drawDistance={100}
         //onEndReached={loadMoreMaterials}
-        // contentContainerStyle={{ paddingBottom: 210 }}
+        contentContainerStyle={{ paddingBottom: 210 }}
       />
 
       {modalItem && (

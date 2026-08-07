@@ -25,7 +25,7 @@ export function useRequest({
   const [materialsLastPage, setMaterialsLastPage] = useState(1);
   const [loadingMoreMaterials, setLoadingMoreMaterials] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
+  const [searchText, setSearchText] = useState('');
   const fetchMaterials = useCallback(async () => {
     setLoading(true);
     try {
@@ -122,5 +122,7 @@ export function useRequest({
     //1loadMoreMaterials,
     fetchRequests,
     updateStatus,
+    searchText,
+    setSearchText,
   } as const;
 }

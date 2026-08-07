@@ -148,6 +148,7 @@ export const RequestService = {
       const response = await api.get('/venelux/materials/all');
       const parsed = parseMaterialsResponse(response.data as unknown);
       return parsed.data;
+
     } catch (error) {
       // if (axios.isAxiosError(error) && error.response?.status === 404) {
       //   console.warn('[RequestService.getMaterialsAll] Endpoint not found, trying fallback:', error.config?.url);

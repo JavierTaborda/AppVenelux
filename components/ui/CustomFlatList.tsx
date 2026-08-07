@@ -63,7 +63,7 @@ function CustomFlashList<T>({
 
   cooldown,
 
-  estimatedItemSize = 250,
+  estimatedItemSize = 100,
   drawDistance = 250,
 
   ListEmptyComponent,
