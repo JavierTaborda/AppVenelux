@@ -1,6 +1,9 @@
 import ScreenSearchLayout from "@/components/screens/ScreenSearchLayout";
 import BottomModal from "@/components/ui/BottomModal";
 import CustomFlatList from "@/components/ui/CustomFlatList";
+import RequestMaterialsFilterModal, {
+  type RequestMaterialFilters,
+} from "@/features/request/components/RequestMaterialsFilterModal";
 import SelectedItemsFab from "@/features/request/components/SelectedItemsFab";
 import { useMemo, useState } from "react";
 import { Alert, Pressable, Text, View } from "react-native";
@@ -45,8 +48,60 @@ export default function CreateRequestScreen() {
   const clearSelected = useSelectedItemsStore((s) => s.clear);
   const [submitting, setSubmitting] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [filtersVisible, setFiltersVisible] = useState(false);
+  const [materialFilters, setMaterialFilters] =
+    useState<RequestMaterialFilters>({});
 
-  const items = useMemo(() => materials, [materials]);
+  const items = useMemo(() => {
+    const term = searchText.trim().toLowerCase();
+    return materials.filter((item) => {
+      if (materialFilters.linea && item.linea !== materialFilters.linea) {
+        return false;
+      }
+      if (
+        materialFilters.sublinea &&
+        item.sublinea !== materialFilters.sublinea
+      ) {
+        return false;
+      }
+      if (
+        materialFilters.categoria &&
+        item.categoria !== materialFilters.categoria
+      ) {
+        return false;
+      }
+
+      if (!term) return true;
+      const searchable = [
+        item.codigo,
+        item.material,
+        item.noparte,
+        item.nroparte,
+        item.codbarra,
+      ];
+      return searchable.some((value) => value?.toLowerCase().includes(term));
+    });
+  }, [
+    materialFilters.categoria,
+    materialFilters.linea,
+    materialFilters.sublinea,
+    materials,
+    searchText,
+  ]);
+
+  const filterCount = useMemo(
+    () =>
+      [
+        materialFilters.linea,
+        materialFilters.sublinea,
+        materialFilters.categoria,
+      ].filter(Boolean).length,
+    [
+      materialFilters.categoria,
+      materialFilters.linea,
+      materialFilters.sublinea,
+    ],
+  );
 
   const keyOf = (it: VeneluxMaterial, index: number) => {
     const code = it.codigo?.trim() || "sin-codigo";
@@ -105,22 +160,21 @@ export default function CreateRequestScreen() {
       placeholder="Código o descripción..."
       headerVisible={true}
       extrafilter={true}
-      showfilterButton={false}
+      filterCount={filterCount}
+      showfilterButton={true}
       extraFiltersComponent={
         <>
           <View className="flex-row items-center gap-2">
-            {loading && (
-              <>
-                <View className="bg-gray-300 dark:bg-gray-700 items-center px-14 py-5 rounded-full animate-pulse" />
-                <View className="bg-gray-300 dark:bg-gray-700 items-center px-14 py-5 rounded-full animate-pulse" />
-                <View className="bg-gray-300 dark:bg-gray-700 items-center px-14 py-5 rounded-full animate-pulse" />
-              </>
+            {filterCount > 0 && (
+              <Pressable
+                onPress={() => setMaterialFilters({})}
+                className="rounded-full border border-primary px-3 py-2.5"
+              >
+                <Text className="text-xs text-primary font-semibold">
+                  Limpiar filtros
+                </Text>
+              </Pressable>
             )}
-            <View className=" bg-gray-300 dark:bg-gray-700  items-center px-14 py-5 rounded-full  animate-pulse "></View>
-
-            <View className=" bg-gray-300 dark:bg-gray-700  items-center px-14 py-5 rounded-full  animate-pulse "></View>
-
-            <View className=" bg-gray-300 dark:bg-gray-700  items-center px-14 py-5 rounded-full  animate-pulse "></View>
             <Pressable
               onPress={handleExportCsv}
               disabled={exporting || loading || materials.length === 0}
@@ -133,7 +187,7 @@ export default function CreateRequestScreen() {
           </View>
         </>
       }
-      onFilterPress={() => {}}
+      onFilterPress={() => setFiltersVisible(true)}
     >
       {loading && items.length === 0 ? (
         <CustomFlatList
@@ -190,6 +244,14 @@ export default function CreateRequestScreen() {
         </BottomModal>
       )}
       <SelectedItemsFab />
+
+      <RequestMaterialsFilterModal
+        visible={filtersVisible}
+        onClose={() => setFiltersVisible(false)}
+        materials={materials}
+        filters={materialFilters}
+        onApply={setMaterialFilters}
+      />
     </ScreenSearchLayout>
   );
 }

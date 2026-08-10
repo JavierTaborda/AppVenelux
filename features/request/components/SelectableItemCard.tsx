@@ -89,7 +89,7 @@ export default function SelectableItemCard({
               {brandLabel}
             </Text>
 
-            {/* <View className="mt-2.5 flex-row flex-wrap gap-2">
+            <View className="mt-1 flex-row flex-wrap">
               {item.linea ? (
                 <View className="rounded-full bg-zinc-100 px-2.5 py-1">
                   <Text
@@ -100,17 +100,7 @@ export default function SelectableItemCard({
                   </Text>
                 </View>
               ) : null}
-              {item.categoria ? (
-                <View className="rounded-full bg-emerald-50 px-2.5 py-1">
-                  <Text
-                    numberOfLines={1}
-                    className="text-[11px] font-medium text-emerald-700"
-                  >
-                    {item.categoria}
-                  </Text>
-                </View>
-              ) : null}
-            </View> */}
+            </View>
           </View>
         </View>
       </Pressable>
