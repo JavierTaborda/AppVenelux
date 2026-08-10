@@ -1,8 +1,8 @@
 import { useThemeStore } from "@/stores/useThemeStore";
 import { appTheme } from "@/utils/appTheme";
 import { Ionicons } from "@expo/vector-icons";
-import { DrawerToggleButton } from "expo-router/build/react-navigation/drawer";
 import { Tabs } from "expo-router";
+import { DrawerToggleButton } from "expo-router/build/react-navigation/drawer";
 import { Pressable, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -172,6 +172,14 @@ export default function TabLayout() {
           href: null,
           headerShown: true,
           title: "Detalle Producto",
+        }}
+      />
+      <Tabs.Screen
+        name="(request)/confirm"
+        options={{
+          href: null,
+          headerShown: true,
+          title: "Confirmar Solicitud",
         }}
       />
     </Tabs>

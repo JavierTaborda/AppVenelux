@@ -5,6 +5,7 @@ import { useRequest } from "@/features/request/hooks/useRequest";
 import { useSelectedItemsStore } from "@/features/request/stores/useSelectedItemsStore";
 import type { VeneluxMaterial } from "@/features/request/types/request";
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import {
   Alert,
@@ -17,6 +18,7 @@ import {
 import Animated, { FadeInDown, FadeOutDown } from "react-native-reanimated";
 
 export default function SelectedItemsFab() {
+  const router = useRouter();
   const { materials } = useRequest({ autoFetchRequests: false });
   const selected = useSelectedItemsStore((s) => s.selected);
   const incByItem = useSelectedItemsStore((s) => s.incByItem);
@@ -71,6 +73,12 @@ export default function SelectedItemsFab() {
         },
       ],
     );
+  };
+
+  const handleOpenSummary = () => {
+    if (totalQty === 0) return;
+    setVisible(false);
+    router.push("/(main)/(tabs)/(request)/confirm");
   };
 
   return (
@@ -157,7 +165,7 @@ export default function SelectedItemsFab() {
                       <View className="ml-3 flex-1 justify-center">
                         <Text
                           className="text-sm font-semibold text-neutral-800 dark:text-neutral-100"
-                          numberOfLines={1}
+                          numberOfLines={2}
                         >
                           {item.material}
                         </Text>
@@ -222,6 +230,7 @@ export default function SelectedItemsFab() {
         <View className="absolute bottom-0 left-0 right-0 bg-white/95 dark:bg-black/95 px-5 pb-6 pt-3 border-t border-neutral-100 dark:border-neutral-900">
           <Pressable
             disabled={totalQty === 0}
+            onPress={handleOpenSummary}
             className={`w-full h-14 rounded-xl flex-row items-center justify-center space-x-2 ${
               totalQty === 0
                 ? "bg-neutral-200 dark:bg-neutral-800"
