@@ -159,7 +159,7 @@ export default function CreateRequestScreen() {
       setSearchText={setSearchText}
       placeholder="Código o descripción..."
       headerVisible={true}
-      extrafilter={true}
+      extrafilter={false}
       filterCount={filterCount}
       showfilterButton={true}
       extraFiltersComponent={

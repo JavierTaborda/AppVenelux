@@ -31,9 +31,10 @@ export default function SelectableItemCard({
             <CustomImagen img={item.imagen1 ?? ""} />
           </View>
 
-          <View className="absolute top-1 left-1/2 -translate-x-1/2 rounded-full border border-zinc-200 bg-white/95 px-2.5 py-1">
+          <View className="absolute top-1 left-1/2 -translate-x-1/2 rounded-full border border-zinc-100 bg-white/95 px-2.5 py-1">
             <Text className="text-[11.5px] font-medium tracking-widest text-zinc-700">
-              {item.codigo}
+              {/* {item.codigo} */}
+              Disponible
             </Text>
           </View>
 
@@ -52,7 +53,7 @@ export default function SelectableItemCard({
                   numberOfLines={2}
                   className="mt-0.5 text-base font-bold leading-tight text-zinc-900 dark:text-dark-foreground"
                 >
-                  {item.material}
+                  {item.codigo} - {item.material}
                 </Text>
                 {/* <Text
                   numberOfLines={1}
@@ -101,11 +102,11 @@ export default function SelectableItemCard({
                 </View>
               ) : null}
             </View>
-            <View className="px-3 py-1.5 rounded-full bg-zinc-100 absolute bottom-0 right-0">
+            {/* <View className="px-3 py-1.5 rounded-full bg-zinc-100 absolute bottom-0 right-0">
               <Text className="text-[11px] font-bold text-zinc-600">
                 Disponible
               </Text>
-            </View>
+            </View> */}
           </View>
         </View>
       </Pressable>
