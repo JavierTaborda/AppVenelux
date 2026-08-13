@@ -26,72 +26,60 @@ export default function SelectableItemCard({
         onPress={onPress}
         className="min-h-36 flex-row active:opacity-95"
       >
-        <View className="relative w-32  bg-bgimages dark:bg-dark-componentbg">
+        <View className="relative w-32 h-full  bg-bgimages dark:bg-dark-componentbg">
           <View className="">
             <CustomImagen img={item.imagen1 ?? ""} />
           </View>
 
-          <View className="absolute top-3 left-3 rounded-full border border-zinc-200 bg-white/95 px-2.5 py-1">
-            <Text className="text-[10px] font-semibold tracking-wide text-zinc-500">
-              {item.unidad ?? "Pieza"}
+          <View className="absolute top-1 left-1/2 -translate-x-1/2 rounded-full border border-zinc-200 bg-white/95 px-2.5 py-1">
+            <Text className="text-[11.5px] font-medium tracking-widest text-zinc-700">
+              {item.codigo}
+            </Text>
+          </View>
+
+          <View className="absolute bottom-1 left-1/2 -translate-x-1/2 rounded-full border border-zinc-200 bg-white/95 px-2.5 py-1">
+            <Text className="text-[10px] font-semibold tracking-wide text-zinc-600">
+              {item.unidad}
             </Text>
           </View>
         </View>
 
-        <View className="flex-1 justify-between p-4">
+        <View className="flex-1 justify-between px-3 py-4">
           <View>
             <View className="flex-row items-start justify-between gap-b">
               <View className="flex-1">
                 <Text
                   numberOfLines={2}
-                  className="mt-0.5 text-base font-bold leading-5 text-zinc-900 dark:text-dark-foreground"
+                  className="mt-0.5 text-base font-bold leading-tight text-zinc-900 dark:text-dark-foreground"
                 >
                   {item.material}
                 </Text>
-                <Text
+                {/* <Text
                   numberOfLines={1}
                   className="mt-1 text-[11px] font-semibold uppercase tracking-[1px] text-zinc-600 dark:text-dark-foreground"
                 >
                   {item.codigo}
-                </Text>
-              </View>
-
-              <View
-                className={
-                  selected > 0
-                    ? "px-3 py-1.5 rounded-full bg-primary dark:bg-dark-primary"
-                    : "px-3 py-1.5 rounded-full bg-zinc-100"
-                }
-              >
-                <Text
-                  className={
-                    selected > 0
-                      ? "text-[11px] font-bold text-white"
-                      : "text-[11px] font-bold text-zinc-600"
-                  }
-                >
-                  {selected > 0 ? `${selected} Solicitado` : "Disponible"}
-                </Text>
+                </Text> */}
               </View>
             </View>
 
             <Text
               numberOfLines={1}
-              className="mt-1 text-sm text-zinc-500 dark:text-dark-foreground"
+              className=" text-sm font-semibold text-zinc-700 dark:text-dark-foreground"
             >
-              Parte: {partLabel}
+              N. Parte {partLabel}
             </Text>
 
             <Text
               numberOfLines={1}
-              className="mt-0.5 text-sm font-semibold text-zinc-700 dark:text-dark-foreground"
+              className=" text-sm font-semibold text-zinc-700 dark:text-dark-foreground"
             >
               {brandLabel}
             </Text>
 
             <View className="mt-1 flex-row flex-wrap">
               {item.linea ? (
-                <View className="rounded-full bg-zinc-100 px-2.5 py-1">
+                <View className="rounded-full bg-zinc-100 px-2 py-1">
                   <Text
                     numberOfLines={1}
                     className="text-[11px] font-medium text-zinc-600"
@@ -100,6 +88,23 @@ export default function SelectableItemCard({
                   </Text>
                 </View>
               ) : null}
+            </View>
+            <View className="mt-1 flex-row flex-wrap">
+              {item.sublinea ? (
+                <View className="rounded-full bg-zinc-100 px-2 py-1">
+                  <Text
+                    numberOfLines={1}
+                    className="text-[11px] font-medium text-zinc-600"
+                  >
+                    {item.sublinea}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+            <View className="px-3 py-1.5 rounded-full bg-zinc-100 absolute bottom-0 right-0">
+              <Text className="text-[11px] font-bold text-zinc-600">
+                Disponible
+              </Text>
             </View>
           </View>
         </View>

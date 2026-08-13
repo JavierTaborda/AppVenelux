@@ -2,7 +2,14 @@ import CustomImagen from "@/components/ui/CustomImagen";
 import { FontAwesome5 } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { Alert, Pressable, ScrollView, Text, View } from "react-native";
+import {
+  Alert,
+  Pressable,
+  ScrollView,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 
 import { useRequest } from "../hooks/useRequest";
 import { useSelectedItemsStore } from "../stores/useSelectedItemsStore";
@@ -84,7 +91,7 @@ export default function ProductDetailScreen({
         contentContainerStyle={{ paddingBottom: 140 }}
       >
         {/* IMAGE */}
-        <View className="w-full h-[220px] bg-componentbg dark:bg-bgimages items-center justify-center rounded-b-[40px] overflow-hidden">
+        <View className="w-full h-[200px] bg-componentbg dark:bg-bgimages items-center justify-center rounded-b-[40px] overflow-hidden">
           <CustomImagen img={found.imagen1 ?? ""} content="contain" />
         </View>
 
@@ -96,25 +103,26 @@ export default function ProductDetailScreen({
               <Text className="text-xl font-extrabold text-foreground dark:text-dark-foreground mt-1 leading-6">
                 {found.codigo} - {productLabel}
               </Text>
-              <Text className="text-base text-zinc-500 mt-1">
-                Parte #{found.nroparte ?? found.noparte ?? "-"}
-              </Text>
             </View>
           </View>
 
           {/* INFO CARD */}
-          <View className="bg-componentbg dark:bg-dark-componentbg rounded-3xl p-5 mt-1">
-            <Text className="text-lg font-bold text-foreground dark:text-dark-foreground mb-1">
+          <View className="bg-componentbg dark:bg-dark-componentbg rounded-3xl p-4 mt-1">
+            <Text className="text-lg font-bold text-foreground dark:text-dark-foreground">
               Detalles
             </Text>
-
             <View className="flex-row justify-between py-2.5 border-b border-zinc-100">
-              <Text className="text-zinc-400">Código</Text>
+              <Text className="text-zinc-500">Línea</Text>
               <Text className="font-semibold text-foreground dark:text-dark-foreground">
-                {found.codigo}
+                {found.linea}
               </Text>
             </View>
-
+            <View className="flex-row justify-between py-2.5 border-b border-zinc-100">
+              <Text className="text-zinc-500">Sublínea</Text>
+              <Text className="font-semibold text-foreground dark:text-dark-foreground">
+                {found.sublinea}
+              </Text>
+            </View>
             <View className="flex-row justify-between py-2.5 border-b border-zinc-100">
               <Text className="text-zinc-500">Marca</Text>
               <Text className="font-semibold text-foreground dark:text-dark-foreground">
@@ -122,11 +130,18 @@ export default function ProductDetailScreen({
               </Text>
             </View>
             <View className="flex-row justify-between py-2.5 border-b border-zinc-100">
-              <Text className="text-zinc-500">Unidad</Text>
+              <Text className="text-zinc-500">No. de Parte</Text>
               <Text className="font-semibold text-foreground dark:text-dark-foreground">
-                {found.unidad ?? "-"}
+                {found.noparte}
               </Text>
             </View>
+
+            {/* <View className="flex-row justify-between py-2.5 border-b border-zinc-100">
+              <Text className="text-zinc-500">Categoría</Text>
+              <Text className="font-semibold text-foreground dark:text-dark-foreground">
+                {found.categoria}
+              </Text>
+            </View> */}
 
             <View className="flex-row justify-between py-2.5">
               <Text className="text-zinc-500">Disponibles</Text>
@@ -137,7 +152,7 @@ export default function ProductDetailScreen({
           </View>
 
           {/* QTY */}
-          <View className="mt-4">
+          <View className="mt-2">
             <Text className="text-lg font-bold text-foreground dark:text-dark-foreground mb-3">
               Cantidad
             </Text>
@@ -153,7 +168,19 @@ export default function ProductDetailScreen({
                   <Text className="text-xl font-bold">−</Text>
                 </Pressable>
 
-                <Text className="mx-6 text-lg font-bold">{qty}</Text>
+                <TextInput
+                  value={String(qty)}
+                  onChangeText={(text) => {
+                    const onlyDigits = text.replace(/[^0-9]/g, "");
+                    const nextQty = onlyDigits === "" ? 0 : Number(onlyDigits);
+                    setQty(Math.max(0, nextQty));
+                  }}
+                  keyboardType="number-pad"
+                  returnKeyType="done"
+                  textAlign="center"
+                  className="mx-4 min-w-[64px] text-lg font-bold text-foreground dark:text-dark-foreground"
+                  accessibilityLabel="Cantidad"
+                />
 
                 <Pressable
                   onPress={() => setQty((q) => q + 1)}

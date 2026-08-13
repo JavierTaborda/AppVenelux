@@ -8,13 +8,13 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import {
-    Alert,
-    Platform,
-    Pressable,
-    ScrollView,
-    Text,
-    TextInput,
-    View,
+  Alert,
+  Platform,
+  Pressable,
+  ScrollView,
+  Text,
+  TextInput,
+  View,
 } from "react-native";
 import Animated, { FadeInUp, FadeOutDown } from "react-native-reanimated";
 
@@ -89,14 +89,10 @@ export default function RequestConfirmScreen() {
       Alert.alert("Sin items", "No hay materiales en la solicitud.");
       return;
     }
-    if (!title.trim()) {
-      Alert.alert("Campo requerido", "Agrega un título para la solicitud.");
-      return;
-    }
 
     Alert.alert(
       "Solicitud confirmada",
-      `Título: ${title}\nÁrea: ${area || "No especificada"}\nPrioridad: ${priority}\nFecha requerida: ${requiredDate ? requiredDate.toLocaleDateString() : "No definida"}\nItems: ${distinctCount}\nUnidades: ${totalQty}`,
+      `Prioridad: ${priority}\nFecha requerida: ${requiredDate ? requiredDate.toLocaleDateString() : "No definida"}\nItems: ${distinctCount}\nUnidades: ${totalQty}`,
       [
         {
           text: "Aceptar",
@@ -169,7 +165,7 @@ export default function RequestConfirmScreen() {
 
           <View>
             <Text className="text-md mb-1 text-mutedForeground dark:text-dark-mutedForeground">
-              Área / Destino
+              Obra
             </Text>
             <TextInput
               value={area}
@@ -324,7 +320,7 @@ export default function RequestConfirmScreen() {
             )}
           />
         )}
-        <View className="absolute bottom-0 left-0 right-0 bg-white/95 dark:bg-black/95 px-5 pb-6 pt-3 border-t border-neutral-100 dark:border-neutral-900">
+        <View className="mt-4 mb-2">
           <View className="flex-row gap-2">
             <Pressable
               onPress={() => router.back()}
