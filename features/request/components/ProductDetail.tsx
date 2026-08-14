@@ -21,6 +21,29 @@ interface Props {
   onClose?: () => void;
 }
 
+function DetailRow({
+  label,
+  value,
+  isLast = false,
+}: {
+  label: string;
+  value?: string | number | null;
+  isLast?: boolean;
+}) {
+  return (
+    <View
+      className={`flex-row flex-wrap justify-between gap-x-2 gap-y-1 py-2.5 ${
+        isLast ? "" : "border-b border-zinc-100 dark:border-zinc-800"
+      }`}
+    >
+      <Text className="text-md text-zinc-500 dark:text-zinc-400">{label}</Text>
+      <Text className="min-w-[140px] flex-1 text-right text-sm font-semibold text-foreground dark:text-dark-foreground">
+        {value || "-"}
+      </Text>
+    </View>
+  );
+}
+
 export default function ProductDetail({ productId, item, onClose }: Props) {
   const router = useRouter();
   const params = useLocalSearchParams();
@@ -81,93 +104,63 @@ export default function ProductDetail({ productId, item, onClose }: Props) {
   }
 
   return (
-    <View className="flex-1">
+    <View className="flex-1 bg-background dark:bg-dark-background">
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ flexGrow: 1, paddingBottom: 160 }}
+        contentContainerStyle={{ flexGrow: 1, paddingBottom: 180 }}
       >
         {/* IMAGE */}
-        <View className="w-full h-[200px] bg-componentbg dark:bg-bgimages items-center justify-center rounded-b-[40px] overflow-hidden">
+        <View className="w-full h-[190px] bg-componentbg dark:bg-bgimages items-center justify-center rounded-b-[40px] overflow-hidden">
           <CustomImagen img={found.imagen1 ?? ""} content="contain" />
         </View>
 
         {/* CONTENT */}
-        <View className="px-1 mt-1">
+        <View className="px-2 mt-1">
           {/* TITLE + ACTIONS */}
-          <View className="flex-row justify-between items-start">
-            <View className="flex-1 pr-3">
-              <Text className="text-xl font-extrabold text-foreground dark:text-dark-foreground mt-1 leading-6">
-                {found.codigo} - {productLabel}
-              </Text>
-            </View>
+          <View className="mb-2">
+            <Text className="text-xl font-extrabold text-foreground dark:text-dark-foreground leading-6">
+              {found.codigo} - {productLabel}
+            </Text>
           </View>
 
           {/* INFO CARD */}
-          <View className="bg-componentbg dark:bg-dark-componentbg rounded-3xl px-4 py-2 mt-1">
-            <Text className="text-lg font-bold text-foreground dark:text-dark-foreground">
+          <View className="bg-componentbg dark:bg-dark-componentbg rounded-3xl px-4 py-3 border border-zinc-100 dark:border-zinc-800">
+            <Text className="text-base font-extrabold text-foreground dark:text-dark-foreground mb-1">
               Detalles
             </Text>
-            <View className="flex-row flex-wrap justify-between gap-x-3 gap-y-1 py-2.5 border-b border-zinc-100">
-              <Text className="text-zinc-500">Unidad</Text>
-              <Text className="min-w-[140px] flex-1 text-right font-semibold text-foreground dark:text-dark-foreground">
-                {found.unidad}
-              </Text>
-            </View>
-            <View className="flex-row flex-wrap justify-between gap-x-3 gap-y-1 py-2.5 border-b border-zinc-100">
-              <Text className="text-zinc-500">Línea</Text>
-              <Text className="min-w-[140px] flex-1 text-right font-semibold text-foreground dark:text-dark-foreground">
-                {found.linea}
-              </Text>
-            </View>
-            <View className="flex-row flex-wrap justify-between gap-x-3 gap-y-1 py-2.5 border-b border-zinc-100">
-              <Text className="text-zinc-500">Sublínea</Text>
-              <Text className="min-w-[140px] flex-1 text-right font-semibold text-foreground dark:text-dark-foreground">
-                {found.sublinea}
-              </Text>
-            </View>
-            <View className="flex-row flex-wrap justify-between gap-x-3 gap-y-1 py-2.5 border-b border-zinc-100">
-              <Text className="text-zinc-500">Marca</Text>
-              <Text className="min-w-[140px] flex-1 text-right font-semibold text-foreground dark:text-dark-foreground">
-                {found.marca}
-              </Text>
-            </View>
-            <View className="flex-row flex-wrap justify-between gap-x-3 gap-y-1 py-2.5 border-b border-zinc-100">
-              <Text className="text-zinc-500">No. de Parte</Text>
-              <Text className="min-w-[140px] flex-1 text-right font-semibold text-foreground dark:text-dark-foreground">
-                {found.noparte}
-              </Text>
-            </View>
-
-            {/* <View className="flex-row justify-between py-2.5 border-b border-zinc-100">
-              <Text className="text-zinc-500">Categoría</Text>
-              <Text className="font-semibold text-foreground dark:text-dark-foreground">
-                {found.categoria}
-              </Text>
-            </View> */}
-
-            <View className="flex-row flex-wrap justify-between gap-x-3 gap-y-1 py-2.5">
-              <Text className="text-zinc-500">Disponibles</Text>
-              <Text className="min-w-[140px] flex-1 text-right font-semibold text-foreground dark:text-dark-foreground">
-                -
-              </Text>
-            </View>
+            <DetailRow label="Unidad" value={found.unidad} />
+            <DetailRow label="Línea" value={found.linea} />
+            <DetailRow label="Sublínea" value={found.sublinea} />
+            <DetailRow label="Marca" value={found.marca} />
+            <DetailRow label="No. de Parte" value={found.noparte} />
+            <DetailRow label="Disponibles" value="-" isLast />
           </View>
 
           {/* QTY */}
-          <View className="mt-2">
-            <Text className="text-lg font-bold text-foreground dark:text-dark-foreground mb-1">
-              Cantidad
-            </Text>
+          <View className="mt-3 rounded-3xl bg-componentbg dark:bg-dark-componentbg border border-zinc-100 dark:border-zinc-800 px-4 py-3">
+            <View className="flex-row items-center justify-between mb-3">
+              <View>
+                <Text className="text-base font-extrabold text-foreground dark:text-dark-foreground">
+                  Cantidad
+                </Text>
+              </View>
 
-            <View className="flex-row flex-wrap items-center gap-3">
-              <View className="flex-row items-center self-start bg-componentbg dark:bg-dark-componentbg rounded-2xl px-2 py-2">
+              <Text className="text-md font-bold text-zinc-600 dark:text-zinc-300">
+                {found.coduni}
+              </Text>
+            </View>
+
+            <View className="flex-row items-center justify-between gap-3">
+              <View className="flex-row flex-1 items-center justify-between bg-background dark:bg-dark-background rounded-2xl px-2 py-2 border border-zinc-100 dark:border-zinc-800">
                 <Pressable
                   onPress={() => setQty((q) => Math.max(0, q - 1))}
-                  className="w-10 h-10 rounded-xl bg-zinc-100 items-center justify-center"
+                  className="w-11 h-11 rounded-xl bg-zinc-100 dark:bg-zinc-800 items-center justify-center"
                   accessibilityLabel="Disminuir cantidad"
                   accessibilityRole="button"
                 >
-                  <Text className="text-xl font-bold">−</Text>
+                  <Text className="text-xl font-bold text-foreground dark:text-dark-foreground">
+                    −
+                  </Text>
                 </Pressable>
 
                 <TextInput
@@ -179,73 +172,65 @@ export default function ProductDetail({ productId, item, onClose }: Props) {
                   }}
                   keyboardType="number-pad"
                   textAlign="center"
-                  className="mx-3 min-w-[64px] pb-1 text-2xl font-bold text-foreground dark:text-dark-foreground"
+                  className="mx-3 min-w-[72px] pb-1 text-3xl font-extrabold text-foreground dark:text-dark-foreground"
                   accessibilityLabel="Cantidad"
                 />
 
                 <Pressable
                   onPress={() => setQty((q) => q + 1)}
-                  className="w-10 h-10 rounded-xl bg-secondary dark:bg-dark-secondary items-center justify-center"
+                  className="w-11 h-11 rounded-xl bg-secondary dark:bg-dark-secondary items-center justify-center"
                 >
                   <Text className="text-xl font-bold text-white">+</Text>
                 </Pressable>
-
-                <View className="ml-3">
-                  <Text className="text-sm text-zinc-500 dark:text-dark-foreground">
-                    {found.coduni}
-                  </Text>
-                </View>
               </View>
 
-              <View className="flex-row items-center bg-componentbg dark:bg-dark-componentbg rounded-2xl px-2 py-2">
-                <Pressable
-                  onPress={() => {
-                    if (qty === 0) return; // nothing to remove
-                    Alert.alert(
-                      "Eliminar selección",
-                      "¿Eliminar este producto de la selección?",
-                      [
-                        { text: "Cancelar", style: "cancel" },
-                        {
-                          text: "Eliminar",
-                          style: "destructive",
-                          onPress: () => {
-                            if (!found) return;
-                            removeByItem(found);
-                            setQty(0);
-                          },
+              <Pressable
+                onPress={() => {
+                  if (qty === 0) return; // nothing to remove
+                  Alert.alert(
+                    "Eliminar selección",
+                    "¿Eliminar este producto de la selección?",
+                    [
+                      { text: "Cancelar", style: "cancel" },
+                      {
+                        text: "Eliminar",
+                        style: "destructive",
+                        onPress: () => {
+                          if (!found) return;
+                          removeByItem(found);
+                          setQty(0);
                         },
-                      ],
-                    );
-                  }}
-                  disabled={qty === 0}
-                  className={
-                    qty === 0
-                      ? "p-2 rounded-lg bg-gray-100 items-center justify-center"
-                      : "p-2 rounded-lg bg-red-50 items-center justify-center"
-                  }
-                  accessibilityLabel="Eliminar este producto de la selección"
-                  accessibilityRole="button"
-                >
-                  <FontAwesome5
-                    name="trash"
-                    size={18}
-                    color={qty === 0 ? "#9CA3AF" : "red"}
-                  />
-                </Pressable>
-              </View>
+                      },
+                    ],
+                  );
+                }}
+                disabled={qty === 0}
+                className={
+                  qty === 0
+                    ? "w-12 h-12 rounded-2xl bg-gray-100 dark:bg-zinc-800 items-center justify-center"
+                    : "w-12 h-12 rounded-2xl bg-red-50 dark:bg-red-950/30 items-center justify-center"
+                }
+                accessibilityLabel="Eliminar este producto de la selección"
+                accessibilityRole="button"
+              >
+                <FontAwesome5
+                  name="trash"
+                  size={18}
+                  color={qty === 0 ? "#9CA3AF" : "#DC2626"}
+                />
+              </Pressable>
             </View>
           </View>
         </View>
       </ScrollView>
 
       {/* BOTTOM CTA */}
-      <View className="absolute bottom-10 left-0 right-0 px-5 pb-8 pt-4">
+      <View className="absolute bottom-0 left-0 right-0 bg-background/95 dark:bg-dark-background/95 px-5 pb-6 pt-4 border-t border-zinc-100 dark:border-zinc-800">
         <Pressable
           className={
             qty === 0
-              ? "bg-gray-300 dark:bg-gray-500 rounded-3xl items-center justify-center px-4 py-3"
-              : "bg-secondary dark:bg-dark-secondary rounded-3xl items-center justify-center px-4 py-3"
+              ? "bg-gray-300 dark:bg-gray-500 rounded-2xl items-center justify-center px-4 py-3"
+              : "bg-secondary dark:bg-dark-secondary rounded-2xl items-center justify-center px-4 py-3"
           }
           style={{ minHeight: 64 }}
           onPress={() => {
