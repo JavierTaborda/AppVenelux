@@ -1,6 +1,8 @@
 import CustomDateTimePicker from "@/components/inputs/CustomDateTimePicker";
+import BottomModal from "@/components/ui/BottomModal";
 import CustomFlatList from "@/components/ui/CustomFlatList";
 import CustomImagen from "@/components/ui/CustomImagen";
+import ProductDetail from "@/features/request/components/ProductDetail";
 import { useRequest } from "@/features/request/hooks/useRequest";
 import { useSelectedItemsStore } from "@/features/request/stores/useSelectedItemsStore";
 import type { VeneluxMaterial } from "@/features/request/types/request";
@@ -66,6 +68,8 @@ export default function RequestConfirmScreen() {
   const [priority, setPriority] = useState<Priority>("normal");
   const [requiredDate, setRequiredDate] = useState<Date | undefined>(undefined);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [modalItem, setModalItem] = useState<VeneluxMaterial | null>(null);
 
   const selectedItems = useMemo(
     () => materials.filter((it) => (selected[keyOf(it)] || 0) > 0),
@@ -290,7 +294,13 @@ export default function RequestConfirmScreen() {
             handleRefresh={() => {}}
             contentContainerStyle={{ paddingBottom: 12 }}
             renderItem={({ item: row }) => (
-              <View className="rounded-2xl border border-neutral-100 dark:border-neutral-800 px-3 py-3 mb-2 bg-componentbg dark:bg-dark-componentbg">
+              <Pressable
+                onPress={() => {
+                  setModalItem(row.item);
+                  setModalVisible(true);
+                }}
+                className="rounded-2xl border border-neutral-100 dark:border-neutral-800 px-3 py-3 mb-2 bg-componentbg dark:bg-dark-componentbg"
+              >
                 <View className="flex-row gap-3">
                   <View className="w-24 h-24 rounded-xl overflow-hidden bg-neutral-100 border border-neutral-200/50">
                     <CustomImagen img={row.item.imagen1 ?? ""} />
@@ -329,10 +339,24 @@ export default function RequestConfirmScreen() {
                     </Text>
                   </View>
                 </View>
-              </View>
+              </Pressable>
             )}
           />
         )}
+
+        {modalItem && (
+          <BottomModal
+            visible={modalVisible}
+            onClose={() => setModalVisible(false)}
+            heightPercentage={0.8}
+          >
+            <ProductDetail
+              item={modalItem}
+              onClose={() => setModalVisible(false)}
+            />
+          </BottomModal>
+        )}
+
         <View className="mt-4 mb-2">
           <View className="flex-row gap-2">
             <Pressable

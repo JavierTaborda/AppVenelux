@@ -92,7 +92,7 @@ export default function ProductDetail({ productId, item, onClose }: Props) {
         </View>
 
         {/* CONTENT */}
-        <View className="px-3 mt-1">
+        <View className="px-1 mt-1">
           {/* TITLE + ACTIONS */}
           <View className="flex-row justify-between items-start">
             <View className="flex-1 pr-3">
@@ -103,10 +103,16 @@ export default function ProductDetail({ productId, item, onClose }: Props) {
           </View>
 
           {/* INFO CARD */}
-          <View className="bg-componentbg dark:bg-dark-componentbg rounded-3xl p-4 mt-1">
+          <View className="bg-componentbg dark:bg-dark-componentbg rounded-3xl px-4 py-2 mt-1">
             <Text className="text-lg font-bold text-foreground dark:text-dark-foreground">
               Detalles
             </Text>
+            <View className="flex-row flex-wrap justify-between gap-x-3 gap-y-1 py-2.5 border-b border-zinc-100">
+              <Text className="text-zinc-500">Unidad</Text>
+              <Text className="min-w-[140px] flex-1 text-right font-semibold text-foreground dark:text-dark-foreground">
+                {found.unidad}
+              </Text>
+            </View>
             <View className="flex-row flex-wrap justify-between gap-x-3 gap-y-1 py-2.5 border-b border-zinc-100">
               <Text className="text-zinc-500">Línea</Text>
               <Text className="min-w-[140px] flex-1 text-right font-semibold text-foreground dark:text-dark-foreground">
@@ -149,7 +155,7 @@ export default function ProductDetail({ productId, item, onClose }: Props) {
 
           {/* QTY */}
           <View className="mt-2">
-            <Text className="text-lg font-bold text-foreground dark:text-dark-foreground mb-3">
+            <Text className="text-lg font-bold text-foreground dark:text-dark-foreground mb-1">
               Cantidad
             </Text>
 
@@ -234,7 +240,7 @@ export default function ProductDetail({ productId, item, onClose }: Props) {
       </ScrollView>
 
       {/* BOTTOM CTA */}
-      <View className="absolute bottom-0 left-0 right-0 px-5 pb-8 pt-4">
+      <View className="absolute bottom-10 left-0 right-0 px-5 pb-8 pt-4">
         <Pressable
           className={
             qty === 0
