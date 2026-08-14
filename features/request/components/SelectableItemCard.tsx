@@ -38,11 +38,11 @@ export default function SelectableItemCard({
             </Text>
           </View>
 
-          <View className="absolute bottom-1 left-1/2 -translate-x-1/2 rounded-full border border-zinc-200 bg-white/95 px-2.5 py-1">
+          {/* <View className="absolute bottom-1 left-1/2 -translate-x-1/2 rounded-full border border-zinc-200 bg-white/95 px-2.5 py-1">
             <Text className="text-[10px] font-semibold tracking-wide text-zinc-600">
               {item.unidad}
             </Text>
-          </View>
+          </View> */}
         </View>
 
         <View className="flex-1 justify-between px-3 py-4">
@@ -77,7 +77,19 @@ export default function SelectableItemCard({
             >
               {brandLabel}
             </Text>
-
+            <View className="mt-1 flex-row flex-wrap">
+              {item.unidad ? (
+                <View className="rounded-full bg-zinc-100 dark:bg-slate-400 px-2 py-1">
+                  <Text
+                    numberOfLines={1}
+                    className="text-[11px] font-medium text-zinc-600 dark:text-dark-foreground"
+                  >
+                    {item.unidad}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+            {/*
             <View className="mt-1 flex-row flex-wrap">
               {item.linea ? (
                 <View className="rounded-full bg-zinc-100 dark:bg-slate-400 px-2 py-1">
@@ -101,7 +113,7 @@ export default function SelectableItemCard({
                   </Text>
                 </View>
               ) : null}
-            </View>
+            </View> */}
             {/* <View className="px-3 py-1.5 rounded-full bg-zinc-100 absolute bottom-0 right-0">
               <Text className="text-[11px] font-bold text-zinc-600">
                 Disponible

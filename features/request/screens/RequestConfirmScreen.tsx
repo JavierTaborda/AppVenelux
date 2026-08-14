@@ -119,7 +119,7 @@ export default function RequestConfirmScreen() {
       >
         <View className="mb-3">
           <Pressable
-            onPress={() => router.back()}
+            onPress={() => router.navigate("/(main)/(tabs)/(request)/create")}
             className="self-start flex-row items-center gap-1.5 rounded-full border border-muted px-3 py-2 bg-componentbg dark:bg-dark-componentbg"
           >
             <Ionicons
@@ -178,6 +178,21 @@ export default function RequestConfirmScreen() {
             />
           </View>
 
+          <View>
+            <Text className="text-md mb-1 text-mutedForeground dark:text-dark-mutedForeground">
+              Partida
+            </Text>
+            <TextInput
+              value={deliveryAddress}
+              onChangeText={setDeliveryAddress}
+              multiline
+              numberOfLines={1}
+              textAlignVertical="top"
+              placeholder="Detalle adicional para aprobación"
+              placeholderTextColor="#9CA3AF"
+              className="border border-muted rounded-xl px-3 py-3 bg-background dark:bg-dark-background text-foreground dark:text-dark-foreground"
+            />
+          </View>
           <View>
             <Text className="text-md mb-1 text-mutedForeground dark:text-dark-mutedForeground">
               Dirección de entrega
@@ -360,7 +375,7 @@ export default function RequestConfirmScreen() {
         <View className="mt-4 mb-2">
           <View className="flex-row gap-2">
             <Pressable
-              onPress={() => router.back()}
+              onPress={() => router.navigate("/(main)/(tabs)/(request)/create")}
               className="flex-1 h-14 rounded-xl items-center justify-center border border-muted"
             >
               <Text className="font-semibold text-foreground dark:text-dark-foreground">
