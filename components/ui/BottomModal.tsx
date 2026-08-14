@@ -1,12 +1,12 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
-  Dimensions,
   Keyboard,
   Modal,
   Platform,
   Pressable,
   StatusBar,
   View,
+  useWindowDimensions,
 } from "react-native";
 import {
   Gesture,
@@ -50,14 +50,18 @@ export default function BottomModal({
   heightPercentage = 0.8,
 }: BottomModalProps) {
   const insets = useSafeAreaInsets();
-  const windowHeight = Dimensions.get("window").height;
+  const { fontScale, height: windowHeight } = useWindowDimensions();
   const statusBarHeight =
     Platform.OS === "android" ? StatusBar.currentHeight || 0 : 0;
+  const adaptiveHeightPercentage = Math.min(
+    heightPercentage + Math.max(fontScale - 1, 0) * 0.12,
+    0.92,
+  );
 
   // Content height is a percentage of the usable screen; bottom inset is added
   // so the sheet extends behind the navigation bar on Android/iOS.
   const sheetContentHeight =
-    (windowHeight - statusBarHeight) * heightPercentage;
+    (windowHeight - statusBarHeight) * adaptiveHeightPercentage;
   const modalHeight = sheetContentHeight + insets.bottom;
 
   const { isDark } = useThemeStore();
@@ -84,7 +88,7 @@ export default function BottomModal({
       0,
     );
     const computedHeight = Math.max(
-      computedVisibleArea * heightPercentage + insets.bottom,
+      computedVisibleArea * adaptiveHeightPercentage + insets.bottom,
       MIN_MODAL_HEIGHT,
     );
 
@@ -92,7 +96,7 @@ export default function BottomModal({
       visible ? 0 : computedHeight,
       ANIMATION_CONFIG,
     );
-  }, [visible, keyboardHeight, heightPercentage, insets.bottom]);
+  }, [visible, keyboardHeight, adaptiveHeightPercentage, insets.bottom]);
 
   // Listen for keyboard to lift the sheet above it (smooth on both platforms)
   useEffect(() => {
@@ -140,7 +144,7 @@ export default function BottomModal({
       0,
     );
     const animatedHeight = Math.max(
-      visibleArea * heightPercentage + insets.bottom,
+      visibleArea * adaptiveHeightPercentage + insets.bottom,
       MIN_MODAL_HEIGHT,
     );
     return {
@@ -154,6 +158,11 @@ export default function BottomModal({
   });
 
   const bgColor = isDark ? appTheme.dark.background : appTheme.background;
+  const contentPaddingBottom = Math.max(insets.bottom, 16);
+  const dismissKeyboardIfOpen = () => {
+    if (keyboardHeight > 0) Keyboard.dismiss();
+    return false;
+  };
 
   return (
     <Modal
@@ -225,21 +234,19 @@ export default function BottomModal({
               </GestureDetector>
 
               {/* Content – fills remaining space and stays above nav bar */}
-              <Pressable
+              <View
                 style={{
                   flex: 1,
                   paddingHorizontal: 20,
                   // Ensure content never sits behind the Android nav bar or
                   // the iOS home indicator.
-                  paddingBottom: Math.max(insets.bottom, 16),
+                  paddingBottom: contentPaddingBottom,
                   overflow: "hidden",
                 }}
-                onPress={() => {
-                  if (keyboardHeight > 0) Keyboard.dismiss();
-                }}
+                onStartShouldSetResponderCapture={dismissKeyboardIfOpen}
               >
                 {children}
-              </Pressable>
+              </View>
             </AnimatedView>
           </View>
         ) : (
@@ -304,21 +311,19 @@ export default function BottomModal({
               </GestureDetector>
 
               {/* Content – fills remaining space and stays above nav bar */}
-              <Pressable
+              <View
                 style={{
                   flex: 1,
                   paddingHorizontal: 20,
                   // Ensure content never sits behind the Android nav bar or
                   // the iOS home indicator.
-                  paddingBottom: Math.max(insets.bottom, 16),
+                  paddingBottom: contentPaddingBottom,
                   overflow: "hidden",
                 }}
-                onPress={() => {
-                  if (keyboardHeight > 0) Keyboard.dismiss();
-                }}
+                onStartShouldSetResponderCapture={dismissKeyboardIfOpen}
               >
                 {children}
-              </Pressable>
+              </View>
             </AnimatedView>
           </View>
         )}

@@ -28,11 +28,11 @@ export default function SelectableItemCard({
       >
         <View className="relative w-32 h-full  bg-bgimages dark:bg-dark-componentbg">
           <View className="">
-            <CustomImagen img={item.imagen1 ?? ""} />
+            <CustomImagen img={item.imagen1 ?? ""} recyclingKey={item.codigo} />
           </View>
 
           <View className="absolute top-1 left-1/2 -translate-x-1/2 rounded-full border border-zinc-100 bg-white/95 px-2.5 py-1">
-            <Text className="text-[11.5px] font-medium tracking-widest text-zinc-700">
+            <Text className="text-[11.5px] font-medium tracking-tight text-zinc-700">
               {/* {item.codigo} */}
               Disponible
             </Text>
@@ -80,10 +80,10 @@ export default function SelectableItemCard({
 
             <View className="mt-1 flex-row flex-wrap">
               {item.linea ? (
-                <View className="rounded-full bg-zinc-100 px-2 py-1">
+                <View className="rounded-full bg-zinc-100 dark:bg-slate-400 px-2 py-1">
                   <Text
                     numberOfLines={1}
-                    className="text-[11px] font-medium text-zinc-600"
+                    className="text-[11px] font-medium text-zinc-600 dark:text-dark-foreground"
                   >
                     {item.linea}
                   </Text>
@@ -92,10 +92,10 @@ export default function SelectableItemCard({
             </View>
             <View className="mt-1 flex-row flex-wrap">
               {item.sublinea ? (
-                <View className="rounded-full bg-zinc-100 px-2 py-1">
+                <View className="rounded-full bg-zinc-100 dark:bg-slate-400 px-2 py-1">
                   <Text
                     numberOfLines={1}
-                    className="text-[11px] font-medium text-zinc-600"
+                    className="text-[11px] font-medium text-zinc-600 dark:text-dark-foreground"
                   >
                     {item.sublinea}
                   </Text>

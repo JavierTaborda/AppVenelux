@@ -62,6 +62,7 @@ export default function RequestConfirmScreen() {
 
   const [notes, setNotes] = useState("");
   const [area, setArea] = useState("");
+  const [deliveryAddress, setDeliveryAddress] = useState("");
   const [priority, setPriority] = useState<Priority>("normal");
   const [requiredDate, setRequiredDate] = useState<Date | undefined>(undefined);
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -134,12 +135,9 @@ export default function RequestConfirmScreen() {
           <Text className="text-2xl font-extrabold text-foreground dark:text-dark-foreground mt-3">
             Confirmar solicitud
           </Text>
-          <Text className="text-sm text-mutedForeground dark:text-dark-mutedForeground mt-1">
-            Revisa tu carrito de materiales y completa los datos de entrega.
-          </Text>
         </View>
 
-        <View className="flex-row gap-2 mb-3">
+        {/* <View className="flex-row gap-2 mb-3">
           <View className="flex-1 rounded-2xl border border-muted p-3 bg-componentbg dark:bg-dark-componentbg">
             <Text className="text-sm text-mutedForeground dark:text-dark-mutedForeground">
               Artículos
@@ -156,7 +154,7 @@ export default function RequestConfirmScreen() {
               {totalQty}
             </Text>
           </View>
-        </View>
+        </View> */}
 
         <View className="rounded-2xl border border-muted p-4 mb-3 bg-componentbg dark:bg-dark-componentbg gap-3">
           <Text className="text-lg font-bold text-foreground dark:text-dark-foreground">
@@ -176,6 +174,21 @@ export default function RequestConfirmScreen() {
             />
           </View>
 
+          <View>
+            <Text className="text-md mb-1 text-mutedForeground dark:text-dark-mutedForeground">
+              Dirección de entrega
+            </Text>
+            <TextInput
+              value={deliveryAddress}
+              onChangeText={setDeliveryAddress}
+              multiline
+              numberOfLines={4}
+              textAlignVertical="top"
+              placeholder="Detalle adicional para aprobación"
+              placeholderTextColor="#9CA3AF"
+              className="border border-muted rounded-xl px-3 py-3 min-h-24 bg-background dark:bg-dark-background text-foreground dark:text-dark-foreground"
+            />
+          </View>
           <View>
             <Text className="text-md mb-1 text-mutedForeground dark:text-dark-mutedForeground">
               Observaciones
@@ -279,7 +292,7 @@ export default function RequestConfirmScreen() {
             renderItem={({ item: row }) => (
               <View className="rounded-2xl border border-neutral-100 dark:border-neutral-800 px-3 py-3 mb-2 bg-componentbg dark:bg-dark-componentbg">
                 <View className="flex-row gap-3">
-                  <View className="w-16 h-16 rounded-xl overflow-hidden bg-neutral-100 border border-neutral-200/50">
+                  <View className="w-24 h-24 rounded-xl overflow-hidden bg-neutral-100 border border-neutral-200/50">
                     <CustomImagen img={row.item.imagen1 ?? ""} />
                   </View>
 
@@ -289,26 +302,26 @@ export default function RequestConfirmScreen() {
                         className="flex-1 text-sm font-semibold text-foreground dark:text-dark-foreground"
                         numberOfLines={2}
                       >
-                        {row.item.material}
+                        {row.item.codigo} - {row.item.material}
                       </Text>
 
                       <View className="rounded-full bg-primary/10 dark:bg-dark-primary/20 px-2.5 py-1">
                         <Text className="text-xs font-bold text-primary dark:text-dark-primary">
-                          x{row.quantity}
+                          x{row.quantity} {row.item.coduni}
                         </Text>
                       </View>
                     </View>
 
                     <Text
-                      className="text-xs text-mutedForeground dark:text-dark-mutedForeground mt-0.5"
+                      className="text-[12px] text-slate-700 dark:text-dark-mutedForeground mt-0.5"
                       numberOfLines={1}
                     >
-                      Cod: {row.item.codigo}
+                      Marca: {row.item.marca} · N. Parte: {row.item.noparte}
                     </Text>
 
                     <Text
-                      className="text-xs text-mutedForeground dark:text-dark-mutedForeground mt-0.5"
-                      numberOfLines={1}
+                      className="text-[12px] text-slate-600 dark:text-dark-mutedForeground mt-0.5"
+                      numberOfLines={2}
                     >
                       {row.item.linea ?? "Sin linea"} ·{" "}
                       {row.item.sublinea ?? "Sin sublinea"} ·{" "}

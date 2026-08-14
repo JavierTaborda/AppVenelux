@@ -21,11 +21,7 @@ interface Props {
   onClose?: () => void;
 }
 
-export default function ProductDetailScreen({
-  productId,
-  item,
-  onClose,
-}: Props) {
+export default function ProductDetail({ productId, item, onClose }: Props) {
   const router = useRouter();
   const params = useLocalSearchParams();
 
@@ -88,7 +84,7 @@ export default function ProductDetailScreen({
     <View className="flex-1">
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 140 }}
+        contentContainerStyle={{ flexGrow: 1, paddingBottom: 160 }}
       >
         {/* IMAGE */}
         <View className="w-full h-[200px] bg-componentbg dark:bg-bgimages items-center justify-center rounded-b-[40px] overflow-hidden">
@@ -111,27 +107,27 @@ export default function ProductDetailScreen({
             <Text className="text-lg font-bold text-foreground dark:text-dark-foreground">
               Detalles
             </Text>
-            <View className="flex-row justify-between py-2.5 border-b border-zinc-100">
+            <View className="flex-row flex-wrap justify-between gap-x-3 gap-y-1 py-2.5 border-b border-zinc-100">
               <Text className="text-zinc-500">Línea</Text>
-              <Text className="font-semibold text-foreground dark:text-dark-foreground">
+              <Text className="min-w-[140px] flex-1 text-right font-semibold text-foreground dark:text-dark-foreground">
                 {found.linea}
               </Text>
             </View>
-            <View className="flex-row justify-between py-2.5 border-b border-zinc-100">
+            <View className="flex-row flex-wrap justify-between gap-x-3 gap-y-1 py-2.5 border-b border-zinc-100">
               <Text className="text-zinc-500">Sublínea</Text>
-              <Text className="font-semibold text-foreground dark:text-dark-foreground">
+              <Text className="min-w-[140px] flex-1 text-right font-semibold text-foreground dark:text-dark-foreground">
                 {found.sublinea}
               </Text>
             </View>
-            <View className="flex-row justify-between py-2.5 border-b border-zinc-100">
+            <View className="flex-row flex-wrap justify-between gap-x-3 gap-y-1 py-2.5 border-b border-zinc-100">
               <Text className="text-zinc-500">Marca</Text>
-              <Text className="font-semibold text-foreground dark:text-dark-foreground">
+              <Text className="min-w-[140px] flex-1 text-right font-semibold text-foreground dark:text-dark-foreground">
                 {found.marca}
               </Text>
             </View>
-            <View className="flex-row justify-between py-2.5 border-b border-zinc-100">
+            <View className="flex-row flex-wrap justify-between gap-x-3 gap-y-1 py-2.5 border-b border-zinc-100">
               <Text className="text-zinc-500">No. de Parte</Text>
-              <Text className="font-semibold text-foreground dark:text-dark-foreground">
+              <Text className="min-w-[140px] flex-1 text-right font-semibold text-foreground dark:text-dark-foreground">
                 {found.noparte}
               </Text>
             </View>
@@ -143,9 +139,9 @@ export default function ProductDetailScreen({
               </Text>
             </View> */}
 
-            <View className="flex-row justify-between py-2.5">
+            <View className="flex-row flex-wrap justify-between gap-x-3 gap-y-1 py-2.5">
               <Text className="text-zinc-500">Disponibles</Text>
-              <Text className="font-semibold text-foreground dark:text-dark-foreground">
+              <Text className="min-w-[140px] flex-1 text-right font-semibold text-foreground dark:text-dark-foreground">
                 -
               </Text>
             </View>
@@ -157,7 +153,7 @@ export default function ProductDetailScreen({
               Cantidad
             </Text>
 
-            <View className="flex-row items-center space-x-3">
+            <View className="flex-row flex-wrap items-center gap-3">
               <View className="flex-row items-center self-start bg-componentbg dark:bg-dark-componentbg rounded-2xl px-2 py-2">
                 <Pressable
                   onPress={() => setQty((q) => Math.max(0, q - 1))}
@@ -176,9 +172,8 @@ export default function ProductDetailScreen({
                     setQty(Math.max(0, nextQty));
                   }}
                   keyboardType="number-pad"
-                  returnKeyType="done"
                   textAlign="center"
-                  className="mx-4 min-w-[64px] text-lg font-bold text-foreground dark:text-dark-foreground"
+                  className="mx-3 min-w-[64px] pb-1 text-2xl font-bold text-foreground dark:text-dark-foreground"
                   accessibilityLabel="Cantidad"
                 />
 
@@ -188,9 +183,15 @@ export default function ProductDetailScreen({
                 >
                   <Text className="text-xl font-bold text-white">+</Text>
                 </Pressable>
+
+                <View className="ml-3">
+                  <Text className="text-sm text-zinc-500 dark:text-dark-foreground">
+                    {found.coduni}
+                  </Text>
+                </View>
               </View>
 
-              <View className="flex-row items-center mx-6 bg-componentbg dark:bg-dark-componentbg rounded-2xl px-2 py-2">
+              <View className="flex-row items-center bg-componentbg dark:bg-dark-componentbg rounded-2xl px-2 py-2">
                 <Pressable
                   onPress={() => {
                     if (qty === 0) return; // nothing to remove
@@ -237,9 +238,10 @@ export default function ProductDetailScreen({
         <Pressable
           className={
             qty === 0
-              ? "bg-gray-300 dark:bg-gray-500 rounded-3xl h-16 items-center justify-center"
-              : "bg-secondary dark:bg-dark-secondary rounded-3xl h-16 items-center justify-center"
+              ? "bg-gray-300 dark:bg-gray-500 rounded-3xl items-center justify-center px-4 py-3"
+              : "bg-secondary dark:bg-dark-secondary rounded-3xl items-center justify-center px-4 py-3"
           }
+          style={{ minHeight: 64 }}
           onPress={() => {
             if (!found) return;
             if (qty === 0) return; // disabled
@@ -257,8 +259,8 @@ export default function ProductDetailScreen({
           <Text
             className={
               qty === 0
-                ? "text-gray-600 text-lg font-bold"
-                : "text-white text-lg font-bold"
+                ? "text-gray-600 text-lg font-bold text-center"
+                : "text-white text-lg font-bold text-center"
             }
           >
             Agregar a la solicitud

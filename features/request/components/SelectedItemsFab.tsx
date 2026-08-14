@@ -30,7 +30,7 @@ export default function SelectedItemsFab() {
   const items = useMemo(() => materials || [], [materials]);
 
   const keyOf = (it: VeneluxMaterial) =>
-    String(it.codigo || it.codart || it.material);
+    String(it.codigo || it.codart || it.noparte);
 
   const getQuantityByItem = useSelectedItemsStore((s) => s.getQuantityByItem);
 
@@ -94,7 +94,7 @@ export default function SelectedItemsFab() {
             className="bg-primary rounded-full w-16 h-16 items-center justify-center shadow-2xl"
             onPress={() => setVisible(true)}
             accessibilityRole="button"
-            accessibilityLabel={`Ver bolsa, ${totalQty} unidades`}
+            accessibilityLabel={`Ver bolsa, ${distinctCount} artículos`}
             android_ripple={{
               color: "rgba(255,255,255,0.08)",
               borderless: true,
@@ -102,7 +102,7 @@ export default function SelectedItemsFab() {
           >
             <Ionicons name="bag" size={22} color="white" />
             <View className="absolute -top-2 -right-2 bg-red-600 rounded-full w-6 h-6 items-center justify-center">
-              <Text className="text-white text-xs">{totalQty}</Text>
+              <Text className="text-white text-xs">{distinctCount}</Text>
             </View>
           </Pressable>
         </Animated.View>
@@ -116,21 +116,17 @@ export default function SelectedItemsFab() {
       >
         <View className="flex-1">
           {/* Header del Modal */}
-          <View className="flex-row justify-between items-center pb-4 mb-2 border-b border-zinc-100 dark:border-zinc-800 bg-componentbg dark:bg-dark-componentbg px-3 pt-2 rounded-t-2xl">
+          <View className="flex-row justify-between items-center pb-1 mb-1 border-b border-zinc-100 dark:border-zinc-800 bg-componentbg dark:bg-dark-componentbg px-3 pt-2 rounded-t-2xl">
             <View>
               <Text className="text-2xl font-extrabold tracking-tight text-neutral-900 dark:text-neutral-50">
                 Resumen
-              </Text>
-              <Text className="text-xs text-neutral-600 dark:text-neutral-100 mt-0.5">
-                {distinctCount} {distinctCount === 1 ? "artículo" : "artículos"}{" "}
-                · {totalQty} {totalQty === 1 ? "unidad" : "unidades"}
               </Text>
             </View>
 
             {totalQty > 0 && (
               <Pressable
                 onPress={handleClear}
-                className="w-10 h-10 items-center justify-center rounded-full active:bg-zinc-100"
+                className="w-10 h-10 items-center justify-center rounded-full active:bg-zinc-100 bg-red-300/20 dark:bg-red-600/20"
               >
                 <Ionicons name="trash-outline" size={20} color="#EF4444" />
               </Pressable>
@@ -159,7 +155,7 @@ export default function SelectedItemsFab() {
                   <View className="flex-row items-center justify-between py-4 border-b border-neutral-100 dark:border-neutral-800 bg-componentbg dark:bg-dark-componentbg rounded-3xl px-3 mb-2">
                     {/* Detalles del Producto */}
                     <View className="flex-row items-center flex-1 pr-3">
-                      <View className="w-16 h-16 rounded-xl overflow-hidden bg-neutral-100 border border-neutral-200/50">
+                      <View className="w-24 h-24 rounded-xl overflow-hidden bg-neutral-100 border border-neutral-200/50">
                         <CustomImagen img={item.imagen1 ?? ""} />
                       </View>
                       <View className="ml-3 flex-1 justify-center">
@@ -167,57 +163,63 @@ export default function SelectedItemsFab() {
                           className="text-sm font-semibold text-neutral-800 dark:text-neutral-100"
                           numberOfLines={2}
                         >
-                          {item.material}
+                          {item.codigo} - {item.material}
                         </Text>
-                        <Text className="text-xs text-neutral-400 font-medium mt-0.5">
-                          Cod: {item.codigo}
+                        <Text className="text-xs text-neutral-700 font-medium mt-0.5">
+                          {item.linea} · {item.sublinea}
                         </Text>
                         <Text
-                          className="text-xs text-neutral-500 mt-1"
+                          className="text-xs text-neutral-600 mt-1"
                           numberOfLines={1}
                         >
                           {item.marca} {item.noparte ? `· ${item.noparte}` : ""}
                         </Text>
                       </View>
                     </View>
+                    <View className="flex-col items-center rounded-full">
+                      <View className="p-2 items-center justify-center">
+                        <Text className="text-[11px] font-bold text-neutral-600 dark:text-neutral-300">
+                          {item.unidad}
+                        </Text>
+                      </View>
 
-                    {/* Stepper de cantidad estilo "Shop" (Contenedor tipo píldora) */}
-                    <View className="flex-row items-center bg-neutral-100 dark:bg-neutral-800 rounded-full p-1 border border-neutral-200/40">
-                      <Pressable
-                        className="w-10 h-10 items-center justify-center rounded-full active:bg-neutral-200 dark:active:bg-neutral-700"
-                        onPress={() => decByItem(item)}
-                      >
-                        {itemQty === 1 ? (
+                      <View className="flex-row items-center bg-neutral-100 dark:bg-neutral-800 rounded-full p-1 border border-neutral-200/40">
+                        <Pressable
+                          className="w-10 h-10 items-center justify-center rounded-full active:bg-neutral-200 dark:active:bg-neutral-700"
+                          onPress={() => decByItem(item)}
+                        >
+                          {itemQty === 1 ? (
+                            <Ionicons
+                              name="trash-outline"
+                              size={18}
+                              color="#6B7280"
+                            />
+                          ) : (
+                            <Ionicons
+                              name="remove"
+                              size={18}
+                              color="#1F2937"
+                              className="dark:text-white"
+                            />
+                          )}
+                        </Pressable>
+
+                        <Text className="w-8 text-center font-bold text-sm text-neutral-800 dark:text-neutral-100">
+                          {itemQty}
+                        </Text>
+
+                        <Pressable
+                          className="w-10 h-10 items-center justify-center rounded-full bg-white dark:bg-neutral-700 shadow-sm active:bg-neutral-100"
+                          onPress={() => incByItem(item)}
+                        >
                           <Ionicons
-                            name="trash-outline"
-                            size={18}
-                            color="#6B7280"
-                          />
-                        ) : (
-                          <Ionicons
-                            name="remove"
+                            name="add"
                             size={18}
                             color="#1F2937"
                             className="dark:text-white"
                           />
-                        )}
-                      </Pressable>
-
-                      <Text className="w-8 text-center font-bold text-sm text-neutral-800 dark:text-neutral-100">
-                        {itemQty}
-                      </Text>
-
-                      <Pressable
-                        className="w-10 h-10 items-center justify-center rounded-full bg-white dark:bg-neutral-700 shadow-sm active:bg-neutral-100"
-                        onPress={() => incByItem(item)}
-                      >
-                        <Ionicons
-                          name="add"
-                          size={18}
-                          color="#1F2937"
-                          className="dark:text-white"
-                        />
-                      </Pressable>
+                        </Pressable>
+                      </View>
                     </View>
                   </View>
                 );
@@ -226,7 +228,6 @@ export default function SelectedItemsFab() {
           )}
         </View>
 
-        {/* Botón de Acción Fijo Inferior */}
         <View className="absolute bottom-0 left-0 right-0 bg-white/95 dark:bg-black/95 px-5 pb-6 pt-3 border-t border-neutral-100 dark:border-neutral-900">
           <Pressable
             disabled={totalQty === 0}
@@ -245,7 +246,7 @@ export default function SelectedItemsFab() {
             {totalQty > 0 && (
               <View className="bg-neutral-800 dark:bg-neutral-200 rounded-md px-1.5 py-0.5 ml-1">
                 <Text className="text-white dark:text-black text-xs font-bold">
-                  {totalQty}
+                  {distinctCount}
                 </Text>
               </View>
             )}

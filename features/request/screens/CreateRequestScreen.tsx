@@ -1,6 +1,7 @@
 import ScreenSearchLayout from "@/components/screens/ScreenSearchLayout";
 import BottomModal from "@/components/ui/BottomModal";
 import CustomFlatList from "@/components/ui/CustomFlatList";
+import ProductDetail from "@/features/request/components/ProductDetail";
 import RequestMaterialsFilterModal, {
   type RequestMaterialFilters,
 } from "@/features/request/components/RequestMaterialsFilterModal";
@@ -12,7 +13,6 @@ import { useRequest } from "../hooks/useRequest";
 import { useSelectedItemsStore } from "../stores/useSelectedItemsStore";
 import type { VeneluxMaterial } from "../types/request";
 import { exportMaterialsCsv } from "../utils/materialsCsv";
-import ProductDetailScreen from "./ProductDetailScreen";
 
 const MATERIAL_SKELETON_ITEMS = Array.from(
   { length: 8 },
@@ -225,6 +225,7 @@ export default function CreateRequestScreen() {
           title={`${items.length} `}
           subtitle={"Materiales disponibles"}
           numColumns={1}
+          removeClippedSubviews={true}
           estimatedItemSize={170}
           //onEndReached={loadMoreMaterials}
           contentContainerStyle={{ paddingBottom: 210 }}
@@ -237,7 +238,7 @@ export default function CreateRequestScreen() {
           onClose={() => setModalVisible(false)}
           heightPercentage={0.8}
         >
-          <ProductDetailScreen
+          <ProductDetail
             item={modalItem}
             onClose={() => setModalVisible(false)}
           />
