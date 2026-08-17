@@ -10,13 +10,13 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import {
-  Alert,
-  Platform,
-  Pressable,
-  ScrollView,
-  Text,
-  TextInput,
-  View,
+    Alert,
+    Platform,
+    Pressable,
+    ScrollView,
+    Text,
+    TextInput,
+    View,
 } from "react-native";
 import Animated, { FadeInUp, FadeOutDown } from "react-native-reanimated";
 
@@ -60,6 +60,7 @@ export default function RequestConfirmScreen() {
   const router = useRouter();
   const { materials } = useRequest({ autoFetchRequests: false });
   const selected = useSelectedItemsStore((s) => s.selected);
+  const customItems = useSelectedItemsStore((s) => s.customItems);
   const clearSelected = useSelectedItemsStore((s) => s.clear);
 
   const [notes, setNotes] = useState("");
@@ -71,10 +72,20 @@ export default function RequestConfirmScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [modalItem, setModalItem] = useState<VeneluxMaterial | null>(null);
 
-  const selectedItems = useMemo(
-    () => materials.filter((it) => (selected[keyOf(it)] || 0) > 0),
-    [materials, selected],
-  );
+  const selectedItems = useMemo(() => {
+    const manual = Object.values(customItems).filter(
+      (it) => (selected[keyOf(it)] || 0) > 0,
+    );
+    const fromDb = materials.filter((it) => (selected[keyOf(it)] || 0) > 0);
+
+    const all = [...fromDb];
+    manual.forEach((m) => {
+      const exists = all.some((it) => keyOf(it) === keyOf(m));
+      if (!exists) all.push(m);
+    });
+
+    return all;
+  }, [customItems, materials, selected]);
 
   const summaryRows = useMemo(
     () =>

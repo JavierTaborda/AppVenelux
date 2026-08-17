@@ -31,12 +31,12 @@ export default function SelectableItemCard({
             <CustomImagen img={item.imagen1 ?? ""} recyclingKey={item.codigo} />
           </View>
 
-          <View className="absolute top-1 left-1/2 -translate-x-1/2 rounded-full border border-zinc-100 bg-white/95 px-2.5 py-1">
+          {/* <View className="absolute top-1 left-1/2 -translate-x-1/2 rounded-full border border-zinc-100 bg-white/95 px-2.5 py-1">
             <Text className="text-[11.5px] font-medium tracking-tight text-zinc-700">
-              {/* {item.codigo} */}
+            
               Disponible
             </Text>
-          </View>
+          </View> */}
 
           {/* <View className="absolute bottom-1 left-1/2 -translate-x-1/2 rounded-full border border-zinc-200 bg-white/95 px-2.5 py-1">
             <Text className="text-[10px] font-semibold tracking-wide text-zinc-600">
@@ -77,17 +77,25 @@ export default function SelectableItemCard({
             >
               {brandLabel}
             </Text>
-            <View className="mt-1 flex-row flex-wrap">
-              {item.unidad ? (
-                <View className="rounded-full bg-zinc-100 dark:bg-slate-400 px-2 py-1">
-                  <Text
-                    numberOfLines={1}
-                    className="text-[11px] font-medium text-zinc-600 dark:text-dark-foreground"
-                  >
-                    {item.unidad}
-                  </Text>
-                </View>
-              ) : null}
+            <View className="mt-2 flex-row items-center justify-between gap-2">
+              <View className="flex-row flex-wrap">
+                {item.unidad ? (
+                  <View className="rounded-full border border-zinc-200 bg-zinc-100 px-2.5 py-1 dark:border-slate-500 dark:bg-slate-700">
+                    <Text
+                      numberOfLines={1}
+                      className="text-[11px] font-semibold text-zinc-700 dark:text-dark-foreground"
+                    >
+                      {item.unidad}
+                    </Text>
+                  </View>
+                ) : null}
+              </View>
+
+              <View className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 dark:border-emerald-700 dark:bg-emerald-900/30">
+                <Text className="text-[11px] font-semibold tracking-tight text-emerald-700 dark:text-emerald-300">
+                  Disponible
+                </Text>
+              </View>
             </View>
             {/*
             <View className="mt-1 flex-row flex-wrap">
