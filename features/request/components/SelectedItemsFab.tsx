@@ -1,25 +1,22 @@
 import BottomModal from "@/components/ui/BottomModal";
 import CustomFlatList from "@/components/ui/CustomFlatList";
 import CustomImagen from "@/components/ui/CustomImagen";
+import NewManualItemModal from "@/features/request/components/NewManualItemModal";
 import ProductDetail from "@/features/request/components/ProductDetail";
 import { useRequest } from "@/features/request/hooks/useRequest";
 import { useSelectedItemsStore } from "@/features/request/stores/useSelectedItemsStore";
 import type { VeneluxMaterial } from "@/features/request/types/request";
 import { appTheme } from "@/utils/appTheme";
-import { pickFromCamera, pickFromGallery } from "@/utils/pickImage";
 import { Ionicons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import { useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import {
   Alert,
-  KeyboardAvoidingView,
   Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   ToastAndroid,
   View,
   useWindowDimensions,
@@ -43,15 +40,6 @@ export default function SelectedItemsFab() {
   const [visible, setVisible] = useState(false);
   const [detailItem, setDetailItem] = useState<VeneluxMaterial | null>(null);
   const [newItemVisible, setNewItemVisible] = useState(false);
-  const [formCodigo, setFormCodigo] = useState("");
-  const [formMaterial, setFormMaterial] = useState("");
-  const [formUnidad, setFormUnidad] = useState("");
-  const [formMarca, setFormMarca] = useState("");
-  const [formLinea, setFormLinea] = useState("");
-  const [formSublinea, setFormSublinea] = useState("");
-  const [formNoParte, setFormNoParte] = useState("");
-  const [formQty, setFormQty] = useState("1");
-  const [formImageUri, setFormImageUri] = useState<string | null>(null);
 
   const items = useMemo(() => materials || [], [materials]);
 
@@ -125,74 +113,19 @@ export default function SelectedItemsFab() {
     router.push("/(main)/(tabs)/(request)/confirm");
   };
 
-  const resetNewItemForm = () => {
-    setFormCodigo("");
-    setFormMaterial("");
-    setFormUnidad("");
-    setFormMarca("");
-    setFormLinea("");
-    setFormSublinea("");
-    setFormNoParte("");
-    setFormQty("1");
-    setFormImageUri(null);
-  };
-
   const handleCloseNewItem = () => {
     setNewItemVisible(false);
-    resetNewItemForm();
   };
 
-  const handlePickImage = () => {
-    Alert.alert("Imagen referencial", "Selecciona una fuente", [
-      {
-        text: "Camara",
-        onPress: async () => {
-          const uri = await pickFromCamera();
-          if (uri) setFormImageUri(uri);
-        },
-      },
-      {
-        text: "Galeria",
-        onPress: async () => {
-          const uris = await pickFromGallery();
-          if (uris?.length) setFormImageUri(uris[0]);
-        },
-      },
-      { text: "Cancelar", style: "cancel" },
-    ]);
-  };
-
-  const handleCreateManualItem = () => {
-    const cleanMaterial = formMaterial.trim();
-    if (!cleanMaterial) {
-      Alert.alert("Falta descripcion", "Agrega el nombre del material.");
-      return;
-    }
-
-    const quantity = Math.max(1, Number(formQty.replace(/[^0-9]/g, "")) || 1);
-    const code = formCodigo.trim() || `MAN-${Date.now().toString().slice(-6)}`;
-
-    const customItem: VeneluxMaterial = {
-      codigo: code,
-      material: cleanMaterial,
-      coduni: formUnidad.trim() || null,
-      nroparte: formNoParte.trim() || null,
-      codbarra: null,
-      unidad: formUnidad.trim() || null,
-      linea: formLinea.trim() || null,
-      sublinea: formSublinea.trim() || null,
-      categoria: "Manual",
-      precio: null,
-      codart: null,
-      marca: formMarca.trim() || null,
-      noparte: formNoParte.trim() || null,
-      imagen1: formImageUri,
-      imagen2: null,
-      imagen3: null,
-    };
-
-    upsertCustomItem(customItem);
-    const k = keyOf(customItem);
+  const handleCreateManualItem = ({
+    item,
+    quantity,
+  }: {
+    item: VeneluxMaterial;
+    quantity: number;
+  }) => {
+    upsertCustomItem(item);
+    const k = keyOf(item);
     setSelected({ ...selected, [k]: quantity });
     setVisible(true);
     handleCloseNewItem();
@@ -325,16 +258,16 @@ export default function SelectedItemsFab() {
                           </View>
                           <View className="ml-3 flex-1 justify-center">
                             <Text
-                              className="text-sm font-semibold text-neutral-800 dark:text-neutral-100"
+                              className="text-sm font-semibold text-neutral-900 dark:text-neutral-100"
                               numberOfLines={2}
                             >
                               {item.codigo} - {item.material}
                             </Text>
-                            <Text className="text-xs text-neutral-700 font-medium mt-0.5">
+                            <Text className="text-sm text-neutral-800 font-medium mt-0.5">
                               {item.linea} · {item.sublinea}
                             </Text>
                             <Text
-                              className="text-xs text-neutral-600 mt-1"
+                              className="text-[13px] text-neutral-600 mt-1"
                               numberOfLines={1}
                             >
                               {item.marca}{" "}
@@ -398,7 +331,7 @@ export default function SelectedItemsFab() {
               <Pressable
                 disabled={totalQty === 0}
                 onPress={handleOpenSummary}
-                className={`w-full h-14 rounded-xl flex-row items-center justify-center space-x-2 ${
+                className={`w-full h-14 rounded-full flex-row items-center justify-center space-x-2 ${
                   totalQty === 0
                     ? "bg-neutral-200 dark:bg-neutral-800"
                     : "bg-primary dark:bg-white active:opacity-90"
@@ -425,190 +358,11 @@ export default function SelectedItemsFab() {
         ) : null}
       </BottomModal>
 
-      <BottomModal
+      <NewManualItemModal
         visible={newItemVisible}
         onClose={handleCloseNewItem}
-        heightPercentage={0.75}
-      >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
-          className="flex-1"
-        >
-          <View className="flex-1">
-            <View className="flex-row items-center justify-between pb-3 border-b border-zinc-100 dark:border-zinc-800">
-              <View>
-                <Text className="text-2xl font-extrabold text-neutral-900 dark:text-neutral-50">
-                  Agregar item
-                </Text>
-                <Text className="text-sm text-neutral-500 dark:text-neutral-400 mt-0.5">
-                  Material fuera de base de datos
-                </Text>
-              </View>
-              <Pressable
-                onPress={handleCloseNewItem}
-                className="w-10 h-10 items-center justify-center rounded-full bg-neutral-100 dark:bg-neutral-800"
-              >
-                <Ionicons name="close" size={20} color="#6B7280" />
-              </Pressable>
-            </View>
-
-            <ScrollView
-              className="flex-1"
-              contentContainerStyle={{ paddingBottom: 140, paddingTop: 12 }}
-              showsVerticalScrollIndicator={false}
-            >
-              <Pressable
-                onPress={handlePickImage}
-                className="rounded-2xl border border-dashed border-neutral-300 dark:border-neutral-700 p-4 mb-4 bg-neutral-50/80 dark:bg-neutral-900/40"
-              >
-                <View className="flex-row items-center gap-3">
-                  <View className="w-20 h-20 rounded-xl overflow-hidden bg-neutral-200 dark:bg-neutral-800 items-center justify-center">
-                    {formImageUri ? (
-                      <CustomImagen img={formImageUri} />
-                    ) : (
-                      <Ionicons
-                        name="image-outline"
-                        size={28}
-                        color="#6B7280"
-                      />
-                    )}
-                  </View>
-                  <View className="flex-1">
-                    <Text className="text-sm font-semibold text-neutral-800 dark:text-neutral-100">
-                      Imagen referencial
-                    </Text>
-                    <Text className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
-                      Toca para abrir camara o galeria
-                    </Text>
-                  </View>
-                </View>
-              </Pressable>
-
-              <View className="gap-3">
-                <View>
-                  <Text className="text-xs font-semibold text-neutral-500 dark:text-neutral-400 mb-1.5">
-                    Codigo (opcional)
-                  </Text>
-                  <TextInput
-                    value={formCodigo}
-                    onChangeText={setFormCodigo}
-                    placeholder="Ej: MAN-001"
-                    placeholderTextColor="#9CA3AF"
-                    className="border border-neutral-200 dark:border-neutral-700 rounded-xl px-3 py-3 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100"
-                  />
-                </View>
-
-                <View>
-                  <Text className="text-xs font-semibold text-neutral-500 dark:text-neutral-400 mb-1.5">
-                    Descripcion del material *
-                  </Text>
-                  <TextInput
-                    value={formMaterial}
-                    onChangeText={setFormMaterial}
-                    placeholder="Ej: Tornillo autorroscante 1/4"
-                    placeholderTextColor="#9CA3AF"
-                    className="border border-neutral-200 dark:border-neutral-700 rounded-xl px-3 py-3 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100"
-                  />
-                </View>
-
-                <View className="flex-row gap-2">
-                  <View className="flex-1">
-                    <Text className="text-xs font-semibold text-neutral-500 dark:text-neutral-400 mb-1.5">
-                      Unidad
-                    </Text>
-                    <TextInput
-                      value={formUnidad}
-                      onChangeText={setFormUnidad}
-                      placeholder="UND"
-                      placeholderTextColor="#9CA3AF"
-                      className="border border-neutral-200 dark:border-neutral-700 rounded-xl px-3 py-3 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100"
-                    />
-                  </View>
-
-                  <View className="w-28">
-                    <Text className="text-xs font-semibold text-neutral-500 dark:text-neutral-400 mb-1.5">
-                      Cantidad *
-                    </Text>
-                    <TextInput
-                      value={formQty}
-                      onChangeText={setFormQty}
-                      keyboardType="numeric"
-                      placeholder="1"
-                      placeholderTextColor="#9CA3AF"
-                      className="border border-neutral-200 dark:border-neutral-700 rounded-xl px-3 py-3 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100"
-                    />
-                  </View>
-                </View>
-
-                <View className="flex-row gap-2">
-                  <View className="flex-1">
-                    <Text className="text-xs font-semibold text-neutral-500 dark:text-neutral-400 mb-1.5">
-                      Marca
-                    </Text>
-                    <TextInput
-                      value={formMarca}
-                      onChangeText={setFormMarca}
-                      placeholder="Opcional"
-                      placeholderTextColor="#9CA3AF"
-                      className="border border-neutral-200 dark:border-neutral-700 rounded-xl px-3 py-3 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100"
-                    />
-                  </View>
-                  <View className="flex-1">
-                    <Text className="text-xs font-semibold text-neutral-500 dark:text-neutral-400 mb-1.5">
-                      Nro. parte
-                    </Text>
-                    <TextInput
-                      value={formNoParte}
-                      onChangeText={setFormNoParte}
-                      placeholder="Opcional"
-                      placeholderTextColor="#9CA3AF"
-                      className="border border-neutral-200 dark:border-neutral-700 rounded-xl px-3 py-3 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100"
-                    />
-                  </View>
-                </View>
-
-                <View className="flex-row gap-2">
-                  <View className="flex-1">
-                    <Text className="text-xs font-semibold text-neutral-500 dark:text-neutral-400 mb-1.5">
-                      Linea
-                    </Text>
-                    <TextInput
-                      value={formLinea}
-                      onChangeText={setFormLinea}
-                      placeholder="Opcional"
-                      placeholderTextColor="#9CA3AF"
-                      className="border border-neutral-200 dark:border-neutral-700 rounded-xl px-3 py-3 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100"
-                    />
-                  </View>
-                  <View className="flex-1">
-                    <Text className="text-xs font-semibold text-neutral-500 dark:text-neutral-400 mb-1.5">
-                      Sublinea
-                    </Text>
-                    <TextInput
-                      value={formSublinea}
-                      onChangeText={setFormSublinea}
-                      placeholder="Opcional"
-                      placeholderTextColor="#9CA3AF"
-                      className="border border-neutral-200 dark:border-neutral-700 rounded-xl px-3 py-3 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100"
-                    />
-                  </View>
-                </View>
-              </View>
-            </ScrollView>
-
-            <View className="absolute bottom-0 left-0 right-0 bg-white/95 dark:bg-black/95 px-5 pb-6 pt-3 border-t border-neutral-100 dark:border-neutral-900">
-              <Pressable
-                onPress={handleCreateManualItem}
-                className="w-full h-14 rounded-xl items-center justify-center bg-primary dark:bg-white"
-              >
-                <Text className="text-lg font-bold text-white dark:text-black">
-                  Agregar a solicitud
-                </Text>
-              </Pressable>
-            </View>
-          </View>
-        </KeyboardAvoidingView>
-      </BottomModal>
+        onSubmit={handleCreateManualItem}
+      />
     </>
   );
 }
