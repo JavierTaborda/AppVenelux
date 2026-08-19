@@ -55,6 +55,13 @@ type MaterialsRawPayload = {
   lastPage?: unknown;
 };
 
+type ObraApiItem = {
+  codigoobra?: unknown;
+  descripcionobra?: unknown;
+  descripcion?: unknown;
+  obra?: unknown;
+};
+
 const toPositiveIntOrFallback = (value: unknown, fallback: number): number => {
   const parsed = toNumberOrNull(value);
   if (parsed === null) return fallback;
@@ -276,5 +283,38 @@ export const RequestService = {
 
   //   console.log('--- RequestService tests end ---');
   // },
+
+  async getObras(): Promise<string[]> {
+    try {
+      const response = await api.get('venelux/obras');
+      const data = response.data;
+      if (!Array.isArray(data)) {
+        console.warn('[RequestService.getObras] Unexpected response format:', data);
+        return [];
+      }
+
+      const normalized = data
+        .map((item) => {
+          if (typeof item === 'string') return item.trim();
+          if (!item || typeof item !== 'object') return '';
+
+          const obra = item as ObraApiItem;
+          const rawDescription =
+            obra.descripcionobra ?? obra.descripcion ?? obra.obra;
+
+          return typeof rawDescription === 'string'
+            ? rawDescription.trim()
+            : String(rawDescription ?? '').trim();
+        })
+        .filter((label) => label.length > 0);
+
+      return [...new Set(normalized)];
+
+    
+    } catch (error) {
+      console.error('[RequestService.getObras] Error fetching obras:', error);
+      return [];
+    }
+  },
 };
 

@@ -7,20 +7,24 @@ import { useRequest } from "@/features/request/hooks/useRequest";
 import { useSelectedItemsStore } from "@/features/request/stores/useSelectedItemsStore";
 import type { VeneluxMaterial } from "@/features/request/types/request";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import { useMemo, useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import { useCallback, useMemo, useState, type ReactNode } from "react";
 import {
-    Alert,
-    Platform,
-    Pressable,
-    ScrollView,
-    Text,
-    TextInput,
-    View,
+  Alert,
+  Platform,
+  Pressable,
+  ScrollView,
+  Text,
+  TextInput,
+  View,
 } from "react-native";
 import Animated, { FadeInUp, FadeOutDown } from "react-native-reanimated";
 
 type Priority = "normal" | "alta";
+type ObraOption = {
+  id: string;
+  label: string;
+};
 
 const PRIORITY_OPTIONS: Array<{ value: Priority; label: string }> = [
   { value: "normal", label: "Normal" },
@@ -36,7 +40,7 @@ function ShowDateIos({
   children,
 }: {
   onPress: () => void;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   if (Platform.OS !== "ios") return <>{children}</>;
 
@@ -58,19 +62,70 @@ function ShowDateIos({
 
 export default function RequestConfirmScreen() {
   const router = useRouter();
-  const { materials } = useRequest({ autoFetchRequests: false });
+  const { materials, getObras } = useRequest({ autoFetchRequests: false });
   const selected = useSelectedItemsStore((s) => s.selected);
   const customItems = useSelectedItemsStore((s) => s.customItems);
   const clearSelected = useSelectedItemsStore((s) => s.clear);
 
   const [notes, setNotes] = useState("");
   const [area, setArea] = useState("");
+  const [partida, setPartida] = useState("");
   const [deliveryAddress, setDeliveryAddress] = useState("");
   const [priority, setPriority] = useState<Priority>("normal");
   const [requiredDate, setRequiredDate] = useState<Date | undefined>(undefined);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showAreaModal, setShowAreaModal] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [modalItem, setModalItem] = useState<VeneluxMaterial | null>(null);
+  const [obras, setObras] = useState<string[]>([]);
+  const [loadingObras, setLoadingObras] = useState(false);
+
+  const fetchObras = useCallback(async () => {
+    setLoadingObras(true);
+    try {
+      const data = await getObras();
+      setObras(data);
+    } finally {
+      setLoadingObras(false);
+    }
+  }, [getObras]);
+
+  useFocusEffect(
+    useCallback(() => {
+      let isActive = true;
+
+      const loadOnFocus = async () => {
+        setLoadingObras(true);
+        try {
+          const data = await getObras();
+          if (isActive) {
+            setObras(data);
+          }
+        } finally {
+          if (isActive) {
+            setLoadingObras(false);
+          }
+        }
+      };
+
+      void loadOnFocus();
+
+      return () => {
+        isActive = false;
+      };
+    }, [getObras]),
+  );
+
+  const obraOptions = useMemo<ObraOption[]>(
+    () =>
+      obras
+        .filter((label) => typeof label === "string" && label.trim().length > 0)
+        .map((label, index) => ({
+          id: `${label}-${index}`,
+          label,
+        })),
+    [obras],
+  );
 
   const selectedItems = useMemo(() => {
     const manual = Object.values(customItems).filter(
@@ -106,9 +161,14 @@ export default function RequestConfirmScreen() {
       return;
     }
 
+    if (!area.trim()) {
+      Alert.alert("Falta obra", "Selecciona la obra para continuar.");
+      return;
+    }
+
     Alert.alert(
       "Solicitud confirmada",
-      `Prioridad: ${priority}\nFecha requerida: ${requiredDate ? requiredDate.toLocaleDateString() : "No definida"}\nItems: ${distinctCount}\nUnidades: ${totalQty}`,
+      `Obra: ${area}\nPrioridad: ${priority}\nFecha requerida: ${requiredDate ? requiredDate.toLocaleDateString() : "No definida"}\nItems: ${distinctCount}\nUnidades: ${totalQty}`,
       [
         {
           text: "Aceptar",
@@ -152,60 +212,50 @@ export default function RequestConfirmScreen() {
           </Text>
         </View>
 
-        {/* <View className="flex-row gap-2 mb-3">
-          <View className="flex-1 rounded-2xl border border-muted p-3 bg-componentbg dark:bg-dark-componentbg">
-            <Text className="text-sm text-mutedForeground dark:text-dark-mutedForeground">
-              Artículos
-            </Text>
-            <Text className="text-2xl font-black text-foreground dark:text-dark-foreground mt-1">
-              {distinctCount}
-            </Text>
-          </View>
-          <View className="flex-1 rounded-2xl border border-muted p-3 bg-componentbg dark:bg-dark-componentbg">
-            <Text className="text-sm text-mutedForeground dark:text-dark-mutedForeground">
-              Unidades
-            </Text>
-            <Text className="text-2xl font-extrabold text-foreground dark:text-dark-foreground mt-1">
-              {totalQty}
-            </Text>
-          </View>
-        </View> */}
-
-        <View className="rounded-2xl border border-muted p-4 mb-3 bg-componentbg dark:bg-dark-componentbg gap-3">
-          <Text className="text-lg font-bold text-foreground dark:text-dark-foreground">
+        <View className="rounded-3xl border border-muted p-4 mb-3 bg-componentbg dark:bg-dark-componentbg gap-4">
+          <Text className="text-xl font-bold text-foreground dark:text-dark-foreground">
             Datos de la solicitud
           </Text>
 
           <View>
-            <Text className="text-md mb-1 text-mutedForeground dark:text-dark-mutedForeground">
+            <Text className="text-[15px] mb-1.5 font-semibold text-foreground dark:text-dark-foreground">
               Obra
             </Text>
+            <Pressable
+              onPress={() => {
+                setShowAreaModal(true);
+                if (obras.length === 0) {
+                  void fetchObras();
+                }
+              }}
+              className="flex-row items-center justify-between border border-muted rounded-xl px-4 py-3.5 bg-background dark:bg-dark-background"
+            >
+              <View className="flex-1 pr-3">
+                <Text
+                  className={`text-base ${area ? "text-foreground dark:text-dark-foreground" : "text-mutedForeground dark:text-dark-mutedForeground"}`}
+                >
+                  {area || "Selecciona una obra"}
+                </Text>
+              </View>
+              <Ionicons name="chevron-down" size={18} color="#6B7280" />
+            </Pressable>
+          </View>
+
+          <View>
+            <Text className="text-[15px] mb-1.5 font-semibold text-foreground dark:text-dark-foreground">
+              Partida
+            </Text>
             <TextInput
-              value={area}
-              onChangeText={setArea}
-              placeholder="Ej: Mantenimiento"
+              value={partida}
+              onChangeText={setPartida}
+              placeholder="Ej: Sistema electrico"
               placeholderTextColor="#9CA3AF"
-              className="border border-muted rounded-xl px-3 py-3 bg-background dark:bg-dark-background text-foreground dark:text-dark-foreground"
+              className="border border-muted rounded-xl px-4 py-3.5 bg-background dark:bg-dark-background text-base text-foreground dark:text-dark-foreground"
             />
           </View>
 
           <View>
-            <Text className="text-md mb-1 text-mutedForeground dark:text-dark-mutedForeground">
-              Partida
-            </Text>
-            <TextInput
-              value={deliveryAddress}
-              onChangeText={setDeliveryAddress}
-              multiline
-              numberOfLines={1}
-              textAlignVertical="top"
-              placeholder="Detalle adicional para aprobación"
-              placeholderTextColor="#9CA3AF"
-              className="border border-muted rounded-xl px-3 py-3 bg-background dark:bg-dark-background text-foreground dark:text-dark-foreground"
-            />
-          </View>
-          <View>
-            <Text className="text-md mb-1 text-mutedForeground dark:text-dark-mutedForeground">
+            <Text className="text-[15px] mb-1.5 font-semibold text-foreground dark:text-dark-foreground">
               Dirección de entrega
             </Text>
             <TextInput
@@ -214,13 +264,14 @@ export default function RequestConfirmScreen() {
               multiline
               numberOfLines={4}
               textAlignVertical="top"
-              placeholder="Detalle adicional para aprobación"
+              placeholder="Ej: Almacen temporal, puerta 3"
               placeholderTextColor="#9CA3AF"
-              className="border border-muted rounded-xl px-3 py-3 min-h-24 bg-background dark:bg-dark-background text-foreground dark:text-dark-foreground"
+              className="border border-muted rounded-xl px-4 py-3.5 min-h-28 bg-background dark:bg-dark-background text-base text-foreground dark:text-dark-foreground"
             />
           </View>
+
           <View>
-            <Text className="text-md mb-1 text-mutedForeground dark:text-dark-mutedForeground">
+            <Text className="text-[15px] mb-1.5 font-semibold text-foreground dark:text-dark-foreground">
               Observaciones
             </Text>
             <TextInput
@@ -229,14 +280,14 @@ export default function RequestConfirmScreen() {
               multiline
               numberOfLines={4}
               textAlignVertical="top"
-              placeholder="Detalle adicional para aprobación"
+              placeholder="Notas para aprobacion o despacho"
               placeholderTextColor="#9CA3AF"
-              className="border border-muted rounded-xl px-3 py-3 min-h-24 bg-background dark:bg-dark-background text-foreground dark:text-dark-foreground"
+              className="border border-muted rounded-xl px-4 py-3.5 min-h-28 bg-background dark:bg-dark-background text-base text-foreground dark:text-dark-foreground"
             />
           </View>
 
           <View>
-            <Text className="text-md mb-2 text-mutedForeground dark:text-dark-mutedForeground">
+            <Text className="text-[15px] mb-2 font-semibold text-foreground dark:text-dark-foreground">
               Prioridad
             </Text>
             <View className="flex-row gap-2">
@@ -244,7 +295,7 @@ export default function RequestConfirmScreen() {
                 <Pressable
                   key={value}
                   onPress={() => setPriority(value)}
-                  className={`px-4 py-2 rounded-full border ${
+                  className={`px-5 py-2.5 rounded-full border ${
                     priority === value
                       ? "bg-primary border-primary"
                       : "border-muted"
@@ -253,8 +304,8 @@ export default function RequestConfirmScreen() {
                   <Text
                     className={
                       priority === value
-                        ? "text-white font-semibold"
-                        : "text-foreground dark:text-dark-foreground"
+                        ? "text-white font-semibold text-sm"
+                        : "text-foreground dark:text-dark-foreground text-sm"
                     }
                   >
                     {label}
@@ -265,18 +316,19 @@ export default function RequestConfirmScreen() {
           </View>
 
           <View>
-            <Text className="text-md   mb-1 text-mutedForeground dark:text-dark-mutedForeground">
+            <Text className="text-[15px] mb-1.5 font-semibold text-foreground dark:text-dark-foreground">
               Fecha requerida
             </Text>
             <Pressable
               onPress={() => setShowDatePicker(true)}
-              className="border border-muted rounded-xl px-3 py-3 bg-background dark:bg-dark-background"
+              className="flex-row items-center justify-between border border-muted rounded-xl px-4 py-3.5 bg-background dark:bg-dark-background"
             >
-              <Text className="text-foreground dark:text-dark-foreground">
+              <Text className="text-base text-foreground dark:text-dark-foreground">
                 {requiredDate
                   ? requiredDate.toLocaleDateString()
                   : "Seleccionar fecha"}
               </Text>
+              <Ionicons name="calendar-outline" size={20} color="#6B7280" />
             </Pressable>
             {showDatePicker && (
               <ShowDateIos onPress={() => setShowDatePicker(false)}>
@@ -382,6 +434,88 @@ export default function RequestConfirmScreen() {
             />
           </BottomModal>
         )}
+
+        <BottomModal
+          visible={showAreaModal}
+          onClose={() => setShowAreaModal(false)}
+          heightPercentage={0.65}
+        >
+          <View className="flex-1">
+            <View className="flex-row items-center justify-between border-b border-neutral-200 dark:border-neutral-800 pb-3">
+              <Text className="text-2xl font-extrabold text-foreground dark:text-dark-foreground">
+                Seleccionar obra
+              </Text>
+              <Pressable
+                onPress={() => setShowAreaModal(false)}
+                className="w-10 h-10 items-center justify-center rounded-full bg-neutral-100 dark:bg-neutral-800"
+              >
+                <Ionicons name="close" size={20} color="#6B7280" />
+              </Pressable>
+            </View>
+
+            <ScrollView
+              className="flex-1"
+              contentContainerStyle={{
+                paddingTop: 12,
+                paddingBottom: 24,
+              }}
+              showsVerticalScrollIndicator={false}
+            >
+              {loadingObras
+                ? Array.from({ length: 6 }).map((_, index) => (
+                    <View
+                      key={`obra-skeleton-${index}`}
+                      className="mb-2.5 rounded-2xl border border-neutral-200 dark:border-neutral-800 px-4 py-4 bg-componentbg dark:bg-dark-componentbg"
+                    >
+                      <View className="h-5 w-3/4 rounded-md bg-neutral-200 dark:bg-neutral-700" />
+                    </View>
+                  ))
+                : obraOptions.map((option) => {
+                    const isSelected = area === option.label;
+                    return (
+                      <Pressable
+                        key={option.id}
+                        onPress={() => {
+                          setArea(option.label);
+                          setShowAreaModal(false);
+                        }}
+                        className={`mb-2.5 rounded-2xl border px-4 py-4 ${
+                          isSelected
+                            ? "border-primary bg-primary/10 dark:bg-dark-primary/20"
+                            : "border-neutral-200 dark:border-neutral-800 bg-componentbg dark:bg-dark-componentbg"
+                        }`}
+                      >
+                        <View className="flex-row items-center justify-between gap-3">
+                          <View className="flex-1">
+                            <Text
+                              className={`text-base font-semibold ${isSelected ? "text-primary dark:text-dark-primary" : "text-foreground dark:text-dark-foreground"}`}
+                            >
+                              {option.label}
+                            </Text>
+                          </View>
+                          <Ionicons
+                            name={
+                              isSelected
+                                ? "checkmark-circle"
+                                : "ellipse-outline"
+                            }
+                            size={22}
+                            color={isSelected ? "#0EA5E9" : "#9CA3AF"}
+                          />
+                        </View>
+                      </Pressable>
+                    );
+                  })}
+              {!loadingObras && obraOptions.length === 0 ? (
+                <View className="items-center justify-center py-8">
+                  <Text className="text-mutedForeground dark:text-dark-mutedForeground text-sm">
+                    No hay obras disponibles.
+                  </Text>
+                </View>
+              ) : null}
+            </ScrollView>
+          </View>
+        </BottomModal>
 
         <View className="mt-4 mb-2">
           <View className="flex-row gap-2">

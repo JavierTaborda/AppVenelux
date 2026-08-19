@@ -35,7 +35,7 @@ export function useRequest({
       setTotalMaterials(allMaterials.length);
       setMaterialsPage(1);
       setMaterialsLastPage(1);
-    //  console.log('Fetched materials page:', result);
+      //  console.log('Fetched materials page:', result);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'No se pudo cargar materiales';
       setError(message);
@@ -50,7 +50,7 @@ export function useRequest({
     void fetchMaterials();
   }, [autoFetchMaterials, fetchMaterials]);
 
-        // const loadMoreMaterials = useCallback(async () => {
+  // const loadMoreMaterials = useCallback(async () => {
   //   if (loading || loadingMoreMaterials || materialsPage >= materialsLastPage) return;
 
   //   setLoadingMoreMaterials(true);
@@ -102,7 +102,21 @@ export function useRequest({
   //   },
   //   []
   // );
-
+  const getObras = useCallback(async () => {
+    setLoading(true);
+    try {
+      setError(null);
+      const obras = await RequestService.getObras();
+      return  obras;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'No se pudo cargar obras';
+      setError(message);
+      console.warn('[useRequest.getObras]', message);
+      return [];
+    } finally {
+      setLoading(false);
+    }
+  }, []); 
   const updateStatus = useCallback(async (id: string, status: RequestStatus, actor?: string) => {
     const updated = await RequestService.updateStatus(id, status, actor);
     return updated;
@@ -124,5 +138,6 @@ export function useRequest({
     updateStatus,
     searchText,
     setSearchText,
+    getObras,
   } as const;
 }
