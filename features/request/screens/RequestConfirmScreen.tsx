@@ -5,26 +5,27 @@ import CustomImagen from "@/components/ui/CustomImagen";
 import ProductDetail from "@/features/request/components/ProductDetail";
 import { useRequest } from "@/features/request/hooks/useRequest";
 import { useSelectedItemsStore } from "@/features/request/stores/useSelectedItemsStore";
-import type { VeneluxMaterial } from "@/features/request/types/request";
+import type {
+    CreateSolicitudPayload,
+    VeneluxMaterial,
+    VeneluxObra,
+} from "@/features/request/types/request";
+import { useAuthStore } from "@/stores/useAuthStore";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useMemo, useState, type ReactNode } from "react";
 import {
-  Alert,
-  Platform,
-  Pressable,
-  ScrollView,
-  Text,
-  TextInput,
-  View,
+    Alert,
+    Platform,
+    Pressable,
+    ScrollView,
+    Text,
+    TextInput,
+    View,
 } from "react-native";
 import Animated, { FadeInUp, FadeOutDown } from "react-native-reanimated";
 
 type Priority = "normal" | "alta";
-type ObraOption = {
-  id: string;
-  label: string;
-};
 
 const PRIORITY_OPTIONS: Array<{ value: Priority; label: string }> = [
   { value: "normal", label: "Normal" },
@@ -33,6 +34,25 @@ const PRIORITY_OPTIONS: Array<{ value: Priority; label: string }> = [
 
 function keyOf(item: VeneluxMaterial) {
   return String(item.codigo || item.codart || item.material);
+}
+
+function truncate(value: string, maxLength: number): string {
+  return value.slice(0, maxLength);
+}
+
+function formatDateForSql(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function formatDateTimeForSql(date: Date): string {
+  const day = formatDateForSql(date);
+  const h = String(date.getHours()).padStart(2, "0");
+  const mi = String(date.getMinutes()).padStart(2, "0");
+  const s = String(date.getSeconds()).padStart(2, "0");
+  return `${day} ${h}:${mi}:${s}`;
 }
 
 function ShowDateIos({
@@ -62,13 +82,18 @@ function ShowDateIos({
 
 export default function RequestConfirmScreen() {
   const router = useRouter();
-  const { materials, getObras } = useRequest({ autoFetchRequests: false });
+  const { materials, getObras, createSolicitud } = useRequest({
+    autoFetchRequests: false,
+  });
+  const authName = useAuthStore((s) => s.name);
+  const authUserId = useAuthStore((s) => s.userId);
+  const authSession = useAuthStore((s) => s.session);
   const selected = useSelectedItemsStore((s) => s.selected);
   const customItems = useSelectedItemsStore((s) => s.customItems);
   const clearSelected = useSelectedItemsStore((s) => s.clear);
 
   const [notes, setNotes] = useState("");
-  const [area, setArea] = useState("");
+  const [selectedObra, setSelectedObra] = useState<VeneluxObra | null>(null);
   const [partida, setPartida] = useState("");
   const [deliveryAddress, setDeliveryAddress] = useState("");
   const [priority, setPriority] = useState<Priority>("normal");
@@ -77,8 +102,9 @@ export default function RequestConfirmScreen() {
   const [showAreaModal, setShowAreaModal] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [modalItem, setModalItem] = useState<VeneluxMaterial | null>(null);
-  const [obras, setObras] = useState<string[]>([]);
+  const [obras, setObras] = useState<VeneluxObra[]>([]);
   const [loadingObras, setLoadingObras] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   const fetchObras = useCallback(async () => {
     setLoadingObras(true);
@@ -116,17 +142,6 @@ export default function RequestConfirmScreen() {
     }, [getObras]),
   );
 
-  const obraOptions = useMemo<ObraOption[]>(
-    () =>
-      obras
-        .filter((label) => typeof label === "string" && label.trim().length > 0)
-        .map((label, index) => ({
-          id: `${label}-${index}`,
-          label,
-        })),
-    [obras],
-  );
-
   const selectedItems = useMemo(() => {
     const manual = Object.values(customItems).filter(
       (it) => (selected[keyOf(it)] || 0) > 0,
@@ -155,30 +170,129 @@ export default function RequestConfirmScreen() {
   const distinctCount = summaryRows.length;
   const hasItems = summaryRows.length > 0;
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     if (totalQty === 0) {
       Alert.alert("Sin items", "No hay materiales en la solicitud.");
       return;
     }
 
-    if (!area.trim()) {
+    if (!selectedObra) {
       Alert.alert("Falta obra", "Selecciona la obra para continuar.");
       return;
     }
 
-    Alert.alert(
-      "Solicitud confirmada",
-      `Obra: ${area}\nPrioridad: ${priority}\nFecha requerida: ${requiredDate ? requiredDate.toLocaleDateString() : "No definida"}\nItems: ${distinctCount}\nUnidades: ${totalQty}`,
-      [
-        {
-          text: "Aceptar",
-          onPress: () => {
-            clearSelected();
-            router.replace("/(main)/(tabs)/(request)/create");
-          },
-        },
-      ],
+    if (!requiredDate) {
+      Alert.alert("Falta fecha", "Selecciona la fecha de utilizacion.");
+      return;
+    }
+
+    const now = new Date();
+    const userLabel = truncate(
+      authName || authSession?.user?.email || "USUARIO",
+      30,
     );
+    const userCode = truncate(authUserId || authSession?.user?.id || "", 16);
+
+    const observacionBase = notes.trim();
+    const priorityTag = priority === "alta" ? " [PRIORIDAD: ALTA]" : "";
+    const observacion = `${observacionBase}${priorityTag}`.trim();
+
+    const payload: CreateSolicitudPayload = {
+      solicitud: {
+        solicitudnumero: 0,
+        empresa: "VENELUX",
+        codigoobra: truncate(selectedObra.codigoobra || "", 6),
+        descripcionobra: truncate(selectedObra.descripcionobra, 60),
+        numerocontrol: 0,
+        solicitanteuser: userLabel,
+        solicitantecodigo: userCode,
+        fechasolicitud: formatDateTimeForSql(now),
+        fechautilizacion: formatDateForSql(requiredDate),
+        observacion: observacion ? truncate(observacion, 255) : null,
+        actividad: partida.trim() ? truncate(partida.trim(), 255) : null,
+        direccionentrega: deliveryAddress.trim()
+          ? truncate(deliveryAddress.trim(), 255)
+          : null,
+        registradopor: userLabel,
+        autorizado: 0,
+        fechaautorizado: null,
+        autorizadopor: null,
+        anulado: 0,
+        motivoanulado: null,
+        fechaanulado: null,
+        anuladopor: null,
+        despachar: 0,
+        fechadespachar: null,
+        despacharpor: null,
+        comentadespachar: null,
+        pedido: 0,
+        ped_num: null,
+        fec_emis_ped: null,
+        co_us_ped: null,
+        comprar: 0,
+        fechacomprar: null,
+        comprarpor: null,
+        comentacomprar: null,
+        compra: 0,
+        comp_num: null,
+        fec_emis_comp: null,
+        co_us_comp: null,
+        owneruser: 1,
+      },
+      items: summaryRows.map(({ item, quantity }, index) => ({
+        solicitudnumero: 0,
+        itemnumero: index + 1,
+        codigomaterial: truncate(
+          (item.codigo || String(item.codart || "")).trim(),
+          30,
+        ),
+        descripcionmaterial: truncate((item.material || "").trim(), 120),
+        coduni: truncate((item.coduni || item.unidad || "UND").trim(), 6),
+        unidadmedida: truncate((item.unidad || item.coduni || "UND").trim(), 6),
+        linea: item.linea ? truncate(item.linea, 60) : null,
+        sublinea: item.sublinea ? truncate(item.sublinea, 60) : null,
+        categoria: item.categoria ? truncate(item.categoria, 60) : null,
+        cantidadsolicitada: Number(quantity.toFixed(2)),
+        observacion: null,
+        materialnuevo: item.codart ? 0 : 1,
+        autorizado: 0,
+        fechaautorizado: null,
+        autorizadopor: null,
+        cantidadautorizada: 0,
+        cantidaddespacho: 0,
+        cantidaddisponible: 0,
+        almacendespacho: null,
+        cantidadcompra: 0,
+        comprar: 0,
+        precioventa: Number((item.precio ?? 0).toFixed(5)),
+      })),
+    };
+
+    setSubmitting(true);
+    try {
+      await createSolicitud(payload);
+      Alert.alert(
+        "Solicitud creada",
+        `Obra: ${selectedObra.descripcionobra}\nItems: ${distinctCount}\nUnidades: ${totalQty}`,
+        [
+          {
+            text: "Aceptar",
+            onPress: () => {
+              clearSelected();
+              router.replace("/(main)/(tabs)/(request)/create");
+            },
+          },
+        ],
+      );
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "No se pudo enviar la solicitud.";
+      Alert.alert("Error", message);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -232,9 +346,11 @@ export default function RequestConfirmScreen() {
             >
               <View className="flex-1 pr-3">
                 <Text
-                  className={`text-base ${area ? "text-foreground dark:text-dark-foreground" : "text-mutedForeground dark:text-dark-mutedForeground"}`}
+                  className={`text-base ${selectedObra ? "text-foreground dark:text-dark-foreground" : "text-mutedForeground dark:text-dark-mutedForeground"}`}
                 >
-                  {area || "Selecciona una obra"}
+                  {selectedObra
+                    ? `${selectedObra.codigoobra ? `${selectedObra.codigoobra} - ` : ""}${selectedObra.descripcionobra}`
+                    : "Selecciona una obra"}
                 </Text>
               </View>
               <Ionicons name="chevron-down" size={18} color="#6B7280" />
@@ -334,8 +450,8 @@ export default function RequestConfirmScreen() {
               <ShowDateIos onPress={() => setShowDatePicker(false)}>
                 <CustomDateTimePicker
                   value={requiredDate || new Date()}
-                  onChange={(_, date) => {
-                    if (date) setRequiredDate(date);
+                  onValueChange={(_, date) => {
+                    setRequiredDate(date);
                   }}
                   onClose={() => setShowDatePicker(false)}
                 />
@@ -470,13 +586,16 @@ export default function RequestConfirmScreen() {
                       <View className="h-5 w-3/4 rounded-md bg-neutral-200 dark:bg-neutral-700" />
                     </View>
                   ))
-                : obraOptions.map((option) => {
-                    const isSelected = area === option.label;
+                : obras.map((option, index) => {
+                    const optionId = `${option.codigoobra || "sin-codigo"}-${option.descripcionobra}-${index}`;
+                    const isSelected =
+                      selectedObra?.codigoobra === option.codigoobra &&
+                      selectedObra?.descripcionobra === option.descripcionobra;
                     return (
                       <Pressable
-                        key={option.id}
+                        key={optionId}
                         onPress={() => {
-                          setArea(option.label);
+                          setSelectedObra(option);
                           setShowAreaModal(false);
                         }}
                         className={`mb-2.5 rounded-2xl border px-4 py-4 ${
@@ -490,7 +609,9 @@ export default function RequestConfirmScreen() {
                             <Text
                               className={`text-base font-semibold ${isSelected ? "text-primary dark:text-dark-primary" : "text-foreground dark:text-dark-foreground"}`}
                             >
-                              {option.label}
+                              {option.codigoobra
+                                ? `${option.codigoobra} - ${option.descripcionobra}`
+                                : option.descripcionobra}
                             </Text>
                           </View>
                           <Ionicons
@@ -506,7 +627,7 @@ export default function RequestConfirmScreen() {
                       </Pressable>
                     );
                   })}
-              {!loadingObras && obraOptions.length === 0 ? (
+              {!loadingObras && obras.length === 0 ? (
                 <View className="items-center justify-center py-8">
                   <Text className="text-mutedForeground dark:text-dark-mutedForeground text-sm">
                     No hay obras disponibles.
@@ -530,21 +651,21 @@ export default function RequestConfirmScreen() {
 
             <Pressable
               onPress={handleConfirm}
-              disabled={!hasItems}
+              disabled={!hasItems || submitting}
               className={
-                hasItems
+                hasItems && !submitting
                   ? "flex-1 h-14 rounded-xl items-center justify-center bg-primary"
                   : "flex-1 h-14 rounded-xl items-center justify-center bg-muted"
               }
             >
               <Text
                 className={
-                  hasItems
+                  hasItems && !submitting
                     ? "text-white text-base font-bold"
                     : "text-mutedForeground dark:text-dark-mutedForeground text-base font-bold"
                 }
               >
-                Confirmar pedido
+                {submitting ? "Enviando..." : "Confirmar pedido"}
               </Text>
             </Pressable>
           </View>

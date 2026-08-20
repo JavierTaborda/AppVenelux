@@ -1,7 +1,7 @@
 import { useThemeStore } from "@/stores/useThemeStore";
 import { appTheme } from "@/utils/appTheme";
 import DateTimePicker, {
-    DateTimePickerEvent,
+    DateTimePickerChangeEvent,
 } from "@react-native-community/datetimepicker";
 import { Platform } from "react-native";
 
@@ -18,7 +18,9 @@ interface CustomDateTimePickerProps {
   value: Date;
   mode?: PickerMode;
   display?: PickerDisplay;
-  onChange: (event: DateTimePickerEvent, date?: Date) => void;
+  onValueChange: (event: DateTimePickerChangeEvent, date: Date) => void;
+  onDismiss?: () => void;
+  onNeutralButtonPress?: () => void;
   onClose?: () => void;
 }
 
@@ -26,7 +28,9 @@ export default function CustomDateTimePicker({
   value,
   mode = "date",
   display = Platform.OS === "ios" ? "inline" : "default",
-  onChange,
+  onValueChange,
+  onDismiss,
+  onNeutralButtonPress,
   onClose,
 }: CustomDateTimePickerProps) {
   const { isDark } = useThemeStore();
@@ -36,15 +40,23 @@ export default function CustomDateTimePicker({
       value={value}
       mode={mode}
       display={display}
-      onChange={(event, date) => {
+      onValueChange={(event, date) => {
+        onValueChange(event, date);
         if (Platform.OS === "android") {
-          if (event.type === "set") {
-            onChange(event, date);
-          }
           if (onClose) onClose();
-          return;
         }
-        onChange(event, date);
+      }}
+      onDismiss={() => {
+        if (onDismiss) onDismiss();
+        if (Platform.OS === "android" && onClose) {
+          onClose();
+        }
+      }}
+      onNeutralButtonPress={() => {
+        if (onNeutralButtonPress) onNeutralButtonPress();
+        if (Platform.OS === "android" && onClose) {
+          onClose();
+        }
       }}
       textColor={
         isDark ? appTheme.dark.primary.DEFAULT : appTheme.primary.DEFAULT

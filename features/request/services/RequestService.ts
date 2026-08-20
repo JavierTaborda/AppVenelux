@@ -1,10 +1,12 @@
 import api from '@/lib/axios';
 import axios from 'axios';
 import type {
+  CreateSolicitudPayload,
   PaginatedMaterialsResult,
   Request,
   RequestStatus,
   VeneluxMaterial,
+  VeneluxObra,
 } from '../types/request';
 
 type Listener = (requests: Request[]) => void;
@@ -60,6 +62,51 @@ type ObraApiItem = {
   descripcionobra?: unknown;
   descripcion?: unknown;
   obra?: unknown;
+  codigo?: unknown;
+};
+
+const normalizeObraCode = (value: unknown): string =>
+  typeof value === 'string' ? value.trim() : String(value ?? '').trim();
+
+const normalizeObraDescription = (value: unknown): string =>
+  typeof value === 'string' ? value.trim() : String(value ?? '').trim();
+
+const parseObrasResponse = (raw: unknown): VeneluxObra[] => {
+  if (!Array.isArray(raw)) return [];
+
+  const obras = raw
+    .map((item) => {
+      if (typeof item === 'string') {
+        const descripcion = normalizeObraDescription(item);
+        if (!descripcion) return null;
+        return {
+          codigoobra: '',
+          descripcionobra: descripcion,
+        } satisfies VeneluxObra;
+      }
+
+      if (!item || typeof item !== 'object') return null;
+      const obra = item as ObraApiItem;
+      const codigoobra = normalizeObraCode(obra.codigoobra ?? obra.codigo);
+      const descripcionobra = normalizeObraDescription(
+        obra.descripcionobra ?? obra.descripcion ?? obra.obra,
+      );
+      if (!descripcionobra) return null;
+
+      return {
+        codigoobra,
+        descripcionobra,
+      } satisfies VeneluxObra;
+    })
+    .filter((obra): obra is VeneluxObra => obra !== null);
+
+  const seen = new Set<string>();
+  return obras.filter((obra) => {
+    const uniqueKey = `${obra.codigoobra}|${obra.descripcionobra}`;
+    if (seen.has(uniqueKey)) return false;
+    seen.add(uniqueKey);
+    return true;
+  });
 };
 
 const toPositiveIntOrFallback = (value: unknown, fallback: number): number => {
@@ -109,6 +156,20 @@ const parseMaterialsResponse = (raw: unknown): PaginatedMaterialsResult => {
 
 
 export const RequestService = {
+    async createSolicitud(payload: CreateSolicitudPayload): Promise<unknown> {
+      try {
+        // const response = await api.post('venelux/solicitudes', payload);
+        // return response.data;
+        console.log('[RequestService.createSolicitud] Sending payload:', payload);  
+      } catch (error) {
+        if (axios.isAxiosError(error) && error.response?.status === 404) {
+          const fallback = await api.post('requests', payload);
+          return fallback.data;
+        }
+        throw error;
+      }
+    },
+
   async fetchRequests(): Promise<Request[]> {
     try {
       const response = await api.get('requests');
@@ -284,31 +345,10 @@ export const RequestService = {
   //   console.log('--- RequestService tests end ---');
   // },
 
-  async getObras(): Promise<string[]> {
+  async getObras(): Promise<VeneluxObra[]> {
     try {
       const response = await api.get('venelux/obras');
-      const data = response.data;
-      if (!Array.isArray(data)) {
-        console.warn('[RequestService.getObras] Unexpected response format:', data);
-        return [];
-      }
-
-      const normalized = data
-        .map((item) => {
-          if (typeof item === 'string') return item.trim();
-          if (!item || typeof item !== 'object') return '';
-
-          const obra = item as ObraApiItem;
-          const rawDescription =
-            obra.descripcionobra ?? obra.descripcion ?? obra.obra;
-
-          return typeof rawDescription === 'string'
-            ? rawDescription.trim()
-            : String(rawDescription ?? '').trim();
-        })
-        .filter((label) => label.length > 0);
-
-      return [...new Set(normalized)];
+      return parseObrasResponse(response.data);
 
     
     } catch (error) {

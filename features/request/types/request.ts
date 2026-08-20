@@ -45,3 +45,78 @@ export interface Request {
   receivedBy?: string | null;
   receivedAt?: string | null;
 }
+
+export interface VeneluxObra {
+  codigoobra: string;
+  descripcionobra: string;
+}
+
+export interface SolicitudHeaderPayload {
+  solicitudnumero: number;
+  empresa: string;
+  codigoobra: string;
+  descripcionobra: string;
+  numerocontrol: number;
+  solicitanteuser: string;
+  solicitantecodigo: string;
+  fechasolicitud: string;
+  fechautilizacion: string;
+  observacion: string | null;
+  actividad: string | null;
+  direccionentrega: string | null;
+  registradopor: string;
+  autorizado: 0 | 1;
+  fechaautorizado: string | null;
+  autorizadopor: string | null;
+  anulado: 0 | 1;
+  motivoanulado: string | null;
+  fechaanulado: string | null;
+  anuladopor: string | null;
+  despachar: 0 | 1;
+  fechadespachar: string | null;
+  despacharpor: string | null;
+  comentadespachar: string | null;
+  pedido: 0 | 1;
+  ped_num: string | null;
+  fec_emis_ped: string | null;
+  co_us_ped: string | null;
+  comprar: 0 | 1;
+  fechacomprar: string | null;
+  comprarpor: string | null;
+  comentacomprar: string | null;
+  compra: 0 | 1;
+  comp_num: string | null;
+  fec_emis_comp: string | null;
+  co_us_comp: string | null;
+  owneruser: number;
+}
+
+export interface SolicitudItemPayload {
+  solicitudnumero: number;
+  itemnumero: number;
+  codigomaterial: string;
+  descripcionmaterial: string;
+  coduni: string;
+  unidadmedida: string;
+  linea: string | null;
+  sublinea: string | null;
+  categoria: string | null;
+  cantidadsolicitada: number;
+  observacion: string | null;
+  materialnuevo: 0 | 1;
+  autorizado: 0 | 1;
+  fechaautorizado: string | null;
+  autorizadopor: string | null;
+  cantidadautorizada: number;
+  cantidaddespacho: number;
+  cantidaddisponible: number;
+  almacendespacho: string | null;
+  cantidadcompra: number;
+  comprar: 0 | 1;
+  precioventa: number;
+}
+
+export interface CreateSolicitudPayload {
+  solicitud: SolicitudHeaderPayload;
+  items: SolicitudItemPayload[];
+}

@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import { RequestService } from '../services/RequestService';
-import type { Request, RequestStatus, VeneluxMaterial } from '../types/request';
-
-type CreateRequestPayload = {
-  title: string;
-  description?: string;
-  items: Array<Partial<VeneluxMaterial> & { quantity: number }>;
-};
+import type {
+  CreateSolicitudPayload,
+  Request,
+  RequestStatus,
+  VeneluxMaterial,
+  VeneluxObra,
+} from '../types/request';
 
 type UseRequestOptions = {
   autoFetchMaterials?: boolean;
@@ -102,21 +102,37 @@ export function useRequest({
   //   },
   //   []
   // );
+  const createSolicitud = useCallback(async (payload: CreateSolicitudPayload) => {
+    setLoading(true);
+    try {
+      setError(null);
+      const created = await RequestService.createSolicitud(payload);
+      return created;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'No se pudo crear la solicitud';
+      setError(message);
+      console.warn('[useRequest.createSolicitud]', message);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   const getObras = useCallback(async () => {
     setLoading(true);
     try {
       setError(null);
       const obras = await RequestService.getObras();
-      return  obras;
+      return obras;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'No se pudo cargar obras';
       setError(message);
       console.warn('[useRequest.getObras]', message);
-      return [];
+      return [] as VeneluxObra[];
     } finally {
       setLoading(false);
     }
-  }, []); 
+  }, []);
   const updateStatus = useCallback(async (id: string, status: RequestStatus, actor?: string) => {
     const updated = await RequestService.updateStatus(id, status, actor);
     return updated;
@@ -136,6 +152,7 @@ export function useRequest({
     //1loadMoreMaterials,
     fetchRequests,
     updateStatus,
+    createSolicitud,
     searchText,
     setSearchText,
     getObras,
