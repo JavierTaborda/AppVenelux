@@ -6,6 +6,7 @@ import type {
   RequestStatus,
   VeneluxMaterial,
   VeneluxObra,
+  VeneluxUnit,
 } from '../types/request';
 
 type UseRequestOptions = {
@@ -133,6 +134,22 @@ export function useRequest({
       setLoading(false);
     }
   }, []);
+
+  const getUnits = useCallback(async () => {
+    setLoading(true);
+    try {
+      setError(null);
+      const units = await RequestService.getUnits();
+      return units;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'No se pudo cargar unidades';
+      setError(message);
+      console.warn('[useRequest.getUnits]', message);
+      return [] as VeneluxUnit[];
+    } finally {
+      setLoading(false);
+    }
+  }, []);
   const updateStatus = useCallback(async (id: string, status: RequestStatus, actor?: string) => {
     const updated = await RequestService.updateStatus(id, status, actor);
     return updated;
@@ -156,5 +173,6 @@ export function useRequest({
     searchText,
     setSearchText,
     getObras,
+    getUnits,
   } as const;
 }

@@ -28,7 +28,10 @@ export default function SelectableItemCard({
       >
         <View className="relative w-32 h-full  bg-bgimages dark:bg-dark-componentbg">
           <View className="">
-            <CustomImagen img={item.imagen1 ?? ""} recyclingKey={item.codigo} />
+            <CustomImagen
+              img={item.imagen1 ?? ""}
+              recyclingKey={item.codigomaterial}
+            />
           </View>
 
           {/* <View className="absolute top-1 left-1/2 -translate-x-1/2 rounded-full border border-zinc-100 bg-white/95 px-2.5 py-1">
@@ -53,13 +56,13 @@ export default function SelectableItemCard({
                   numberOfLines={2}
                   className="mt-0.5 text-base font-bold leading-tight text-zinc-900 dark:text-dark-foreground"
                 >
-                  {item.codigo} - {item.material}
+                  {item.codigomaterial} - {item.material}
                 </Text>
                 {/* <Text
                   numberOfLines={1}
                   className="mt-1 text-[11px] font-semibold uppercase tracking-[1px] text-zinc-600 dark:text-dark-foreground"
                 >
-                  {item.codigo}
+                  {item.codigomaterial}
                 </Text> */}
               </View>
             </View>

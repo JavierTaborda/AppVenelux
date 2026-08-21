@@ -103,7 +103,7 @@ export default function NewManualItemModal({
     const code = formCodigo.trim() || `MAN-${Date.now().toString().slice(-6)}`;
 
     const customItem: VeneluxMaterial = {
-      codigo: code,
+      codigomaterial: code,
       material: cleanMaterial,
       coduni: formUnidad.trim() || null,
       nroparte: formNoParte.trim() || null,
@@ -206,16 +206,16 @@ export default function NewManualItemModal({
             <View className="gap-4">
               <View>
                 <Text className="text-md font-bold text-neutral-700 dark:text-neutral-300 mb-2">
-                  Codigo (opcional)
+                  Codigomaterial (opcional)
                 </Text>
                 <TextInput
                   value={formCodigo}
                   onChangeText={setFormCodigo}
-                  onFocus={() => setFocusedField("codigo")}
+                  onFocus={() => setFocusedField("codigomaterial")}
                   onBlur={() => setFocusedField(null)}
                   placeholder="Ej:MM000000"
                   placeholderTextColor="#9CA3AF"
-                  className={`border rounded-xl px-4 py-4 text-base text-neutral-900 dark:text-neutral-100 ${inputClass("codigo")}`}
+                  className={`border rounded-xl px-4 py-4 text-base text-neutral-900 dark:text-neutral-100 ${inputClass("codigomaterial")}`}
                 />
               </View>
 

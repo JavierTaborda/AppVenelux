@@ -44,7 +44,7 @@ export default function SelectedItemsFab() {
   const items = useMemo(() => materials || [], [materials]);
 
   const keyOf = (it: VeneluxMaterial) =>
-    String(it.codigo || it.codart || it.noparte);
+    String(it.codigomaterial || it.codart || it.noparte);
 
   const getQuantityByItem = useSelectedItemsStore((s) => s.getQuantityByItem);
 
@@ -261,7 +261,7 @@ export default function SelectedItemsFab() {
                               className="text-sm font-semibold text-neutral-900 dark:text-neutral-100"
                               numberOfLines={2}
                             >
-                              {item.codigo} - {item.material}
+                              {item.codigomaterial} - {item.material}
                             </Text>
                             <Text className="text-sm text-neutral-800 font-medium mt-0.5">
                               {item.linea} · {item.sublinea}

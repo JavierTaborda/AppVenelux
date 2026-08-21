@@ -6,22 +6,22 @@ import ProductDetail from "@/features/request/components/ProductDetail";
 import { useRequest } from "@/features/request/hooks/useRequest";
 import { useSelectedItemsStore } from "@/features/request/stores/useSelectedItemsStore";
 import type {
-    CreateSolicitudPayload,
-    VeneluxMaterial,
-    VeneluxObra,
+  CreateSolicitudPayload,
+  VeneluxMaterial,
+  VeneluxObra,
 } from "@/features/request/types/request";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useMemo, useState, type ReactNode } from "react";
 import {
-    Alert,
-    Platform,
-    Pressable,
-    ScrollView,
-    Text,
-    TextInput,
-    View,
+  Alert,
+  Platform,
+  Pressable,
+  ScrollView,
+  Text,
+  TextInput,
+  View,
 } from "react-native";
 import Animated, { FadeInUp, FadeOutDown } from "react-native-reanimated";
 
@@ -33,11 +33,45 @@ const PRIORITY_OPTIONS: Array<{ value: Priority; label: string }> = [
 ];
 
 function keyOf(item: VeneluxMaterial) {
-  return String(item.codigo || item.codart || item.material);
+  return String(item.codigomaterial || item.codart || item.material);
 }
 
 function truncate(value: string, maxLength: number): string {
   return value.slice(0, maxLength);
+}
+
+function parsePositiveInt(value: string | null | undefined): number | null {
+  if (!value) return null;
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return null;
+  const rounded = Math.trunc(parsed);
+  return rounded > 0 ? rounded : null;
+}
+
+function extractRequestErrorMessage(error: unknown): string {
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "response" in error &&
+    typeof (error as { response?: unknown }).response === "object" &&
+    (error as { response?: { data?: unknown } }).response?.data
+  ) {
+    const responseData = (error as { response?: { data?: unknown } }).response
+      ?.data;
+
+    if (
+      responseData &&
+      typeof responseData === "object" &&
+      "message" in responseData
+    ) {
+      const message = (responseData as { message?: unknown }).message;
+      if (typeof message === "string" && message.trim()) return message;
+    }
+  }
+
+  return error instanceof Error
+    ? error.message
+    : "No se pudo enviar la solicitud.";
 }
 
 function formatDateForSql(date: Date): string {
@@ -169,6 +203,19 @@ export default function RequestConfirmScreen() {
   const totalQty = Object.values(selected).reduce((acc, qty) => acc + qty, 0);
   const distinctCount = summaryRows.length;
   const hasItems = summaryRows.length > 0;
+  const obraCode = selectedObra?.codigoobra?.trim() ?? "";
+  const hasObraCode = obraCode.length > 0;
+
+  const missingRequirements = useMemo(() => {
+    const missing: string[] = [];
+    if (!hasItems) missing.push("materiales");
+    if (!selectedObra) missing.push("obra");
+    if (selectedObra && !hasObraCode) missing.push("codigo de obra");
+    if (!requiredDate) missing.push("fecha requerida");
+    return missing;
+  }, [hasItems, hasObraCode, requiredDate, selectedObra]);
+
+  const canConfirm = missingRequirements.length === 0 && !submitting;
 
   const handleConfirm = async () => {
     if (totalQty === 0) {
@@ -178,6 +225,14 @@ export default function RequestConfirmScreen() {
 
     if (!selectedObra) {
       Alert.alert("Falta obra", "Selecciona la obra para continuar.");
+      return;
+    }
+
+    if (!hasObraCode) {
+      Alert.alert(
+        "Falta codigo de obra",
+        "La obra seleccionada no tiene codigo. Selecciona una obra valida para enviar la solicitud.",
+      );
       return;
     }
 
@@ -191,7 +246,17 @@ export default function RequestConfirmScreen() {
       authName || authSession?.user?.email || "USUARIO",
       30,
     );
-    const userCode = truncate(authUserId || authSession?.user?.id || "", 16);
+    const authUserRef = authUserId || authSession?.user?.id || "";
+    const userCode = truncate(authUserRef || "USR", 16);
+    const ownerUser = parsePositiveInt(authUserRef);
+
+    if (!ownerUser) {
+      Alert.alert(
+        "Sesion invalida",
+        "No se pudo resolver el usuario propietario (owneruser). Cierra sesion y vuelve a ingresar.",
+      );
+      return;
+    }
 
     const observacionBase = notes.trim();
     const priorityTag = priority === "alta" ? " [PRIORIDAD: ALTA]" : "";
@@ -201,7 +266,7 @@ export default function RequestConfirmScreen() {
       solicitud: {
         solicitudnumero: 0,
         empresa: "VENELUX",
-        codigoobra: truncate(selectedObra.codigoobra || "", 6),
+        codigoobra: truncate(obraCode, 6),
         descripcionobra: truncate(selectedObra.descripcionobra, 60),
         numerocontrol: 0,
         solicitanteuser: userLabel,
@@ -237,13 +302,13 @@ export default function RequestConfirmScreen() {
         comp_num: null,
         fec_emis_comp: null,
         co_us_comp: null,
-        owneruser: 1,
+        owneruser: ownerUser,
       },
       items: summaryRows.map(({ item, quantity }, index) => ({
         solicitudnumero: 0,
         itemnumero: index + 1,
         codigomaterial: truncate(
-          (item.codigo || String(item.codart || "")).trim(),
+          (item.codigomaterial || String(item.codart || "")).trim(),
           30,
         ),
         descripcionmaterial: truncate((item.material || "").trim(), 120),
@@ -285,10 +350,7 @@ export default function RequestConfirmScreen() {
         ],
       );
     } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : "No se pudo enviar la solicitud.";
+      const message = extractRequestErrorMessage(error);
       Alert.alert("Error", message);
     } finally {
       setSubmitting(false);
@@ -506,7 +568,7 @@ export default function RequestConfirmScreen() {
                         className="flex-1 text-sm font-semibold text-foreground dark:text-dark-foreground"
                         numberOfLines={2}
                       >
-                        {row.item.codigo} - {row.item.material}
+                        {row.item.codigomaterial} - {row.item.material}
                       </Text>
 
                       <View className="rounded-full bg-primary/10 dark:bg-dark-primary/20 px-2.5 py-1">
@@ -639,6 +701,14 @@ export default function RequestConfirmScreen() {
         </BottomModal>
 
         <View className="mt-4 mb-2">
+          {missingRequirements.length > 0 && (
+            <View className="mb-3 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 dark:border-amber-800 dark:bg-amber-950/30">
+              <Text className="text-xs font-semibold text-amber-800 dark:text-amber-300">
+                Faltan datos para finalizar: {missingRequirements.join(", ")}
+              </Text>
+            </View>
+          )}
+
           <View className="flex-row gap-2">
             <Pressable
               onPress={() => router.navigate("/(main)/(tabs)/(request)/create")}
@@ -651,16 +721,16 @@ export default function RequestConfirmScreen() {
 
             <Pressable
               onPress={handleConfirm}
-              disabled={!hasItems || submitting}
+              disabled={!canConfirm}
               className={
-                hasItems && !submitting
+                canConfirm
                   ? "flex-1 h-14 rounded-xl items-center justify-center bg-primary"
                   : "flex-1 h-14 rounded-xl items-center justify-center bg-muted"
               }
             >
               <Text
                 className={
-                  hasItems && !submitting
+                  canConfirm
                     ? "text-white text-base font-bold"
                     : "text-mutedForeground dark:text-dark-mutedForeground text-base font-bold"
                 }

@@ -23,7 +23,7 @@ interface SelectedItemsStore {
 
 export const useSelectedItemsStore = create<SelectedItemsStore>((set, get) => {
   const keyOf = (item: VeneluxMaterial) =>
-    String(item.codigo || item.codart || item.material);
+    String(item.codigomaterial || item.codart || item.material);
 
   return {
     selected: {},

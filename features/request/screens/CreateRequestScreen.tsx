@@ -73,7 +73,7 @@ export default function CreateRequestScreen() {
 
       if (!term) return true;
       const searchable = [
-        item.codigo,
+        item.codigomaterial,
         item.material,
         item.noparte,
         item.nroparte,
@@ -104,7 +104,7 @@ export default function CreateRequestScreen() {
   );
 
   const keyOf = (it: VeneluxMaterial, index: number) => {
-    const code = it.codigo?.trim() || "sin-codigo";
+    const code = it.codigomaterial?.trim() || "sin-codigomaterial";
     const part = (it.noparte ?? it.nroparte ?? "sin-parte").trim();
     const codart = it.codart != null ? String(it.codart) : "sin-codart";
     return `${code}-${codart}-${part}-${index}`;

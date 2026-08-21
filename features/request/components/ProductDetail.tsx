@@ -3,12 +3,12 @@ import { FontAwesome5 } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
-  Alert,
-  Pressable,
-  ScrollView,
-  Text,
-  TextInput,
-  View,
+    Alert,
+    Pressable,
+    ScrollView,
+    Text,
+    TextInput,
+    View,
 } from "react-native";
 
 import { useRequest } from "../hooks/useRequest";
@@ -67,7 +67,7 @@ export default function ProductDetail({ productId, item, onClose }: Props) {
     (id
       ? requests
           .flatMap((r) => r.items)
-          .find((it) => it.codigo === decodeURIComponent(id))
+          .find((it) => it.codigomaterial === decodeURIComponent(id))
       : undefined);
 
   const productLabel =
@@ -119,7 +119,7 @@ export default function ProductDetail({ productId, item, onClose }: Props) {
           {/* TITLE + ACTIONS */}
           <View className="mb-2">
             <Text className="text-xl font-extrabold text-foreground dark:text-dark-foreground leading-6">
-              {found.codigo} - {productLabel}
+              {found.codigomaterial} - {productLabel}
             </Text>
           </View>
 
@@ -236,7 +236,9 @@ export default function ProductDetail({ productId, item, onClose }: Props) {
           onPress={() => {
             if (!found) return;
             if (qty === 0) return; // disabled
-            const k = String(found.codigo || found.codart || productLabel);
+            const k = String(
+              found.codigomaterial || found.codart || productLabel,
+            );
             const next = { ...selectedMap } as Record<string, number>;
             const capped = Math.max(qty, 0);
             if (capped <= 0) delete next[k];

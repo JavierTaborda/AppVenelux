@@ -4,9 +4,14 @@ import type {
   CreateSolicitudPayload,
   PaginatedMaterialsResult,
   Request,
+  RequestMaterialItem,
   RequestStatus,
+  SolicitudHeaderPayload,
+  SolicitudItemPayload,
+  SolicitudMovementPayload,
   VeneluxMaterial,
   VeneluxObra,
+  VeneluxUnit,
 } from '../types/request';
 
 type Listener = (requests: Request[]) => void;
@@ -28,9 +33,9 @@ const toNumberOrNull = (value: unknown): number | null => {
 };
 
 const normalizeMaterial = (
-  it: Partial<VeneluxMaterial> & { description?: string }
+  it: Partial<VeneluxMaterial> & { codigo?: string; description?: string }
 ): VeneluxMaterial => ({
-  codigo: it.codigo ?? '',
+  codigomaterial: it.codigomaterial ?? it.codigo ?? '',
   material: it.material ?? it.description ?? '',
   coduni: it.coduni ?? null,
   nroparte: it.nroparte ?? it.noparte ?? null,
@@ -48,7 +53,10 @@ const normalizeMaterial = (
   imagen3: it.imagen3 ?? null,
 });
 
-type MaterialsResponseItem = Partial<VeneluxMaterial> & { description?: string };
+type MaterialsResponseItem = Partial<VeneluxMaterial> & {
+  codigo?: string;
+  description?: string;
+};
 
 type MaterialsRawPayload = {
   data?: unknown;
@@ -63,6 +71,35 @@ type ObraApiItem = {
   descripcion?: unknown;
   obra?: unknown;
   codigo?: unknown;
+};
+
+type UnitApiItem = {
+  coduni?: unknown;
+  desuni?: unknown;
+  unidad?: unknown;
+  descripcion?: unknown;
+};
+
+type SolicitudApiItem = {
+  id?: unknown;
+  solicitudnumero?: unknown;
+  codigoobra?: unknown;
+  descripcionobra?: unknown;
+  title?: unknown;
+  description?: unknown;
+  observacion?: unknown;
+  actividad?: unknown;
+  status?: unknown;
+  anulado?: unknown;
+  autorizado?: unknown;
+  compra?: unknown;
+  comprar?: unknown;
+  recibido?: unknown;
+  fechasolicitud?: unknown;
+  createdAt?: unknown;
+  details?: unknown;
+  items?: unknown;
+  materiales?: unknown;
 };
 
 const normalizeObraCode = (value: unknown): string =>
@@ -109,11 +146,170 @@ const parseObrasResponse = (raw: unknown): VeneluxObra[] => {
   });
 };
 
+const parseUnitsResponse = (raw: unknown): VeneluxUnit[] => {
+  if (!Array.isArray(raw)) return [];
+
+  const units = raw
+    .map((item) => {
+      if (!item || typeof item !== 'object') return null;
+      const unit = item as UnitApiItem;
+      const coduni =
+        typeof unit.coduni === 'string' ? unit.coduni.trim() : String(unit.coduni ?? '').trim();
+      const desuniRaw = unit.desuni ?? unit.unidad ?? unit.descripcion;
+      const desuni =
+        typeof desuniRaw === 'string' ? desuniRaw.trim() : String(desuniRaw ?? '').trim();
+
+      if (!coduni && !desuni) return null;
+
+      return {
+        coduni,
+        desuni,
+      } satisfies VeneluxUnit;
+    })
+    .filter((it): it is VeneluxUnit => it !== null);
+
+  const seen = new Set<string>();
+  return units.filter((unit) => {
+    const key = `${unit.coduni}|${unit.desuni}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+};
+
 const toPositiveIntOrFallback = (value: unknown, fallback: number): number => {
   const parsed = toNumberOrNull(value);
   if (parsed === null) return fallback;
   const rounded = Math.trunc(parsed);
   return rounded > 0 ? rounded : fallback;
+};
+
+const toStringSafe = (value: unknown): string =>
+  typeof value === 'string' ? value.trim() : String(value ?? '').trim();
+
+const toNullableString = (value: unknown): string | null => {
+  const text = toStringSafe(value);
+  return text ? text : null;
+};
+
+const normalizeRequestStatus = (raw: SolicitudApiItem): RequestStatus => {
+  const statusValue = toStringSafe(raw.status).toLowerCase();
+  if (
+    statusValue === 'pendiente' ||
+    statusValue === 'aprobado' ||
+    statusValue === 'comprado' ||
+    statusValue === 'recibido' ||
+    statusValue === 'rechazado'
+  ) {
+    return statusValue;
+  }
+
+  const anulado = toNumberOrNull(raw.anulado) === 1;
+  const recibido = toNumberOrNull(raw.recibido) === 1;
+  const comprado =
+    toNumberOrNull(raw.compra) === 1 || toNumberOrNull(raw.comprar) === 1;
+  const aprobado = toNumberOrNull(raw.autorizado) === 1;
+
+  if (anulado) return 'rechazado';
+  if (recibido) return 'recibido';
+  if (comprado) return 'comprado';
+  if (aprobado) return 'aprobado';
+  return 'pendiente';
+};
+
+const parseRequestItems = (raw: unknown): RequestMaterialItem[] => {
+  if (!Array.isArray(raw)) return [];
+
+  return raw.map((entry, index) => {
+    const item = (entry ?? {}) as Partial<VeneluxMaterial> & {
+      description?: string;
+      descripcionmaterial?: string;
+      quantity?: unknown;
+      cantidad?: unknown;
+      cantidadsolicitada?: unknown;
+    };
+
+    const quantityRaw =
+      toNumberOrNull(item.quantity) ??
+      toNumberOrNull(item.cantidad) ??
+      toNumberOrNull(item.cantidadsolicitada) ??
+      1;
+
+    const quantity = Math.max(1, Math.trunc(quantityRaw));
+    const normalized = normalizeMaterial(item);
+    const description = toNullableString(item.description ?? item.descripcionmaterial);
+
+    return {
+      ...normalized,
+      quantity,
+      description: description ?? normalized.material,
+      codigomaterial: normalized.codigomaterial || `ITEM-${index + 1}`,
+    } satisfies RequestMaterialItem;
+  });
+};
+
+const parseSingleRequest = (entry: unknown): Request | null => {
+  if (!entry || typeof entry !== 'object') return null;
+
+  const raw = entry as SolicitudApiItem;
+  const solicitudnumero = toStringSafe(raw.solicitudnumero || raw.id);
+  const id = solicitudnumero || `REQ-${Date.now()}`;
+  const codigoobra = toNullableString(raw.codigoobra) ?? undefined;
+  const descripcionobra =
+    toNullableString(raw.descripcionobra) ??
+    toNullableString(raw.title) ??
+    undefined;
+
+  const detailsSource = raw.details ?? raw.items ?? raw.materiales;
+  const items = parseRequestItems(detailsSource);
+
+  const title = descripcionobra
+    ? `${codigoobra ? `${codigoobra} - ` : ''}${descripcionobra}`
+    : `Solicitud ${id}`;
+  const description =
+    toNullableString(raw.observacion) ??
+    toNullableString(raw.description) ??
+    toNullableString(raw.actividad) ??
+    undefined;
+
+  const createdAt =
+    toNullableString(raw.fechasolicitud) ??
+    toNullableString(raw.createdAt) ??
+    new Date().toISOString();
+
+  return {
+    id,
+    solicitudnumero,
+    codigoobra,
+    descripcionobra,
+    title,
+    description,
+    items,
+    status: normalizeRequestStatus(raw),
+    createdAt,
+  };
+};
+
+const parseRequestsResponse = (raw: unknown): Request[] => {
+  if (Array.isArray(raw)) {
+    return raw
+      .map((entry) => parseSingleRequest(entry))
+      .filter((entry): entry is Request => entry !== null);
+  }
+
+  if (raw && typeof raw === 'object') {
+    const maybeArray = (raw as { data?: unknown }).data;
+    if (Array.isArray(maybeArray)) {
+      return maybeArray
+        .map((entry) => parseSingleRequest(entry))
+        .filter((entry): entry is Request => entry !== null);
+    }
+
+    const single = parseSingleRequest(raw);
+    return single ? [single] : [];
+  }
+
+  return [];
 };
 
 const parseMaterialsResponse = (raw: unknown): PaginatedMaterialsResult => {
@@ -156,24 +352,90 @@ const parseMaterialsResponse = (raw: unknown): PaginatedMaterialsResult => {
 
 
 export const RequestService = {
-    async createSolicitud(payload: CreateSolicitudPayload): Promise<unknown> {
-      try {
-        // const response = await api.post('venelux/solicitudes', payload);
-        // return response.data;
-        console.log('[RequestService.createSolicitud] Sending payload:', payload);  
-      } catch (error) {
-        if (axios.isAxiosError(error) && error.response?.status === 404) {
-          const fallback = await api.post('requests', payload);
+  async createSolicitud(payload: CreateSolicitudPayload): Promise<unknown> {
+    try {
+      const response = await this.createSolicitudTransaction(payload);
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response?.status === 404) {
+        try {
+          const fallback = await api.post('venelux/solicitudes', payload);
           return fallback.data;
+        } catch (fallbackError) {
+          if (
+            axios.isAxiosError(fallbackError) &&
+            fallbackError.response?.status === 404
+          ) {
+            const legacy = await api.post('requests', payload);
+            return legacy.data;
+          }
+          throw fallbackError;
         }
-        throw error;
       }
-    },
+      throw error;
+    }
+  },
+
+  async getUnits(): Promise<VeneluxUnit[]> {
+    try {
+      const response = await api.get('venelux/units');
+      return parseUnitsResponse(response.data);
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response?.status === 404) {
+        return [];
+      }
+      throw error;
+    }
+  },
+
+  async createHeader(payload: SolicitudHeaderPayload): Promise<unknown> {
+    const response = await api.post('venelux/solicitudes/header', payload);
+    return response.data;
+  },
+
+  async createDetail(payload: SolicitudItemPayload): Promise<unknown> {
+    const response = await api.post('venelux/solicitudes/detail', payload);
+    return response.data;
+  },
+
+  async createMovement(payload: SolicitudMovementPayload): Promise<unknown> {
+    const response = await api.post('venelux/solicitudes/movement', payload);
+    return response.data;
+  },
+
+  async createSolicitudTransaction(payload: CreateSolicitudPayload) {
+    const transactionPayload: {
+      header: CreateSolicitudPayload['solicitud'];
+      details: CreateSolicitudPayload['items'];
+      movements?: CreateSolicitudPayload['movements'];
+    } = {
+      header: payload.solicitud,
+      details: payload.items,
+    };
+
+    if (payload.movements?.length) {
+      transactionPayload.movements = payload.movements;
+    }
+
+    return api.post('venelux/solicitudes/transaction', transactionPayload);
+  },
 
   async fetchRequests(): Promise<Request[]> {
     try {
+      const response = await api.get('venelux/solicitudes');
+      const items = parseRequestsResponse(response.data);
+      requestCache = items;
+      notify();
+      return items;
+    } catch (error) {
+      if (!axios.isAxiosError(error) || error.response?.status !== 404) {
+        throw error;
+      }
+    }
+
+    try {
       const response = await api.get('requests');
-      const items: Request[] = response.data;
+      const items = parseRequestsResponse(response.data);
       requestCache = items;
       notify();
       return items;
@@ -287,8 +549,19 @@ export const RequestService = {
 
   async getById(id: string): Promise<Request | null> {
     try {
+      const response = await api.get(`venelux/solicitudes/${id}`);
+      const parsed = parseRequestsResponse(response.data);
+      if (parsed.length > 0) return parsed[0];
+    } catch (error) {
+      if (!axios.isAxiosError(error) || error.response?.status !== 404) {
+        throw error;
+      }
+    }
+
+    try {
       const response = await api.get(`requests/${id}`);
-      return (response.data as Request) ?? null;
+      const parsed = parseRequestsResponse(response.data);
+      return parsed[0] ?? null;
     } catch {
       const found = requestCache.find((r) => r.id === id) || null;
       return found ? { ...found } : null;

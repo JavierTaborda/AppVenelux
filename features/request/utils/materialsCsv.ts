@@ -5,7 +5,7 @@ import { Platform } from 'react-native';
 import type { VeneluxMaterial } from '../types/request';
 
 const CSV_HEADERS = [
-  'codigo',
+  'codigomaterial',
   'material',
   'coduni',
   'nroparte',

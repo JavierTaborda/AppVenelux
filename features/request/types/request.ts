@@ -6,7 +6,7 @@ export type RequestStatus =
   | 'rechazado';
 
 export interface VeneluxMaterial {
-  codigo: string;
+  codigomaterial: string;
   material: string;
   coduni: string | null;
   nroparte: string | null;
@@ -33,14 +33,21 @@ export interface PaginatedMaterialsResult {
   hasMore: boolean;
 }
 
+export interface RequestMaterialItem extends VeneluxMaterial {
+  quantity: number;
+  description?: string;
+}
 
 export interface Request {
   id: string;
   title: string;
   description?: string;
-  items: VeneluxMaterial[];
+  items: RequestMaterialItem[];
   status: RequestStatus;
   createdAt: string;
+  solicitudnumero?: string;
+  codigoobra?: string;
+  descripcionobra?: string;
   approvedBy?: string | null;
   receivedBy?: string | null;
   receivedAt?: string | null;
@@ -49,6 +56,11 @@ export interface Request {
 export interface VeneluxObra {
   codigoobra: string;
   descripcionobra: string;
+}
+
+export interface VeneluxUnit {
+  coduni: string;
+  desuni: string;
 }
 
 export interface SolicitudHeaderPayload {
@@ -116,7 +128,25 @@ export interface SolicitudItemPayload {
   precioventa: number;
 }
 
+export interface SolicitudMovementPayload {
+  solicitudnumero: number;
+  itemnumero: number;
+  codart: string;
+  coduni: string;
+  codalma: string;
+  desalma: string;
+  stock: number;
+  prioridad: number;
+  almacen: string;
+  cantidad: number;
+  traslado: string;
+  tras_num: string;
+  costo: number;
+  fechacosto: string;
+}
+
 export interface CreateSolicitudPayload {
   solicitud: SolicitudHeaderPayload;
   items: SolicitudItemPayload[];
+  movements?: SolicitudMovementPayload[];
 }
