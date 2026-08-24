@@ -1,6 +1,6 @@
 import { useOverlayStore } from "@/stores/useSuccessOverlayStore";
 import { safeHaptic } from "@/utils/safeHaptics";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import MaterialCommunityIcons from "@react-native-vector-icons/material-design-icons";
 import { useEffect, useRef } from "react";
 import {
   Dimensions,
@@ -101,12 +101,12 @@ export default function Overlay() {
     <>
       <StatusBar translucent backgroundColor="transparent" />
 
-      <View pointerEvents="auto" style={StyleSheet.absoluteFillObject}>
+      <View pointerEvents="auto" style={StyleSheet.absoluteFill}>
         {/* BACKDROP */}
         <Animated.View
           entering={FadeIn.duration(200)}
           exiting={FadeOut.duration(250)}
-          style={[StyleSheet.absoluteFillObject]}
+          style={[StyleSheet.absoluteFill]}
           className="bg-black/70"
         />
 

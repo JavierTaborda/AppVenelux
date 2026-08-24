@@ -11,6 +11,7 @@ import type {
   VeneluxObra,
 } from "@/features/request/types/request";
 import { useAuthStore } from "@/stores/useAuthStore";
+import { useOverlayStore } from "@/stores/useSuccessOverlayStore";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useMemo, useState, type ReactNode } from "react";
@@ -27,7 +28,7 @@ import Animated, { FadeInUp, FadeOutDown } from "react-native-reanimated";
 
 type Priority = "normal" | "alta";
 
-const PRIORITY_OPTIONS: Array<{ value: Priority; label: string }> = [
+const PRIORITY_OPTIONS: { value: Priority; label: string }[] = [
   { value: "normal", label: "Normal" },
   { value: "alta", label: "Alta" },
 ];
@@ -38,14 +39,6 @@ function keyOf(item: VeneluxMaterial) {
 
 function truncate(value: string, maxLength: number): string {
   return value.slice(0, maxLength);
-}
-
-function parsePositiveInt(value: string | null | undefined): number | null {
-  if (!value) return null;
-  const parsed = Number(value);
-  if (!Number.isFinite(parsed)) return null;
-  const rounded = Math.trunc(parsed);
-  return rounded > 0 ? rounded : null;
 }
 
 function extractRequestErrorMessage(error: unknown): string {
@@ -120,18 +113,18 @@ export default function RequestConfirmScreen() {
     autoFetchRequests: false,
   });
   const authName = useAuthStore((s) => s.name);
-  const authUserId = useAuthStore((s) => s.userId);
   const authSession = useAuthStore((s) => s.session);
   const selected = useSelectedItemsStore((s) => s.selected);
   const customItems = useSelectedItemsStore((s) => s.customItems);
   const clearSelected = useSelectedItemsStore((s) => s.clear);
+  const showOverlay = useOverlayStore((s) => s.show);
 
   const [notes, setNotes] = useState("");
   const [selectedObra, setSelectedObra] = useState<VeneluxObra | null>(null);
   const [partida, setPartida] = useState("");
   const [deliveryAddress, setDeliveryAddress] = useState("");
   const [priority, setPriority] = useState<Priority>("normal");
-  const [requiredDate, setRequiredDate] = useState<Date | undefined>(undefined);
+  const [requiredDate, setRequiredDate] = useState<Date>(() => new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showAreaModal, setShowAreaModal] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
@@ -236,11 +229,6 @@ export default function RequestConfirmScreen() {
       return;
     }
 
-    if (!requiredDate) {
-      Alert.alert("Falta fecha", "Selecciona la fecha de utilizacion.");
-      return;
-    }
-
     const now = new Date();
     const userLabel = truncate(
       authName || authSession?.user?.email || "USUARIO",
@@ -325,19 +313,22 @@ export default function RequestConfirmScreen() {
     setSubmitting(true);
     try {
       await createSolicitud(payload);
-      Alert.alert(
-        "Solicitud creada",
-        `Obra: ${selectedObra.descripcionobra}\nItems: ${distinctCount}\nUnidades: ${totalQty}`,
-        [
-          {
-            text: "Aceptar",
-            onPress: () => {
-              clearSelected();
-              router.replace("/(main)/(tabs)/(request)/create");
-            },
-          },
-        ],
-      );
+      clearSelected();
+      setNotes("");
+      setSelectedObra(null);
+      setPartida("");
+      setDeliveryAddress("");
+      setPriority("normal");
+      setRequiredDate(new Date());
+      setShowDatePicker(false);
+      setShowAreaModal(false);
+      setModalVisible(false);
+      setModalItem(null);
+      showOverlay("success", {
+        title: "Solicitud creada",
+        subtitle: `Obra: ${selectedObra.descripcionobra} | Items: ${distinctCount} | Unidades: ${totalQty}`,
+      });
+      router.replace("/(main)/(tabs)/(request)/create");
     } catch (error) {
       const message = extractRequestErrorMessage(error);
       Alert.alert("Error", message);
