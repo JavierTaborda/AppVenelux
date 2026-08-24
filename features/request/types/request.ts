@@ -100,7 +100,7 @@ export interface SolicitudHeaderPayload {
   comp_num: string | null;
   fec_emis_comp: string | null;
   co_us_comp: string | null;
-  owneruser: number;
+  owneruser: number | null;
 }
 
 export interface SolicitudItemPayload {

@@ -108,6 +108,7 @@ export function useRequest({
     try {
       setError(null);
       const created = await RequestService.createSolicitud(payload);
+
       return created;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'No se pudo crear la solicitud';

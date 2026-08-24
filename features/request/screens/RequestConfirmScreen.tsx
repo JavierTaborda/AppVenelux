@@ -246,17 +246,6 @@ export default function RequestConfirmScreen() {
       authName || authSession?.user?.email || "USUARIO",
       30,
     );
-    const authUserRef = authUserId || authSession?.user?.id || "";
-    const userCode = truncate(authUserRef || "USR", 16);
-    const ownerUser = parsePositiveInt(authUserRef);
-
-    if (!ownerUser) {
-      Alert.alert(
-        "Sesion invalida",
-        "No se pudo resolver el usuario propietario (owneruser). Cierra sesion y vuelve a ingresar.",
-      );
-      return;
-    }
 
     const observacionBase = notes.trim();
     const priorityTag = priority === "alta" ? " [PRIORIDAD: ALTA]" : "";
@@ -270,7 +259,7 @@ export default function RequestConfirmScreen() {
         descripcionobra: truncate(selectedObra.descripcionobra, 60),
         numerocontrol: 0,
         solicitanteuser: userLabel,
-        solicitantecodigo: userCode,
+        solicitantecodigo: "",
         fechasolicitud: formatDateTimeForSql(now),
         fechautilizacion: formatDateForSql(requiredDate),
         observacion: observacion ? truncate(observacion, 255) : null,
@@ -302,7 +291,7 @@ export default function RequestConfirmScreen() {
         comp_num: null,
         fec_emis_comp: null,
         co_us_comp: null,
-        owneruser: ownerUser,
+        owneruser: null,
       },
       items: summaryRows.map(({ item, quantity }, index) => ({
         solicitudnumero: 0,
@@ -332,7 +321,7 @@ export default function RequestConfirmScreen() {
         precioventa: Number((item.precio ?? 0).toFixed(5)),
       })),
     };
-
+    console.log("Solicitud payload:", payload);
     setSubmitting(true);
     try {
       await createSolicitud(payload);
