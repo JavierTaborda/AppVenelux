@@ -1,26 +1,17 @@
 import ErrorView from "@/components/ui/ErrorView";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useThemeStore } from "@/stores/useThemeStore";
-import { ScrollView } from "react-native";
+import { RefreshControl, ScrollView } from "react-native";
 import HomeSkeleton from "../components/HomeSkeleton";
 import ReturnHome from "../components/ReturnHome";
-import { useHomeScreen } from "../hooks/useHomeScreen";
+import VeneluxStatusDashboard from "../components/VeneluxStatusDashboard";
+import { useVeneluxSolicitudesStatus } from "../hooks/useVeneluxSolicitudesStatus";
 
 export default function HomeScreen() {
-  const { session, name, role } = useAuthStore();
+  const { name } = useAuthStore();
   const { isDark } = useThemeStore();
-  const {
-    loading,
-    error,
-    totalsByDate,
-    labels,
-    values,
-    dotLabels,
-    totalPedidos,
-    totalNeto,
-    chartText,
-    getData,
-  } = useHomeScreen();
+  const { loading, error, total, chartData, refreshing, getData, refreshData } =
+    useVeneluxSolicitudesStatus();
 
   if (loading) {
     return <HomeSkeleton />;
@@ -35,8 +26,16 @@ export default function HomeScreen() {
       contentContainerStyle={{ flexGrow: 1, paddingBottom: 120 }}
       keyboardShouldPersistTaps="handled"
       className="bg-background dark:bg-dark-background px-4 pt-2"
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={refreshData} />
+      }
     >
       <ReturnHome name={name} />
+      <VeneluxStatusDashboard
+        total={total}
+        chartData={chartData}
+        isDark={isDark}
+      />
     </ScrollView>
   );
 }
