@@ -4,11 +4,11 @@ import CustomImagen from "@/components/ui/CustomImagen";
 import { Ionicons } from "@expo/vector-icons";
 import { useMemo, useState } from "react";
 import {
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  Text,
-  View,
+    Pressable,
+    RefreshControl,
+    ScrollView,
+    Text,
+    View,
 } from "react-native";
 import StatusBadge from "../components/StatusBadge";
 import { useRequest } from "../hooks/useRequest";
@@ -193,7 +193,9 @@ export default function RequestsListScreen() {
 
         <View className="px-4">
           {showInitialSkeleton ? (
-            REQUEST_SKELETON_ITEMS.map((item) => <RequestSkeletonCard key={item} />)
+            REQUEST_SKELETON_ITEMS.map((item) => (
+              <RequestSkeletonCard key={item} />
+            ))
           ) : filtered.length === 0 ? (
             <View className="mt-3 rounded-3xl border border-dashed border-zinc-300 dark:border-zinc-700 p-6 items-center bg-componentbg dark:bg-dark-componentbg">
               <Ionicons name="bag-handle-outline" size={34} color="#9CA3AF" />

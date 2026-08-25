@@ -2,13 +2,7 @@ import SelectedItemsFab from "@/features/request/components/SelectedItemsFab";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
-import {
-    Alert,
-    Pressable,
-    ScrollView,
-    Text,
-    View,
-} from "react-native";
+import { Alert, Pressable, ScrollView, Text, View } from "react-native";
 import StatusBadge from "../components/StatusBadge";
 import { RequestService } from "../services/RequestService";
 import type { Request } from "../types/request";
