@@ -15,11 +15,44 @@ import { useRequest } from "../hooks/useRequest";
 import type { Request } from "../types/request";
 import { STATUSES } from "../utils/statuses";
 
+const REQUEST_SKELETON_ITEMS = Array.from(
+  { length: 6 },
+  (_, index) => `request-skeleton-${index}`,
+);
+
+function RequestSkeletonCard() {
+  return (
+    <View className="mb-3 rounded-3xl border border-zinc-200/70 dark:border-zinc-800 bg-componentbg dark:bg-dark-componentbg p-4">
+      <View className="flex-row items-start justify-between gap-3">
+        <View className="flex-1">
+          <View className="h-3 w-28 rounded-full bg-zinc-200 dark:bg-zinc-700 animate-pulse" />
+          <View className="h-5 w-5/6 rounded-full bg-zinc-200 dark:bg-zinc-700 mt-3 animate-pulse" />
+          <View className="h-4 w-2/3 rounded-full bg-zinc-200 dark:bg-zinc-700 mt-2 animate-pulse" />
+        </View>
+        <View className="h-7 w-24 rounded-full bg-zinc-200 dark:bg-zinc-700 animate-pulse" />
+      </View>
+
+      <View className="mt-5 flex-row items-center justify-between">
+        <View>
+          <View className="h-3 w-16 rounded-full bg-zinc-200 dark:bg-zinc-700 animate-pulse" />
+          <View className="h-5 w-8 rounded-full bg-zinc-200 dark:bg-zinc-700 mt-2 animate-pulse" />
+        </View>
+        <View>
+          <View className="h-3 w-12 rounded-full bg-zinc-200 dark:bg-zinc-700 animate-pulse" />
+          <View className="h-5 w-20 rounded-full bg-zinc-200 dark:bg-zinc-700 mt-2 animate-pulse" />
+        </View>
+        <View className="h-9 w-9 rounded-full bg-zinc-200 dark:bg-zinc-700 animate-pulse" />
+      </View>
+    </View>
+  );
+}
+
 export default function RequestsListScreen() {
   const { requests, loading, fetchRequests } = useRequest();
   const [filter, setFilter] = useState<string | null>(null);
   const [searchText, setSearchText] = useState("");
   const [selectedRequest, setSelectedRequest] = useState<Request | null>(null);
+  const showInitialSkeleton = loading && requests.length === 0;
 
   const filtered = useMemo(() => {
     const term = searchText.trim().toLowerCase();
@@ -159,7 +192,9 @@ export default function RequestsListScreen() {
         </View>
 
         <View className="px-4">
-          {filtered.length === 0 ? (
+          {showInitialSkeleton ? (
+            REQUEST_SKELETON_ITEMS.map((item) => <RequestSkeletonCard key={item} />)
+          ) : filtered.length === 0 ? (
             <View className="mt-3 rounded-3xl border border-dashed border-zinc-300 dark:border-zinc-700 p-6 items-center bg-componentbg dark:bg-dark-componentbg">
               <Ionicons name="bag-handle-outline" size={34} color="#9CA3AF" />
               <Text className="mt-2 text-base font-semibold text-foreground dark:text-dark-foreground">

@@ -3,7 +3,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import {
-    ActivityIndicator,
     Alert,
     Pressable,
     ScrollView,
@@ -17,6 +16,55 @@ import type { Request } from "../types/request";
 interface Props {
   requestId?: string;
   request?: Request;
+}
+
+function RequestDetailSkeleton() {
+  return (
+    <ScrollView
+      className="flex-1 bg-background dark:bg-dark-background"
+      contentContainerStyle={{ padding: 16, paddingBottom: 120 }}
+    >
+      <View className="rounded-3xl border border-zinc-200/70 dark:border-zinc-800 bg-componentbg dark:bg-dark-componentbg p-4">
+        <View className="flex-row items-start justify-between gap-3">
+          <View className="flex-1">
+            <View className="h-3 w-32 rounded-full bg-zinc-200 dark:bg-zinc-700 animate-pulse" />
+            <View className="h-7 w-5/6 rounded-full bg-zinc-200 dark:bg-zinc-700 mt-3 animate-pulse" />
+            <View className="h-4 w-2/3 rounded-full bg-zinc-200 dark:bg-zinc-700 mt-3 animate-pulse" />
+          </View>
+          <View className="h-8 w-24 rounded-full bg-zinc-200 dark:bg-zinc-700 animate-pulse" />
+        </View>
+
+        <View className="mt-5 flex-row items-center justify-between">
+          <View>
+            <View className="h-3 w-12 rounded-full bg-zinc-200 dark:bg-zinc-700 animate-pulse" />
+            <View className="h-5 w-20 rounded-full bg-zinc-200 dark:bg-zinc-700 mt-2 animate-pulse" />
+          </View>
+          <View>
+            <View className="h-3 w-16 rounded-full bg-zinc-200 dark:bg-zinc-700 animate-pulse" />
+            <View className="h-5 w-8 rounded-full bg-zinc-200 dark:bg-zinc-700 mt-2 animate-pulse" />
+          </View>
+        </View>
+      </View>
+
+      <View className="h-6 w-44 rounded-full bg-zinc-200 dark:bg-zinc-700 mt-5 mb-3 animate-pulse" />
+
+      {Array.from({ length: 4 }, (_, index) => (
+        <View
+          key={`request-detail-skeleton-${index}`}
+          className="mb-3 rounded-3xl border border-zinc-200/70 dark:border-zinc-800 bg-componentbg dark:bg-dark-componentbg p-4"
+        >
+          <View className="flex-row items-start justify-between gap-2">
+            <View className="flex-1 pr-2">
+              <View className="h-4 w-24 rounded-full bg-zinc-200 dark:bg-zinc-700 animate-pulse" />
+              <View className="h-5 w-5/6 rounded-full bg-zinc-200 dark:bg-zinc-700 mt-3 animate-pulse" />
+            </View>
+            <View className="h-7 w-20 rounded-full bg-zinc-200 dark:bg-zinc-700 animate-pulse" />
+          </View>
+          <View className="h-3 w-3/4 rounded-full bg-zinc-200 dark:bg-zinc-700 mt-4 animate-pulse" />
+        </View>
+      ))}
+    </ScrollView>
+  );
 }
 
 export default function RequestDetailScreen({ request, requestId }: Props) {
@@ -62,7 +110,7 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
       if (!s) return;
       await RequestService.updateStatus(s.id, "aprobado", "Ingeniero jefe");
       Alert.alert("Solicitud", "Marcada como aprobada");
-    } catch (err) {
+    } catch {
       Alert.alert("Error", "No se pudo actualizar el estado");
     }
   };
@@ -74,14 +122,7 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
   };
 
   if (loading) {
-    return (
-      <View className="flex-1 items-center justify-center bg-background dark:bg-dark-background">
-        <ActivityIndicator size="small" color="#0EA5E9" />
-        <Text className="mt-3 text-sm text-mutedForeground dark:text-dark-mutedForeground">
-          Cargando solicitud...
-        </Text>
-      </View>
-    );
+    return <RequestDetailSkeleton />;
   }
 
   if (!s)

@@ -23,7 +23,7 @@ export default function HomeScreen() {
 
   return (
     <ScrollView
-      contentContainerStyle={{ flexGrow: 1, paddingBottom: 120 }}
+      contentContainerStyle={{ flexGrow: 1, paddingBottom: 180 }}
       keyboardShouldPersistTaps="handled"
       className="bg-background dark:bg-dark-background px-4 pt-2"
       refreshControl={
