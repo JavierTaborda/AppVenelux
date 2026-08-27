@@ -51,32 +51,14 @@ export function useRequest({
     void fetchMaterials();
   }, [autoFetchMaterials, fetchMaterials]);
 
-  // const loadMoreMaterials = useCallback(async () => {
-  //   if (loading || loadingMoreMaterials || materialsPage >= materialsLastPage) return;
 
-  //   setLoadingMoreMaterials(true);
-  //   try {
-  //     setError(null);
-  //     const nextPage = materialsPage + 1;
-  //     const result = await RequestService.getMaterialsPage({ page: nextPage, pageSize: 50 });
-  //     setMaterials((prev) => [...prev, ...result.data]);
-  //     setTotalMaterials(result.total);
-  //     setMaterialsPage(result.page);
-  //     setMaterialsLastPage(result.lastPage);
-  //   } catch (err) {
-  //     const message = err instanceof Error ? err.message : 'No se pudo cargar mas materiales';
-  //     setError(message);
-  //     console.warn('[useRequest.loadMoreMaterials]', message);
-  //   } finally {
-  //     setLoadingMoreMaterials(false);
-  //   }
-  // }, [loading, loadingMoreMaterials, materialsPage, materialsLastPage]);
 
   const fetchRequests = useCallback(async () => {
     setLoading(true);
     try {
       setError(null);
       const data = await RequestService.fetchRequests();
+    
       setRequests(data);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'No se pudo cargar solicitudes';

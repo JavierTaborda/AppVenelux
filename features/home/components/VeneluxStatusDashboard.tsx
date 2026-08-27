@@ -149,6 +149,11 @@ export default function VeneluxStatusDashboard({
               <Text className="text-foreground dark:text-dark-foreground text-2xl font-extrabold mt-3">
                 {formatNumber(item.value)}
               </Text>
+              <Text
+                className={`text-xs font-bold mt-1 ${item.averageDays >= 2 ? "text-red-500 dark:text-red-400" : "text-mutedForeground dark:text-dark-mutedForeground"}`}
+              >
+                Prom. {item.averageDays.toFixed(1)} dias
+              </Text>
               <View
                 className="h-1.5 rounded-full mt-3 overflow-hidden"
                 style={{ backgroundColor: isDark ? "#26262B" : "#ECEFF3" }}
@@ -172,7 +177,7 @@ export default function VeneluxStatusDashboard({
             Distribución por estatus
           </Text>
           <Text className="text-mutedForeground dark:text-dark-mutedForeground text-sm mt-1">
-            Vista rápida de solicitudes activas y cerradas
+            Mes actual por etapa y tiempo promedio
           </Text>
         </View>
         <BarChart

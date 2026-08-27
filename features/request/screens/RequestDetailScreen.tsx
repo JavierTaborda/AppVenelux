@@ -102,7 +102,7 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
   const markApproved = async () => {
     try {
       if (!s) return;
-      await RequestService.updateStatus(s.id, "aprobado", "Ingeniero jefe");
+      await RequestService.updateStatus(s.id, 1, "Ingeniero jefe");
       Alert.alert("Solicitud", "Marcada como aprobada");
     } catch {
       Alert.alert("Error", "No se pudo actualizar el estado");
@@ -154,7 +154,7 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
               {s.title}
             </Text>
           </View>
-          <StatusBadge status={s.status} />
+          <StatusBadge status={s.status} label={s.estatusLabel} />
         </View>
 
         {!!s.description && (
@@ -178,6 +178,16 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
             </Text>
             <Text className="text-base font-bold text-foreground dark:text-dark-foreground">
               {s.items.length}
+            </Text>
+          </View>
+          <View>
+            <Text className="text-xs text-mutedForeground dark:text-dark-mutedForeground">
+              En etapa
+            </Text>
+            <Text
+              className={`text-base font-bold ${s.diasEnEstatus >= 2 ? "text-red-500 dark:text-red-400" : "text-foreground dark:text-dark-foreground"}`}
+            >
+              {s.diasEnEstatus.toFixed(1)} d
             </Text>
           </View>
         </View>
@@ -236,7 +246,7 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
       )}
 
       <View className="mt-4">
-        {s.status === "pendiente" && (
+        {s.status === 0 && (
           <Pressable
             className="bg-primary px-4 py-3 rounded-2xl"
             onPress={markApproved}

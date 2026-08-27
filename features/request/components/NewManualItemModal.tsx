@@ -6,14 +6,14 @@ import { pickFromCamera, pickFromGallery } from "@/utils/pickImage";
 import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useMemo, useState } from "react";
 import {
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    Pressable,
-    ScrollView,
-    Text,
-    TextInput,
-    View,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  Text,
+  TextInput,
+  View,
 } from "react-native";
 
 type ManualItemSubmit = {
@@ -119,6 +119,18 @@ export default function NewManualItemModal({
       imagen1: formImageUri,
       imagen2: null,
       imagen3: null,
+      observacion: null,
+      materialnuevo: false,
+      autorizado: false,
+      fechaautorizado: null,
+      autorizadopor: null,
+      cantidadautorizada: 0,
+      cantidaddespacho: 0,
+      cantidaddisponible: 0,
+      almacendespacho: null,
+      cantidadcompra: 0,
+      comprar: false,
+      precioventa: 0,
     };
 
     onSubmit({ item: customItem, quantity });

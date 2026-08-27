@@ -1,5 +1,5 @@
 import api from '@/lib/axios';
-import axios from 'axios';
+import { isAxiosError } from 'axios';
 import type {
   CreateSolicitudPayload,
   PaginatedMaterialsResult,
@@ -51,6 +51,19 @@ const normalizeMaterial = (
   imagen1: it.imagen1 ?? null,
   imagen2: it.imagen2 ?? null,
   imagen3: it.imagen3 ?? null,
+  observacion: it.observacion ?? null,
+  materialnuevo: it.materialnuevo ?? false,
+  autorizado: it.autorizado ?? false,
+  fechaautorizado: it.fechaautorizado ?? null,
+  autorizadopor: it.autorizadopor ?? null,
+  cantidadautorizada: (it.cantidadautorizada ?? 0),
+  cantidaddespacho: (it.cantidaddespacho ?? 0),
+  cantidaddisponible: (it.cantidaddisponible ?? 0),
+  almacendespacho: it.almacendespacho ?? null,
+  cantidadcompra: it.cantidadcompra ?? 0,
+  comprar: it.comprar ?? false,
+  precioventa: toNumberOrNull(it.precioventa ?? 0),
+  
 });
 
 type MaterialsResponseItem = Partial<VeneluxMaterial> & {
@@ -83,19 +96,39 @@ type UnitApiItem = {
 type SolicitudApiItem = {
   id?: unknown;
   solicitudnumero?: unknown;
+  empresa?: unknown;
   codigoobra?: unknown;
   descripcionobra?: unknown;
+  numerocontrol?: unknown;
+  solicitanteuser?: unknown;
+  solicitantecodigo?: unknown;
   title?: unknown;
   description?: unknown;
   observacion?: unknown;
   actividad?: unknown;
+  direccionentrega?: unknown;
+  registradopor?: unknown;
+  owneruser?: unknown;
   status?: unknown;
+  estatus?: unknown;
+  estatusLabel?: unknown;
+  horasEnEstatus?: unknown;
+  diasEnEstatus?: unknown;
   anulado?: unknown;
   autorizado?: unknown;
+  despachar?: unknown;
+  pedido?: unknown;
   compra?: unknown;
   comprar?: unknown;
   recibido?: unknown;
   fechasolicitud?: unknown;
+  fechaautorizado?: unknown;
+  fechadespachar?: unknown;
+  fec_emis_ped?: unknown;
+  fechacomprar?: unknown;
+  fec_emis_comp?: unknown;
+  fechaanulado?: unknown;
+  fechautilizacion?: unknown;
   createdAt?: unknown;
   details?: unknown;
   items?: unknown;
@@ -192,29 +225,27 @@ const toNullableString = (value: unknown): string | null => {
   return text ? text : null;
 };
 
+const isRequestStatus = (value: number): value is RequestStatus =>
+  Number.isInteger(value) && value >= 0 && value <= 6;
+
 const normalizeRequestStatus = (raw: SolicitudApiItem): RequestStatus => {
-  const statusValue = toStringSafe(raw.status).toLowerCase();
-  if (
-    statusValue === 'pendiente' ||
-    statusValue === 'aprobado' ||
-    statusValue === 'comprado' ||
-    statusValue === 'recibido' ||
-    statusValue === 'rechazado'
-  ) {
-    return statusValue;
-  }
+  const estatus = toNumberOrNull(raw.estatus ?? raw.status);
+  if (estatus !== null && isRequestStatus(estatus)) return estatus;
 
   const anulado = toNumberOrNull(raw.anulado) === 1;
-  const recibido = toNumberOrNull(raw.recibido) === 1;
-  const comprado =
-    toNumberOrNull(raw.compra) === 1 || toNumberOrNull(raw.comprar) === 1;
+  const compra = toNumberOrNull(raw.compra) === 1;
+  const comprar = toNumberOrNull(raw.comprar) === 1;
+  const pedido = toNumberOrNull(raw.pedido) === 1;
+  const despachar = toNumberOrNull(raw.despachar) === 1;
   const aprobado = toNumberOrNull(raw.autorizado) === 1;
 
-  if (anulado) return 'rechazado';
-  if (recibido) return 'recibido';
-  if (comprado) return 'comprado';
-  if (aprobado) return 'aprobado';
-  return 'pendiente';
+  if (anulado) return 6;
+  if (compra) return 5;
+  if (comprar) return 4;
+  if (pedido) return 3;
+  if (despachar) return 2;
+  if (aprobado) return 1;
+  return 0;
 };
 
 const parseRequestItems = (raw: unknown): RequestMaterialItem[] => {
@@ -276,16 +307,43 @@ const parseSingleRequest = (entry: unknown): Request | null => {
     toNullableString(raw.fechasolicitud) ??
     toNullableString(raw.createdAt) ??
     new Date().toISOString();
+  const status = normalizeRequestStatus(raw);
+  const estatusLabel =
+    toNullableString(raw.estatusLabel) ??
+    ['Por autorizar', 'Autorizada solicitud', 'Autorizado despacho', 'En despacho', 'Autorizado comprar', 'En compra', 'Anulado'][status];
+  const statusDates: Record<RequestStatus, string | null> = {
+    0: toNullableString(raw.fechasolicitud),
+    1: toNullableString(raw.fechaautorizado),
+    2: toNullableString(raw.fechadespachar),
+    3: toNullableString(raw.fec_emis_ped),
+    4: toNullableString(raw.fechacomprar),
+    5: toNullableString(raw.fec_emis_comp),
+    6: toNullableString(raw.fechaanulado),
+  };
 
   return {
     id,
     solicitudnumero,
+    empresa: toNullableString(raw.empresa) ?? undefined,
     codigoobra,
     descripcionobra,
+    numerocontrol: toNullableString(raw.numerocontrol) ?? undefined,
+    solicitanteuser: toNullableString(raw.solicitanteuser) ?? undefined,
+    solicitantecodigo: toNullableString(raw.solicitantecodigo) ?? undefined,
+    fechautilizacion: toNullableString(raw.fechautilizacion) ?? undefined,
+    actividad: toNullableString(raw.actividad) ?? undefined,
+    direccionentrega: toNullableString(raw.direccionentrega) ?? undefined,
+    registradopor: toNullableString(raw.registradopor) ?? undefined,
+    owneruser: toNullableString(raw.owneruser) ?? undefined,
     title,
     description,
     items,
-    status: normalizeRequestStatus(raw),
+    status,
+    estatus: status,
+    estatusLabel,
+    horasEnEstatus: toNumberOrNull(raw.horasEnEstatus) ?? 0,
+    diasEnEstatus: toNumberOrNull(raw.diasEnEstatus) ?? 0,
+    statusDates,
     createdAt,
   };
 };
@@ -357,13 +415,13 @@ export const RequestService = {
       const response = await this.createSolicitudTransaction(payload);
       return response.data;
     } catch (error) {
-      if (axios.isAxiosError(error) && error.response?.status === 404) {
+      if (isAxiosError(error) && error.response?.status === 404) {
         try {
           const fallback = await api.post('venelux/solicitudes', payload);
           return fallback.data;
         } catch (fallbackError) {
           if (
-            axios.isAxiosError(fallbackError) &&
+            isAxiosError(fallbackError) &&
             fallbackError.response?.status === 404
           ) {
             const legacy = await api.post('requests', payload);
@@ -381,7 +439,7 @@ export const RequestService = {
       const response = await api.get('venelux/units');
       return parseUnitsResponse(response.data);
     } catch (error) {
-      if (axios.isAxiosError(error) && error.response?.status === 404) {
+      if (isAxiosError(error) && error.response?.status === 404) {
         return [];
       }
       throw error;
@@ -428,7 +486,7 @@ export const RequestService = {
       notify();
       return items;
     } catch (error) {
-      if (!axios.isAxiosError(error) || error.response?.status !== 404) {
+      if (!isAxiosError(error) || error.response?.status !== 404) {
         throw error;
       }
     }
@@ -440,7 +498,7 @@ export const RequestService = {
       notify();
       return items;
     } catch (error) {
-      if (axios.isAxiosError(error) && error.response?.status === 404) {
+      if (isAxiosError(error) && error.response?.status === 404) {
         // Requests endpoint is optional in some environments.
         requestCache = [];
         notify();
@@ -465,7 +523,7 @@ export const RequestService = {
       });
       return parseMaterialsResponse(response.data as unknown);
     } catch (error) {
-      if (axios.isAxiosError(error) && error.response?.status === 404) {
+      if (isAxiosError(error) && error.response?.status === 404) {
         console.warn('[RequestService.getMaterialsPage] Endpoint not found:', error.config?.url);
         return { data: [], total: 0, page: 1, lastPage: 1, hasMore: false };
       }
@@ -480,7 +538,7 @@ export const RequestService = {
       return parsed.data;
 
     } catch (error) {
-      // if (axios.isAxiosError(error) && error.response?.status === 404) {
+      // if (isAxiosError(error) && error.response?.status === 404) {
       //   console.warn('[RequestService.getMaterialsAll] Endpoint not found, trying fallback:', error.config?.url);
       //   const fallback = await this.getMaterialsPage({ page: 1, pageSize: 1000 });
       //   return fallback.data;
@@ -493,7 +551,7 @@ export const RequestService = {
     try {
       return await this.getMaterialsAll();
     } catch (error) {
-      if (axios.isAxiosError(error) && error.response?.status === 404) {
+      if (isAxiosError(error) && error.response?.status === 404) {
         console.warn('[RequestService.getMaterials] Endpoint not found:', error.config?.url);
         return [];
       }
@@ -535,8 +593,9 @@ export const RequestService = {
 
       const item = { ...requestCache[idx] };
       item.status = status;
-      if (status === 'aprobado') item.approvedBy = actor ?? item.approvedBy ?? null;
-      if (status === 'recibido') {
+      item.estatus = status;
+      if (status === 1) item.approvedBy = actor ?? item.approvedBy ?? null;
+      if (status === 3) {
         item.receivedBy = actor ?? item.receivedBy ?? null;
         item.receivedAt = new Date().toISOString();
       }
@@ -553,7 +612,7 @@ export const RequestService = {
       const parsed = parseRequestsResponse(response.data);
       if (parsed.length > 0) return parsed[0];
     } catch (error) {
-      if (!axios.isAxiosError(error) || error.response?.status !== 404) {
+      if (!isAxiosError(error) || error.response?.status !== 404) {
         throw error;
       }
     }

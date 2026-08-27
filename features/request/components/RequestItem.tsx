@@ -28,11 +28,12 @@ export default function RequestItem({ request, onPress }: Props) {
         ) : null}
         <Text style={{ color: "#777", marginTop: 6, fontSize: 12 }}>
           {request.items.length} items •{" "}
-          {new Date(request.createdAt).toLocaleDateString()}
+          {new Date(request.createdAt).toLocaleDateString()} •{" "}
+          {request.diasEnEstatus.toFixed(1)} d en etapa
         </Text>
       </View>
       <View style={{ marginLeft: 12 }}>
-        <StatusBadge status={request.status} />
+        <StatusBadge status={request.status} label={request.estatusLabel} />
       </View>
     </Pressable>
   );

@@ -1,24 +1,66 @@
 import ScreenSearchLayout from "@/components/screens/ScreenSearchLayout";
 import BottomModal from "@/components/ui/BottomModal";
+import CustomFlatList from "@/components/ui/CustomFlatList";
 import CustomImagen from "@/components/ui/CustomImagen";
 import { Ionicons } from "@expo/vector-icons";
 import { useMemo, useState } from "react";
-import {
-    Pressable,
-    RefreshControl,
-    ScrollView,
-    Text,
-    View,
-} from "react-native";
+import { Pressable, Text, View } from "react-native";
 import StatusBadge from "../components/StatusBadge";
 import { useRequest } from "../hooks/useRequest";
-import type { Request } from "../types/request";
-import { STATUSES } from "../utils/statuses";
+import type {
+  Request,
+  RequestMaterialItem,
+  RequestStatus,
+} from "../types/request";
+import { STATUSES, STATUS_LABELS } from "../utils/statuses";
 
 const REQUEST_SKELETON_ITEMS = Array.from(
   { length: 6 },
   (_, index) => `request-skeleton-${index}`,
 );
+
+type RequestListItem =
+  | { type: "skeleton"; id: string }
+  | { type: "request"; request: Request };
+
+type RequestModalItem =
+  | { type: "summary"; request: Request }
+  | { type: "empty"; id: string }
+  | { type: "material"; material: RequestMaterialItem; index: number };
+
+const STATUS_DATE_ITEMS: { status: RequestStatus; label: string }[] = [
+  { status: 0, label: "Solicitud" },
+  { status: 1, label: "Autorizada solicitud" },
+  { status: 2, label: "Autorizado despacho" },
+  { status: 3, label: "En despacho" },
+  { status: 4, label: "Autorizado comprar" },
+  { status: 5, label: "En compra" },
+  { status: 6, label: "Anulado" },
+];
+
+function MetricPill({
+  label,
+  value,
+  danger = false,
+}: {
+  label: string;
+  value: string | number;
+  danger?: boolean;
+}) {
+  return (
+    <View className="flex-1 rounded-2xl bg-background dark:bg-dark-background px-3 py-2">
+      <Text className="text-[11px] font-semibold text-mutedForeground dark:text-dark-mutedForeground">
+        {label}
+      </Text>
+      <Text
+        className={`mt-0.5 text-sm font-extrabold ${danger ? "text-red-500 dark:text-red-400" : "text-foreground dark:text-dark-foreground"}`}
+        numberOfLines={1}
+      >
+        {value}
+      </Text>
+    </View>
+  );
+}
 
 function RequestSkeletonCard() {
   return (
@@ -47,18 +89,44 @@ function RequestSkeletonCard() {
   );
 }
 
+function RequestEmptyState() {
+  return (
+    <View className="mt-3 rounded-3xl border border-dashed border-zinc-300 dark:border-zinc-700 p-6 items-center bg-componentbg dark:bg-dark-componentbg">
+      <Ionicons name="bag-handle-outline" size={34} color="#9CA3AF" />
+      <Text className="mt-2 text-base font-semibold text-foreground dark:text-dark-foreground">
+        No hay solicitudes
+      </Text>
+      <Text className="text-sm text-mutedForeground dark:text-dark-mutedForeground text-center mt-1">
+        Ajusta los filtros o realiza una solicitud nueva.
+      </Text>
+    </View>
+  );
+}
+
+function MaterialEmptyState() {
+  return (
+    <View className="rounded-3xl border border-dashed border-zinc-300 dark:border-zinc-700 p-5 items-center bg-componentbg dark:bg-dark-componentbg">
+      <Ionicons name="cube-outline" size={32} color="#9CA3AF" />
+      <Text className="mt-2 text-sm text-mutedForeground dark:text-dark-mutedForeground text-center">
+        Esta solicitud no trae detalle de materiales.
+      </Text>
+    </View>
+  );
+}
+
 export default function RequestsListScreen() {
   const { requests, loading, fetchRequests } = useRequest();
-  const [filter, setFilter] = useState<string | null>(null);
+  const [filter, setFilter] = useState<RequestStatus | null>(null);
   const [searchText, setSearchText] = useState("");
   const [selectedRequest, setSelectedRequest] = useState<Request | null>(null);
+  const [showStatusTracking, setShowStatusTracking] = useState(false);
   const showInitialSkeleton = loading && requests.length === 0;
 
   const filtered = useMemo(() => {
     const term = searchText.trim().toLowerCase();
 
     return requests.filter((item) => {
-      if (filter && item.status !== filter) return false;
+      if (filter !== null && item.status !== filter) return false;
       if (!term) return true;
 
       const haystack = [
@@ -67,6 +135,7 @@ export default function RequestsListScreen() {
         item.solicitudnumero,
         item.codigoobra,
         item.descripcionobra,
+        item.estatusLabel,
       ]
         .filter(Boolean)
         .join(" ")
@@ -80,6 +149,31 @@ export default function RequestsListScreen() {
     () => filtered.reduce((acc, request) => acc + request.items.length, 0),
     [filtered],
   );
+
+  const listData = useMemo<RequestListItem[]>(() => {
+    if (showInitialSkeleton) {
+      return REQUEST_SKELETON_ITEMS.map((id) => ({ type: "skeleton", id }));
+    }
+
+    return filtered.map((request) => ({ type: "request", request }));
+  }, [filtered, showInitialSkeleton]);
+
+  const modalData = useMemo<RequestModalItem[]>(() => {
+    if (!selectedRequest) return [];
+
+    const materialItems = selectedRequest.items.map((material, index) => ({
+      type: "material" as const,
+      material,
+      index,
+    }));
+
+    return [
+      { type: "summary", request: selectedRequest },
+      ...(materialItems.length > 0
+        ? materialItems
+        : [{ type: "empty" as const, id: "empty-materials" }]),
+    ];
+  }, [selectedRequest]);
 
   const statusCount = useMemo(
     () =>
@@ -99,10 +193,285 @@ export default function RequestsListScreen() {
     return parsed.toLocaleDateString();
   };
 
+  const formatOptionalDate = (isoDate?: string | null) => {
+    if (!isoDate) return "No realizado";
+    return formatDate(isoDate);
+  };
+
   const renderMaterialKey = (item: Request["items"][number], index: number) => {
     const code = item.codigomaterial?.trim() || "SIN";
     const codart = item.codart != null ? String(item.codart) : "sin-codart";
     return `${code}-${codart}-${index}`;
+  };
+
+  const formatMoney = (value?: number | null) => {
+    if (value == null || Number.isNaN(value)) return null;
+    return value.toLocaleString("es-VE", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  };
+
+  const renderRequestItem = ({ item }: { item: RequestListItem }) => {
+    if (item.type === "skeleton") return <RequestSkeletonCard />;
+
+    const request = item.request;
+
+    return (
+      <Pressable
+        onPress={() => setSelectedRequest(request)}
+        className="mb-3 rounded-2xl border border-zinc-200/70 dark:border-zinc-800 bg-componentbg dark:bg-dark-componentbg p-3.5"
+      >
+        <View className="flex-row items-start justify-between gap-2.5">
+          <View className="flex-1">
+            <Text className="text-xs font-bold tracking-[1px] text-primary dark:text-dark-primary uppercase">
+              {request.solicitudnumero
+                ? `Solicitud ${request.solicitudnumero}`
+                : `Solicitud ${request.id}`}
+            </Text>
+            <Text
+              className="text-base font-extrabold text-foreground dark:text-dark-foreground mt-1 leading-5"
+              numberOfLines={2}
+            >
+              {request.title}
+            </Text>
+            {!!request.description && (
+              <Text
+                className="text-sm text-mutedForeground dark:text-dark-mutedForeground mt-1"
+                numberOfLines={2}
+              >
+                {request.description}
+              </Text>
+            )}
+          </View>
+          <StatusBadge status={request.status} label={request.estatusLabel} />
+        </View>
+
+        <View className="mt-3 flex-row items-center gap-2">
+          <MetricPill label="Materiales" value={request.items.length} />
+          <MetricPill label="Fecha" value={formatDate(request.createdAt)} />
+          <MetricPill
+            label="En etapa"
+            value={`${request.diasEnEstatus.toFixed(1)} d`}
+            danger={request.diasEnEstatus >= 2}
+          />
+          <View className="h-10 w-10 rounded-2xl bg-primary/15 dark:bg-dark-primary/20 items-center justify-center">
+            <Ionicons name="chevron-forward" size={18} color="#0EA5E9" />
+          </View>
+        </View>
+      </Pressable>
+    );
+  };
+
+  const renderMaterialCard = (material: RequestMaterialItem) => {
+    const price = formatMoney(material.precio);
+
+    return (
+      <View className="mb-3 overflow-hidden rounded-2xl border border-zinc-100 dark:border-zinc-800/80 bg-componentbg dark:bg-dark-componentbg p-3 shadow-sm shadow-black/5">
+        <View className="flex-row gap-3.5">
+          <View className="relative h-24 w-24 rounded-xl overflow-hidden bg-neutral-50 dark:bg-dark-background border border-zinc-200/50 dark:border-zinc-800/60">
+            <CustomImagen img={material.imagen1 ?? ""} content="cover" />
+
+            <View className="absolute top-1.5 left-1.5 rounded-full bg-primary dark:bg-dark-primary px-2 py-0.5 shadow-sm">
+              <Text className="text-[10px] font-black text-white dark:text-zinc-950">
+                x{material.quantity}
+              </Text>
+            </View>
+          </View>
+          {/* Detalles del Material */}
+          <View className="flex-1 justify-between py-0.5">
+            <View>
+              {/* Header: Código & Categoría */}
+              <View className="flex-row items-center justify-between gap-2 mb-1">
+                <Text className="text-[11px] font-semibold tracking-wider text-primary dark:text-dark-primary uppercase">
+                  {material.codigomaterial || "SIN CÓDIGO"}
+                </Text>
+
+                {material.coduni || material.unidad ? (
+                  <Text className="text-[10px] font-bold text-mutedForeground dark:text-dark-mutedForeground uppercase bg-background dark:bg-dark-background px-2 py-0.5 rounded-md border border-zinc-200/40 dark:border-zinc-800">
+                    {material.coduni || material.unidad}
+                  </Text>
+                ) : null}
+              </View>
+
+              {/* Título Principal */}
+              <Text
+                className="text-[14px] font-bold leading-5 text-foreground dark:text-dark-foreground"
+                numberOfLines={2}
+              >
+                {material.description ||
+                  material.material ||
+                  "Material sin descripción"}
+              </Text>
+
+              {/* Taxonomía limpia estilo OKX */}
+              <Text
+                className="mt-1 text-[11px] font-medium text-mutedForeground dark:text-dark-mutedForeground/80"
+                numberOfLines={1}
+              >
+                {[material.linea, material.sublinea, material.categoria]
+                  .filter(Boolean)
+                  .join(" / ") || "Sin categoría"}
+              </Text>
+            </View>
+
+            {/* Footer: Precio (Alineación limpia estilo FinTech) */}
+            {price && (
+              <View className="mt-2 flex-row items-baseline justify-end gap-1">
+                <Text className="text-[10px] font-semibold text-mutedForeground dark:text-dark-mutedForeground uppercase">
+                  Total:
+                </Text>
+                <Text className="text-base font-black tracking-tight text-foreground dark:text-dark-foreground">
+                  {price}
+                </Text>
+              </View>
+            )}
+          </View>
+        </View>
+      </View>
+    );
+  };
+  const renderSummaryValue = (label: string, value?: string | null) => (
+    <View className="w-[48.5%] rounded-2xl bg-background dark:bg-dark-background px-3 py-2.5">
+      <Text className="text-[11px] font-semibold text-mutedForeground dark:text-dark-mutedForeground">
+        {label}
+      </Text>
+      <Text
+        className="text-sm font-extrabold text-foreground dark:text-dark-foreground mt-0.5"
+        numberOfLines={2}
+      >
+        {value || "No indicado"}
+      </Text>
+    </View>
+  );
+
+  const renderRequestHeaderSummary = (request: Request) => (
+    <View className="mb-2 rounded-2xl border border-zinc-200/70 dark:border-zinc-800 bg-componentbg dark:bg-dark-componentbg px-3 py-3">
+      0
+      <View className="flex-row items-start justify-between gap-3">
+        <View className="flex-1">
+          <Text className="mt-1 text-lg font-extrabold text-foreground dark:text-dark-foreground leading-6">
+            {request.title}
+          </Text>
+          <Text className="mt-1 text-sm text-mutedForeground dark:text-dark-mutedForeground">
+            {request.items.length} materiales •{" "}
+            {request.diasEnEstatus.toFixed(1)} dias en etapa
+          </Text>
+        </View>
+        <StatusBadge status={request.status} label={request.estatusLabel} />
+      </View>
+      <View className="mt-3 flex-row flex-wrap justify-between gap-y-2.5">
+        {/* {renderSummaryValue("Empresa", request.empresa)} */}
+        {renderSummaryValue("Solicitante", request.solicitanteuser)}
+
+        {renderSummaryValue(
+          "Utilización",
+          formatOptionalDate(request.fechautilizacion),
+        )}
+        {/* {renderSummaryValue("Registrado por", request.registradopor)} */}
+      </View>
+      {!!request.actividad && (
+        <View className="mt-2.5 rounded-2xl bg-background dark:bg-dark-background px-3 py-2.5">
+          <Text className="text-xs text-mutedForeground dark:text-dark-mutedForeground">
+            Actividad
+          </Text>
+          <Text className="text-sm font-bold text-foreground dark:text-dark-foreground mt-1">
+            {request.actividad}
+          </Text>
+        </View>
+      )}
+      {!!request.direccionentrega && (
+        <View className="mt-2.5 rounded-2xl bg-background dark:bg-dark-background px-3 py-2.5">
+          <Text className="text-xs text-mutedForeground dark:text-dark-mutedForeground">
+            Dirección de entrega
+          </Text>
+          <Text className="text-sm font-bold text-foreground dark:text-dark-foreground mt-1">
+            {request.direccionentrega}
+          </Text>
+        </View>
+      )}
+      <View className="mt-4 mb-2.5 flex-row items-center justify-between">
+        <Text className="text-base font-extrabold text-foreground dark:text-dark-foreground">
+          Seguimiento de estatus
+        </Text>
+        <Pressable
+          onPress={() => setShowStatusTracking((prev) => !prev)}
+          className="flex-row items-center gap-1.5 rounded-full bg-primary/10 dark:bg-dark-primary/20 px-3 py-1.5"
+          accessibilityRole="button"
+          accessibilityLabel={
+            showStatusTracking
+              ? "Ocultar seguimiento de estatus"
+              : "Mostrar seguimiento de estatus"
+          }
+        >
+          <Ionicons
+            name={showStatusTracking ? "eye-off-outline" : "eye-outline"}
+            size={14}
+            color="#0EA5E9"
+          />
+          <Text className="text-xs font-extrabold text-primary dark:text-dark-primary">
+            {showStatusTracking ? "Ocultar" : "Mostrar"}
+          </Text>
+        </Pressable>
+      </View>
+      {showStatusTracking && (
+        <View className="gap-1.5">
+          {STATUS_DATE_ITEMS.map((item) => {
+            const date = request.statusDates[item.status];
+            const isCurrent = request.status === item.status;
+            const isDone = Boolean(date);
+
+            return (
+              <View
+                key={item.status}
+                className={`flex-row items-center justify-between rounded-2xl border px-3 py-2.5 ${isCurrent ? "border-primary bg-primary/10 dark:border-dark-primary dark:bg-dark-primary/15" : "border-zinc-200 dark:border-zinc-800 bg-background dark:bg-dark-background"}`}
+              >
+                <View className="flex-1 pr-3 flex-row items-center gap-2.5">
+                  <View
+                    className={`h-2.5 w-2.5 rounded-full ${isCurrent ? "bg-primary dark:bg-dark-primary" : isDone ? "bg-green-500" : "bg-zinc-300 dark:bg-zinc-700"}`}
+                  />
+                  <View className="flex-1">
+                    <Text className="text-sm font-bold text-foreground dark:text-dark-foreground">
+                      {item.label}
+                    </Text>
+                    <Text className="text-xs text-mutedForeground dark:text-dark-mutedForeground mt-0.5">
+                      {isCurrent
+                        ? "Estatus actual"
+                        : isDone
+                          ? "Completado"
+                          : "Pendiente"}
+                    </Text>
+                  </View>
+                </View>
+                <Text
+                  className={`text-xs font-bold ${isDone ? "text-foreground dark:text-dark-foreground" : "text-mutedForeground dark:text-dark-mutedForeground"}`}
+                >
+                  {formatOptionalDate(date)}
+                </Text>
+              </View>
+            );
+          })}
+        </View>
+      )}
+    </View>
+  );
+
+  const renderModalItem = ({ item }: { item: RequestModalItem }) => {
+    if (item.type === "summary") {
+      return renderRequestHeaderSummary(item.request);
+    }
+
+    if (item.type === "empty") {
+      return <MaterialEmptyState />;
+    }
+
+    return renderMaterialCard(item.material);
+  };
+
+  const renderModalItemKey = (item: RequestModalItem) => {
+    if (item.type === "summary") return `summary-${item.request.id}`;
+    if (item.type === "empty") return item.id;
+    return renderMaterialKey(item.material, item.index);
   };
 
   return (
@@ -114,7 +483,7 @@ export default function RequestsListScreen() {
       extrafilter={true}
       showfilterButton={false}
       headerVisible={true}
-      filterCount={filter ? 1 : undefined}
+      filterCount={filter !== null ? 1 : undefined}
       extraFiltersComponent={
         <View className="flex-row items-center gap-2">
           <Pressable
@@ -155,117 +524,49 @@ export default function RequestsListScreen() {
                     : "text-foreground dark:text-dark-foreground font-semibold"
                 }
               >
-                {status} ({statusCount[status] || 0})
+                {STATUS_LABELS[status]} ({statusCount[status] || 0})
               </Text>
             </Pressable>
           ))}
         </View>
       }
     >
-      <ScrollView
-        className="flex-1"
-        contentContainerStyle={{ paddingBottom: 120 }}
-        refreshControl={
-          <RefreshControl refreshing={loading} onRefresh={fetchRequests} />
-        }
-      >
-        <View className="px-4 pt-4 pb-3">
-          <View className="rounded-3xl overflow-hidden border border-zinc-200/60 dark:border-zinc-800 bg-componentbg dark:bg-dark-componentbg p-4">
+      <View className="flex-1">
+        <View className="px-4 pt-3 pb-2.5">
+          <View className="rounded-2xl overflow-hidden border border-zinc-200/60 dark:border-zinc-800 bg-componentbg dark:bg-dark-componentbg px-4 py-3.5">
             <View className="flex-row items-center justify-between gap-3">
               <View className="flex-1">
-                <Text className="text-xs font-bold tracking-[1.4px] text-primary dark:text-dark-primary uppercase">
-                  Solicitudes
-                </Text>
-                <Text className="text-2xl font-extrabold text-foreground dark:text-dark-foreground mt-1">
-                  Centro de compras
+                <Text className="text-xl font-extrabold text-foreground dark:text-dark-foreground">
+                  Resumen de Solicitudes
                 </Text>
                 <Text className="text-sm text-mutedForeground dark:text-dark-mutedForeground mt-1">
                   {filtered.length} solicitudes • {totalItems} materiales
                 </Text>
               </View>
 
-              <View className="h-12 w-12 rounded-2xl bg-primary/10 dark:bg-dark-primary/20 items-center justify-center">
+              <View className="h-11 w-11 rounded-2xl bg-primary/10 dark:bg-dark-primary/20 items-center justify-center">
                 <Ionicons name="receipt-outline" size={22} color="#0EA5E9" />
               </View>
             </View>
           </View>
         </View>
 
-        <View className="px-4">
-          {showInitialSkeleton ? (
-            REQUEST_SKELETON_ITEMS.map((item) => (
-              <RequestSkeletonCard key={item} />
-            ))
-          ) : filtered.length === 0 ? (
-            <View className="mt-3 rounded-3xl border border-dashed border-zinc-300 dark:border-zinc-700 p-6 items-center bg-componentbg dark:bg-dark-componentbg">
-              <Ionicons name="bag-handle-outline" size={34} color="#9CA3AF" />
-              <Text className="mt-2 text-base font-semibold text-foreground dark:text-dark-foreground">
-                No hay solicitudes
-              </Text>
-              <Text className="text-sm text-mutedForeground dark:text-dark-mutedForeground text-center mt-1">
-                Ajusta los filtros o realiza una solicitud nueva.
-              </Text>
-            </View>
-          ) : (
-            filtered.map((item) => (
-              <Pressable
-                key={item.id}
-                onPress={() => setSelectedRequest(item)}
-                className="mb-3 rounded-3xl border border-zinc-200/70 dark:border-zinc-800 bg-componentbg dark:bg-dark-componentbg p-4"
-              >
-                <View className="flex-row items-start justify-between gap-3">
-                  <View className="flex-1">
-                    <Text className="text-xs font-bold tracking-[1px] text-primary dark:text-dark-primary uppercase">
-                      {item.solicitudnumero
-                        ? `Solicitud ${item.solicitudnumero}`
-                        : `Solicitud ${item.id}`}
-                    </Text>
-                    <Text
-                      className="text-lg font-extrabold text-foreground dark:text-dark-foreground mt-1"
-                      numberOfLines={2}
-                    >
-                      {item.title}
-                    </Text>
-                    {!!item.description && (
-                      <Text
-                        className="text-sm text-mutedForeground dark:text-dark-mutedForeground mt-1"
-                        numberOfLines={2}
-                      >
-                        {item.description}
-                      </Text>
-                    )}
-                  </View>
-                  <StatusBadge status={item.status} />
-                </View>
-
-                <View className="mt-4 flex-row items-center justify-between">
-                  <View>
-                    <Text className="text-xs text-mutedForeground dark:text-dark-mutedForeground">
-                      Materiales
-                    </Text>
-                    <Text className="text-base font-bold text-foreground dark:text-dark-foreground">
-                      {item.items.length}
-                    </Text>
-                  </View>
-
-                  <View>
-                    <Text className="text-xs text-mutedForeground dark:text-dark-mutedForeground">
-                      Fecha
-                    </Text>
-                    <Text className="text-base font-bold text-foreground dark:text-dark-foreground">
-                      {formatDate(item.createdAt)}
-                    </Text>
-                  </View>
-
-                  <View className="w-9 h-9 rounded-full bg-primary/15 dark:bg-dark-primary/20 items-center justify-center">
-                    <Ionicons name="list-outline" size={18} color="#0EA5E9" />
-                  </View>
-                </View>
-              </Pressable>
-            ))
-          )}
-        </View>
-      </ScrollView>
+        <CustomFlatList
+          data={listData}
+          keyExtractor={(item) =>
+            item.type === "skeleton" ? item.id : item.request.id
+          }
+          renderItem={renderRequestItem}
+          refreshing={loading}
+          canRefresh={true}
+          handleRefresh={fetchRequests}
+          ListEmptyComponent={<RequestEmptyState />}
+          showtitle={false}
+          estimatedItemSize={170}
+          contentContainerStyle={{ paddingBottom: 120, paddingTop: 2 }}
+          paddingHorizontal={16}
+        />
+      </View>
 
       <BottomModal
         visible={!!selectedRequest}
@@ -274,81 +575,40 @@ export default function RequestsListScreen() {
       >
         {selectedRequest && (
           <View className="flex-1">
-            <View className="flex-row items-start justify-between gap-3 pb-3 border-b border-zinc-200 dark:border-zinc-800">
+            <View className="flex-row items-start justify-between gap-3 pb-1">
               <View className="flex-1">
                 <Text className="text-xs font-bold tracking-[1px] text-primary dark:text-dark-primary uppercase">
                   {selectedRequest.solicitudnumero
                     ? `Solicitud ${selectedRequest.solicitudnumero}`
                     : `Solicitud ${selectedRequest.id}`}
                 </Text>
-                <Text
-                  className="text-xl font-extrabold text-foreground dark:text-dark-foreground mt-1"
-                  numberOfLines={2}
-                >
-                  {selectedRequest.title}
-                </Text>
-                <Text className="text-sm text-mutedForeground dark:text-dark-mutedForeground mt-1">
-                  {selectedRequest.items.length} materiales •{" "}
-                  {formatDate(selectedRequest.createdAt)}
-                </Text>
               </View>
-              <StatusBadge status={selectedRequest.status} />
             </View>
 
-            <ScrollView
-              className="flex-1"
-              showsVerticalScrollIndicator={false}
+            <View className=" flex-row items-center justify-between">
+              <Text className="text-xl font-extrabold text-foreground dark:text-dark-foreground">
+                Resumen de la solicitud
+              </Text>
+              <View className="rounded-full bg-primary/10 dark:bg-dark-primary/20 px-2 py-1.5">
+                <Text className="text-md font-semibold text-primary dark:text-dark-primary">
+                  {selectedRequest.items.length} items
+                </Text>
+              </View>
+            </View>
+
+            <CustomFlatList
+              data={modalData}
+              keyExtractor={renderModalItemKey}
+              renderItem={renderModalItem}
+              refreshing={false}
+              canRefresh={false}
+              handleRefresh={() => {}}
+              showtitle={false}
+              showScrollTopButton={false}
+              estimatedItemSize={132}
               contentContainerStyle={{ paddingTop: 14, paddingBottom: 18 }}
-            >
-              {selectedRequest.items.length === 0 ? (
-                <View className="rounded-3xl border border-dashed border-zinc-300 dark:border-zinc-700 p-5 items-center bg-componentbg dark:bg-dark-componentbg">
-                  <Ionicons name="cube-outline" size={32} color="#9CA3AF" />
-                  <Text className="mt-2 text-sm text-mutedForeground dark:text-dark-mutedForeground text-center">
-                    Esta solicitud no trae detalle de materiales.
-                  </Text>
-                </View>
-              ) : (
-                selectedRequest.items.map((material, index) => (
-                  <View
-                    key={renderMaterialKey(material, index)}
-                    className="mb-3 rounded-3xl border border-zinc-200/70 dark:border-zinc-800 bg-componentbg dark:bg-dark-componentbg p-4"
-                  >
-                    <View className="flex-row items-center gap-3">
-                      <View className="w-24 h-24 rounded-xl overflow-hidden bg-neutral-100 dark:bg-dark-componentbg border border-neutral-200/50 dark:border-zinc-800">
-                        <CustomImagen img={material.imagen1 ?? ""} />
-                      </View>
-
-                      <View className="flex-1 justify-center">
-                        <View className="flex-row items-start justify-between gap-2">
-                          <View className="flex-1 pr-2">
-                            <Text
-                              className="text-base font-semibold text-foreground dark:text-dark-foreground mt-0.5"
-                              numberOfLines={2}
-                            >
-                              {material.codigomaterial || "Sin codigomaterial"}{" "}
-                              -{material.description || material.material}
-                            </Text>
-                          </View>
-
-                          <View className="rounded-full bg-primary/10 dark:bg-dark-primary/20 px-3 py-1">
-                            <Text className="text-xs font-bold text-primary dark:text-dark-primary">
-                              x{material.quantity}{" "}
-                              {material.coduni || material.unidad || "UND"}
-                            </Text>
-                          </View>
-                        </View>
-
-                        <Text className="text-xs text-mutedForeground dark:text-dark-mutedForeground mt-2">
-                          {material.linea || "Sin linea"} •{" "}
-                          {material.sublinea || "Sin sublinea"} •{" "}
-                          {material.categoria || "Sin categoria"}
-                        </Text>
-                      </View>
-                    </View>
-                  </View>
-                ))
-              )}
-            </ScrollView>
+              paddingHorizontal={0}
+            />
           </View>
         )}
       </BottomModal>
