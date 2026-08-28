@@ -120,6 +120,7 @@ export default function RequestsListScreen() {
   const [searchText, setSearchText] = useState("");
   const [selectedRequest, setSelectedRequest] = useState<Request | null>(null);
   const [showStatusTracking, setShowStatusTracking] = useState(false);
+  const [showMoreInfo, setShowMoreInfo] = useState(false);
   const showInitialSkeleton = loading && requests.length === 0;
 
   const filtered = useMemo(() => {
@@ -146,7 +147,7 @@ export default function RequestsListScreen() {
   }, [filter, requests, searchText]);
 
   const totalItems = useMemo(
-    () => filtered.reduce((acc, request) => acc + request.items.length, 0),
+    () => filtered.reduce((acc, request) => acc + request.materiales.length, 0),
     [filtered],
   );
 
@@ -198,6 +199,9 @@ export default function RequestsListScreen() {
     return formatDate(isoDate);
   };
 
+  const formatStatusFlag = (value?: number | null) =>
+    value === 1 ? "Sí" : value === 0 ? "No" : "No indicado";
+
   const renderMaterialKey = (item: Request["items"][number], index: number) => {
     const code = item.codigomaterial?.trim() || "SIN";
     const codart = item.codart != null ? String(item.codart) : "sin-codart";
@@ -243,12 +247,20 @@ export default function RequestsListScreen() {
                 {request.description}
               </Text>
             )}
+            {request.anulado === 1 && (
+              <View className="mt-2 self-start rounded-full bg-red-500/10 dark:bg-red-500/20 px-2.5 py-1">
+                <Text className="text-[11px] font-bold text-red-600 dark:text-red-400">
+                  Anulada
+                  {request.motivoanulado ? ` • ${request.motivoanulado}` : ""}
+                </Text>
+              </View>
+            )}
           </View>
           <StatusBadge status={request.status} label={request.estatusLabel} />
         </View>
 
         <View className="mt-3 flex-row items-center gap-2">
-          <MetricPill label="Materiales" value={request.items.length} />
+          <MetricPill label="Materiales" value={request.materiales.length} />
           <MetricPill label="Fecha" value={formatDate(request.createdAt)} />
           <MetricPill
             label="En etapa"
@@ -347,19 +359,30 @@ export default function RequestsListScreen() {
 
   const renderRequestHeaderSummary = (request: Request) => (
     <View className="mb-2 rounded-2xl border border-zinc-200/70 dark:border-zinc-800 bg-componentbg dark:bg-dark-componentbg px-3 py-3">
-      0
       <View className="flex-row items-start justify-between gap-3">
         <View className="flex-1">
           <Text className="mt-1 text-lg font-extrabold text-foreground dark:text-dark-foreground leading-6">
             {request.title}
           </Text>
           <Text className="mt-1 text-sm text-mutedForeground dark:text-dark-mutedForeground">
-            {request.items.length} materiales •{" "}
-            {request.diasEnEstatus.toFixed(1)} dias en etapa
+            {request.materiales.length} materiales
           </Text>
         </View>
         <StatusBadge status={request.status} label={request.estatusLabel} />
       </View>
+      {request.anulado === 1 && (
+        <View className="mt-3 rounded-2xl border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/30 px-3 py-2.5">
+          <Text className="text-xs font-bold text-red-700 dark:text-red-300 uppercase">
+            Solicitud anulada
+          </Text>
+          <Text className="mt-1 text-sm font-semibold text-red-700 dark:text-red-200">
+            {request.motivoanulado || "No se indicó motivo"}
+          </Text>
+          <Text className="mt-1 text-xs text-red-600 dark:text-red-300">
+            {formatOptionalDate(request.fechaanulado)}
+          </Text>
+        </View>
+      )}
       <View className="mt-3 flex-row flex-wrap justify-between gap-y-2.5">
         {/* {renderSummaryValue("Empresa", request.empresa)} */}
         {renderSummaryValue("Solicitante", request.solicitanteuser)}
@@ -390,6 +413,111 @@ export default function RequestsListScreen() {
           </Text>
         </View>
       )}
+
+      <View className="mt-4 flex-row items-center justify-between gap-2">
+        <Text className="text-base font-extrabold text-foreground dark:text-dark-foreground">
+          Más información
+        </Text>
+        <Pressable
+          onPress={() => setShowMoreInfo((prev) => !prev)}
+          className="flex-row items-center gap-1.5 rounded-full bg-primary/10 dark:bg-dark-primary/20 px-3 py-1.5"
+          accessibilityRole="button"
+          accessibilityLabel={
+            showMoreInfo ? "Ocultar más información" : "Mostrar más información"
+          }
+        >
+          <Ionicons
+            name={showMoreInfo ? "chevron-up-outline" : "chevron-down-outline"}
+            size={14}
+            color="#0EA5E9"
+          />
+          <Text className="text-xs font-extrabold text-primary dark:text-dark-primary">
+            {showMoreInfo ? "Ocultar" : "Mostrar"}
+          </Text>
+        </Pressable>
+      </View>
+
+      {showMoreInfo && (
+        <View className="mt-2.5 gap-2.5">
+          <View className="flex-row flex-wrap justify-between gap-y-2.5">
+            {renderSummaryValue("Empresa", request.empresa)}
+            {renderSummaryValue("Código obra", request.codigoobra)}
+            {renderSummaryValue("Descripción obra", request.descripcionobra)}
+            {renderSummaryValue("Número control", request.numerocontrol)}
+            {renderSummaryValue(
+              "Solicitante código",
+              request.solicitantecodigo,
+            )}
+            {renderSummaryValue("Registrado por", request.registradopor)}
+            {renderSummaryValue("Owner user", request.owneruser)}
+            {renderSummaryValue("Observación", request.observacion)}
+          </View>
+
+          <View className="rounded-2xl bg-background dark:bg-dark-background px-3 py-2.5">
+            <Text className="text-xs text-mutedForeground dark:text-dark-mutedForeground">
+              Flujo
+            </Text>
+            <Text className="text-sm font-bold text-foreground dark:text-dark-foreground mt-1">
+              Autorizado: {formatStatusFlag(request.autorizado)} • Anulado:{" "}
+              {formatStatusFlag(request.anulado)} • Despachar:{" "}
+              {formatStatusFlag(request.despachar)}
+            </Text>
+            <Text className="text-sm font-bold text-foreground dark:text-dark-foreground mt-1">
+              Pedido: {formatStatusFlag(request.pedido)} • Comprar:{" "}
+              {formatStatusFlag(request.comprar)} • Compra:{" "}
+              {formatStatusFlag(request.compra)}
+            </Text>
+          </View>
+
+          <View className="flex-row flex-wrap justify-between gap-y-2.5">
+            {renderSummaryValue(
+              "Fecha solicitud",
+              formatOptionalDate(request.fechasolicitud),
+            )}
+            {renderSummaryValue(
+              "Fecha autorización",
+              formatOptionalDate(request.fechaautorizado),
+            )}
+            {renderSummaryValue(
+              "Fecha anulado",
+              formatOptionalDate(request.fechaanulado),
+            )}
+            {renderSummaryValue(
+              "Fecha despacho",
+              formatOptionalDate(request.fechadespachar),
+            )}
+            {renderSummaryValue(
+              "Fecha pedido",
+              formatOptionalDate(request.fec_emis_ped),
+            )}
+            {renderSummaryValue(
+              "Fecha compra",
+              formatOptionalDate(request.fechacomprar),
+            )}
+            {renderSummaryValue(
+              "Fecha emisión pedido",
+              formatOptionalDate(request.fec_emis_ped),
+            )}
+            {renderSummaryValue(
+              "Fecha emisión compra",
+              formatOptionalDate(request.fec_emis_comp),
+            )}
+          </View>
+
+          <View className="rounded-2xl bg-background dark:bg-dark-background px-3 py-2.5">
+            <Text className="text-xs text-mutedForeground dark:text-dark-mutedForeground">
+              Comentarios de flujo
+            </Text>
+            <Text className="text-sm font-bold text-foreground dark:text-dark-foreground mt-1">
+              {request.comentadespachar ||
+                request.comentacomprar ||
+                request.motivoanulado ||
+                "No indicado"}
+            </Text>
+          </View>
+        </View>
+      )}
+
       <View className="mt-4 mb-2.5 flex-row items-center justify-between">
         <Text className="text-base font-extrabold text-foreground dark:text-dark-foreground">
           Seguimiento de estatus
@@ -582,6 +710,12 @@ export default function RequestsListScreen() {
                     ? `Solicitud ${selectedRequest.solicitudnumero}`
                     : `Solicitud ${selectedRequest.id}`}
                 </Text>
+                <Text className="mt-1 text-sm text-mutedForeground dark:text-dark-mutedForeground">
+                  {selectedRequest.empresa ||
+                    selectedRequest.codigoobra ||
+                    selectedRequest.descripcionobra ||
+                    "Solicitud seleccionada"}
+                </Text>
               </View>
             </View>
 
@@ -591,7 +725,7 @@ export default function RequestsListScreen() {
               </Text>
               <View className="rounded-full bg-primary/10 dark:bg-dark-primary/20 px-2 py-1.5">
                 <Text className="text-md font-semibold text-primary dark:text-dark-primary">
-                  {selectedRequest.items.length} items
+                  {selectedRequest.materiales.length} items
                 </Text>
               </View>
             </View>

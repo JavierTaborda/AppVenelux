@@ -11,6 +11,7 @@ import type {
   SolicitudMovementPayload,
   VeneluxMaterial,
   VeneluxObra,
+  VeneluxSolicitudMaterial,
   VeneluxUnit,
 } from '../types/request';
 
@@ -94,7 +95,6 @@ type UnitApiItem = {
 };
 
 type SolicitudApiItem = {
-  id?: unknown;
   solicitudnumero?: unknown;
   empresa?: unknown;
   codigoobra?: unknown;
@@ -115,24 +115,63 @@ type SolicitudApiItem = {
   horasEnEstatus?: unknown;
   diasEnEstatus?: unknown;
   anulado?: unknown;
+  motivoanulado?: unknown;
+  anuladopor?: unknown;
   autorizado?: unknown;
+  fechaautorizado?: unknown;
+  autorizadopor?: unknown;
   despachar?: unknown;
+  fechadespachar?: unknown;
+  despacharpor?: unknown;
+  comentadespachar?: unknown;
   pedido?: unknown;
+  ped_num?: unknown;
+  fec_emis_ped?: unknown;
+  co_us_ped?: unknown;
   compra?: unknown;
   comprar?: unknown;
   recibido?: unknown;
-  fechasolicitud?: unknown;
-  fechaautorizado?: unknown;
-  fechadespachar?: unknown;
-  fec_emis_ped?: unknown;
   fechacomprar?: unknown;
+  comprarpor?: unknown;
+  comentacomprar?: unknown;
+  comp_num?: unknown;
   fec_emis_comp?: unknown;
+  co_us_comp?: unknown;
+  fechasolicitud?: unknown;
   fechaanulado?: unknown;
   fechautilizacion?: unknown;
   createdAt?: unknown;
   details?: unknown;
   items?: unknown;
   materiales?: unknown;
+};
+
+type SolicitudMaterialApiItem = Partial<{
+  itemnumero: unknown;
+  codigomaterial: unknown;
+  descripcionmaterial: unknown;
+  marca: unknown;
+  noparte: unknown;
+  imagen1: unknown;
+  imagen2: unknown;
+  imagen3: unknown;
+  coduni: unknown;
+  unidadmedida: unknown;
+  linea: unknown;
+  sublinea: unknown;
+  categoria: unknown;
+  cantidadsolicitada: unknown;
+  precioventa: unknown;
+  observacion: unknown;
+  materialnuevo: unknown;
+}> & {
+  codigo?: unknown;
+  description?: unknown;
+  material?: unknown;
+  cantidad?: unknown;
+  quantity?: unknown;
+  precio?: unknown;
+  unidad?: unknown;
 };
 
 const normalizeObraCode = (value: unknown): string =>
@@ -225,6 +264,8 @@ const toNullableString = (value: unknown): string | null => {
   return text ? text : null;
 };
 
+const toFlag = (value: unknown): 0 | 1 => (toNumberOrNull(value) === 1 ? 1 : 0);
+
 const isRequestStatus = (value: number): value is RequestStatus =>
   Number.isInteger(value) && value >= 0 && value <= 6;
 
@@ -248,32 +289,45 @@ const normalizeRequestStatus = (raw: SolicitudApiItem): RequestStatus => {
   return 0;
 };
 
+const normalizeRequestMaterial = (
+  raw: SolicitudMaterialApiItem,
+  index: number,
+): VeneluxSolicitudMaterial => ({
+  itemnumero: toPositiveIntOrFallback(raw.itemnumero, index + 1),
+  codigomaterial: toStringSafe(raw.codigomaterial ?? raw.codigo),
+  descripcionmaterial: toStringSafe(raw.descripcionmaterial ?? raw.description ?? raw.material),
+  marca: toNullableString(raw.marca),
+  noparte: toNullableString(raw.noparte),
+  imagen1: toNullableString(raw.imagen1),
+  imagen2: toNullableString(raw.imagen2),
+  imagen3: toNullableString(raw.imagen3),
+  coduni: toStringSafe(raw.coduni),
+  unidadmedida: toStringSafe(raw.unidadmedida ?? raw.unidad ?? raw.coduni),
+  linea: toNullableString(raw.linea),
+  sublinea: toNullableString(raw.sublinea),
+  categoria: toNullableString(raw.categoria),
+  cantidadsolicitada:
+    toNumberOrNull(raw.cantidadsolicitada ?? raw.quantity ?? raw.cantidad) ?? 0,
+  precioventa: toNumberOrNull(raw.precioventa ?? raw.precio),
+  observacion: toNullableString(raw.observacion),
+  materialnuevo: toFlag(raw.materialnuevo),
+});
+
 const parseRequestItems = (raw: unknown): RequestMaterialItem[] => {
   if (!Array.isArray(raw)) return [];
 
   return raw.map((entry, index) => {
-    const item = (entry ?? {}) as Partial<VeneluxMaterial> & {
-      description?: string;
-      descripcionmaterial?: string;
-      quantity?: unknown;
-      cantidad?: unknown;
-      cantidadsolicitada?: unknown;
-    };
-
-    const quantityRaw =
-      toNumberOrNull(item.quantity) ??
-      toNumberOrNull(item.cantidad) ??
-      toNumberOrNull(item.cantidadsolicitada) ??
-      1;
-
-    const quantity = Math.max(1, Math.trunc(quantityRaw));
-    const normalized = normalizeMaterial(item);
-    const description = toNullableString(item.description ?? item.descripcionmaterial);
+    const normalized = normalizeRequestMaterial((entry ?? {}) as SolicitudMaterialApiItem, index);
+    const quantity = Math.max(1, Math.trunc(normalized.cantidadsolicitada || 1));
 
     return {
       ...normalized,
       quantity,
-      description: description ?? normalized.material,
+      description: normalized.descripcionmaterial,
+      material: normalized.descripcionmaterial,
+      unidad: normalized.unidadmedida,
+      precio: normalized.precioventa,
+      codart: null,
       codigomaterial: normalized.codigomaterial || `ITEM-${index + 1}`,
     } satisfies RequestMaterialItem;
   });
@@ -283,23 +337,26 @@ const parseSingleRequest = (entry: unknown): Request | null => {
   if (!entry || typeof entry !== 'object') return null;
 
   const raw = entry as SolicitudApiItem;
-  const solicitudnumero = toStringSafe(raw.solicitudnumero || raw.id);
+  const solicitudnumero = toStringSafe(raw.solicitudnumero);
   const id = solicitudnumero || `REQ-${Date.now()}`;
   const codigoobra = toNullableString(raw.codigoobra) ?? undefined;
   const descripcionobra =
     toNullableString(raw.descripcionobra) ??
-    toNullableString(raw.title) ??
     undefined;
 
-  const detailsSource = raw.details ?? raw.items ?? raw.materiales;
-  const items = parseRequestItems(detailsSource);
+  const materialesSource = raw.materiales ?? raw.details ?? raw.items;
+  const materiales = Array.isArray(materialesSource)
+    ? materialesSource.map((item, index) =>
+        normalizeRequestMaterial((item ?? {}) as SolicitudMaterialApiItem, index),
+      )
+    : [];
+  const items = parseRequestItems(materialesSource);
 
   const title = descripcionobra
     ? `${codigoobra ? `${codigoobra} - ` : ''}${descripcionobra}`
     : `Solicitud ${id}`;
   const description =
     toNullableString(raw.observacion) ??
-    toNullableString(raw.description) ??
     toNullableString(raw.actividad) ??
     undefined;
 
@@ -323,28 +380,59 @@ const parseSingleRequest = (entry: unknown): Request | null => {
 
   return {
     id,
-    solicitudnumero,
-    empresa: toNullableString(raw.empresa) ?? undefined,
-    codigoobra,
-    descripcionobra,
-    numerocontrol: toNullableString(raw.numerocontrol) ?? undefined,
-    solicitanteuser: toNullableString(raw.solicitanteuser) ?? undefined,
-    solicitantecodigo: toNullableString(raw.solicitantecodigo) ?? undefined,
-    fechautilizacion: toNullableString(raw.fechautilizacion) ?? undefined,
-    actividad: toNullableString(raw.actividad) ?? undefined,
-    direccionentrega: toNullableString(raw.direccionentrega) ?? undefined,
-    registradopor: toNullableString(raw.registradopor) ?? undefined,
-    owneruser: toNullableString(raw.owneruser) ?? undefined,
-    title,
-    description,
-    items,
-    status,
+    solicitudnumero: solicitudnumero || id,
+    empresa: toNullableString(raw.empresa),
+    codigoobra: codigoobra ?? null,
+    descripcionobra: descripcionobra ?? null,
+    numerocontrol: toNullableString(raw.numerocontrol),
+    solicitanteuser: toNullableString(raw.solicitanteuser),
+    solicitantecodigo: toNullableString(raw.solicitantecodigo),
+    fechasolicitud: toNullableString(raw.fechasolicitud),
+    fechautilizacion: toNullableString(raw.fechautilizacion),
+    observacion: toNullableString(raw.observacion),
+    actividad: toNullableString(raw.actividad),
+    direccionentrega: toNullableString(raw.direccionentrega),
+    registradopor: toNullableString(raw.registradopor),
+    autorizado: toFlag(raw.autorizado),
+    fechaautorizado: toNullableString(raw.fechaautorizado),
+    autorizadopor: toNullableString(raw.autorizadopor),
+    anulado: toFlag(raw.anulado),
+    motivoanulado: toNullableString(raw.motivoanulado),
+    fechaanulado: toNullableString(raw.fechaanulado),
+    anuladopor: toNullableString(raw.anuladopor),
+    despachar: toFlag(raw.despachar),
+    fechadespachar: toNullableString(raw.fechadespachar),
+    despacharpor: toNullableString(raw.despacharpor),
+    comentadespachar: toNullableString(raw.comentadespachar),
+    pedido: toFlag(raw.pedido),
+    ped_num: toNullableString(raw.ped_num),
+    fec_emis_ped: toNullableString(raw.fec_emis_ped),
+    co_us_ped: toNullableString(raw.co_us_ped),
+    comprar: toFlag(raw.comprar),
+    fechacomprar: toNullableString(raw.fechacomprar),
+    comprarpor: toNullableString(raw.comprarpor),
+    comentacomprar: toNullableString(raw.comentacomprar),
+    compra: toFlag(raw.compra),
+    comp_num: toNullableString(raw.comp_num),
+    fec_emis_comp: toNullableString(raw.fec_emis_comp),
+    co_us_comp: toNullableString(raw.co_us_comp),
+    owneruser: toNullableString(raw.owneruser),
     estatus: status,
     estatusLabel,
     horasEnEstatus: toNumberOrNull(raw.horasEnEstatus) ?? 0,
     diasEnEstatus: toNumberOrNull(raw.diasEnEstatus) ?? 0,
+    materiales,
+    title,
+    description: description ?? null,
+    items,
+    status,
     statusDates,
     createdAt,
+    approvedBy: toNullableString(raw.autorizadopor),
+    receivedBy:
+      toNullableString(raw.despacharpor) ?? toNullableString(raw.comprarpor),
+    receivedAt:
+      toNullableString(raw.fechadespachar) ?? toNullableString(raw.fechacomprar),
   };
 };
 

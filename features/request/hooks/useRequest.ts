@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import { RequestService } from '../services/RequestService';
 import type {
-  CreateSolicitudPayload,
-  Request,
-  RequestStatus,
-  VeneluxMaterial,
-  VeneluxObra,
-  VeneluxUnit,
+    CreateSolicitudPayload,
+    RequestStatus,
+    VeneluxMaterial,
+    VeneluxObra,
+    VeneluxSolicitudWithMaterials,
+    VeneluxUnit,
 } from '../types/request';
 
 type UseRequestOptions = {
@@ -19,7 +19,7 @@ export function useRequest({
   autoFetchRequests = true,
 }: UseRequestOptions = {}) {
   const [materials, setMaterials] = useState<VeneluxMaterial[]>([]);
-  const [requests, setRequests] = useState<Request[]>([]);
+  const [requests, setRequests] = useState<VeneluxSolicitudWithMaterials[]>([]);
   const [loading, setLoading] = useState(false);
   const [totalMaterials, setTotalMaterials] = useState(0);
   const [materialsPage, setMaterialsPage] = useState(1);
