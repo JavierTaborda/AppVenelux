@@ -29,7 +29,7 @@ export interface VeneluxMaterial {
   cantidadcompra: number;
   comprar: boolean;
   precioventa?: number | null;
-
+  cantidadsolicitada: number;
   
 }
 
@@ -66,8 +66,17 @@ export interface VeneluxSolicitudMaterial {
   categoria: string | null;
   cantidadsolicitada: number;
   precioventa: number | null;
-  observacion: string | null;
-  materialnuevo: 0 | 1;
+  autorizado: boolean;
+  fechaautorizado?: string | Date | null;
+  autorizadopor?: string | null;
+  cantidadautorizada: number;
+  cantidaddespacho: number;
+  cantidaddisponible: number;
+  almacendespacho?: string | null;
+  cantidadcompra: number;
+  comprar: boolean;
+  observacion?: string | null;
+
 }
 
 export interface VeneluxSolicitudWithMaterials {

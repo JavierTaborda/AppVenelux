@@ -1,15 +1,17 @@
 import { useAuthStore } from "@/stores/useAuthStore";
-import { useSegments } from "expo-router";
+import { Href, useRouter, useSegments } from "expo-router";
+import { DrawerContentScrollView } from "expo-router/build/react-navigation/drawer";
 import { Image, Text, View } from "react-native";
-import {
-  DrawerContentScrollView,
-} from "expo-router/build/react-navigation/drawer";
 import { DrawerItem } from "./DrawerItem";
 
 export default function CustomDrawerContent(props: any) {
   const { session, role, name } = useAuthStore();
+  const router = useRouter();
   const segments = useSegments();
   const currentPath = "/" + segments.join("/");
+  const handleNavigate = (href: Href) => {
+    router.push(href);
+  };
 
   return (
     <DrawerContentScrollView bounces={false} {...props}>
@@ -52,11 +54,13 @@ export default function CustomDrawerContent(props: any) {
           label="Solicitudes"
           href="/(main)/(tabs)/(request)"
           currentPath={currentPath}
+          onPress={handleNavigate}
         />
         <DrawerItem
           label="Crear solicitud"
           href="/(main)/(tabs)/(request)/create"
           currentPath={currentPath}
+          onPress={handleNavigate}
         />
       </View>
     </DrawerContentScrollView>

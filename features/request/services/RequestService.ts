@@ -33,6 +33,8 @@ const toNumberOrNull = (value: unknown): number | null => {
   return null;
 };
 
+const toBoolean = (value: unknown): boolean => toNumberOrNull(value) === 1;
+
 const normalizeMaterial = (
   it: Partial<VeneluxMaterial> & { codigo?: string; description?: string }
 ): VeneluxMaterial => ({
@@ -64,6 +66,7 @@ const normalizeMaterial = (
   cantidadcompra: it.cantidadcompra ?? 0,
   comprar: it.comprar ?? false,
   precioventa: toNumberOrNull(it.precioventa ?? 0),
+  cantidadsolicitada: toNumberOrNull((it as { cantidadsolicitada?: unknown }).cantidadsolicitada) ?? 0,
   
 });
 
@@ -164,6 +167,15 @@ type SolicitudMaterialApiItem = Partial<{
   precioventa: unknown;
   observacion: unknown;
   materialnuevo: unknown;
+  autorizado: unknown;
+  fechaautorizado: unknown;
+  autorizadopor: unknown;
+  cantidadautorizada: unknown;
+  cantidaddespacho: unknown;
+  cantidaddisponible: unknown;
+  almacendespacho: unknown;
+  cantidadcompra: unknown;
+  comprar: unknown;
 }> & {
   codigo?: unknown;
   description?: unknown;
@@ -310,7 +322,16 @@ const normalizeRequestMaterial = (
     toNumberOrNull(raw.cantidadsolicitada ?? raw.quantity ?? raw.cantidad) ?? 0,
   precioventa: toNumberOrNull(raw.precioventa ?? raw.precio),
   observacion: toNullableString(raw.observacion),
-  materialnuevo: toFlag(raw.materialnuevo),
+  autorizado: toBoolean(raw.autorizado),
+  fechaautorizado: toNullableString(raw.fechaautorizado),
+  autorizadopor: toNullableString(raw.autorizadopor),
+  cantidadautorizada: toNumberOrNull(raw.cantidadautorizada) ?? 0,
+  cantidaddespacho: toNumberOrNull(raw.cantidaddespacho) ?? 0,
+  cantidaddisponible: toNumberOrNull(raw.cantidaddisponible) ?? 0,
+  almacendespacho: toNullableString(raw.almacendespacho),
+  cantidadcompra: toNumberOrNull(raw.cantidadcompra) ?? 0,
+  comprar: toBoolean(raw.comprar),
+  
 });
 
 const parseRequestItems = (raw: unknown): RequestMaterialItem[] => {

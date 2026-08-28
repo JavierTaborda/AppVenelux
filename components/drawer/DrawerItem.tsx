@@ -1,7 +1,6 @@
-
 import { useThemeStore } from "@/stores/useThemeStore";
 import { Ionicons } from "@expo/vector-icons";
-import { Href, useRouter } from "expo-router";
+import { Href } from "expo-router";
 import { Text, TouchableOpacity } from "react-native";
 
 type DrawerItemProps = {
@@ -10,6 +9,7 @@ type DrawerItemProps = {
   emoji?: string;
   label: string;
   currentPath: string;
+  onPress?: (href: Href) => void;
 };
 
 export function DrawerItem({
@@ -18,9 +18,9 @@ export function DrawerItem({
   label,
   currentPath,
   emoji,
+  onPress,
 }: DrawerItemProps) {
   const { theme } = useThemeStore();
-  const router = useRouter();
   const isDark = theme === "dark";
   const isActive = currentPath === href;
 
@@ -32,7 +32,7 @@ export function DrawerItem({
     : "text-foreground dark:text-dark-foreground font-bold";
 
   const handlePress = () => {
-    router.push(href);
+    onPress?.(href);
   };
 
   return (
