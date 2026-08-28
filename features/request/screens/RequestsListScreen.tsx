@@ -439,33 +439,12 @@ export default function RequestsListScreen() {
 
       {showMoreInfo && (
         <View className="mt-2.5 gap-2.5">
-          <View className="flex-row flex-wrap justify-between gap-y-2.5">
-            {renderSummaryValue("Empresa", request.empresa)}
-            {renderSummaryValue("Código obra", request.codigoobra)}
-            {renderSummaryValue("Descripción obra", request.descripcionobra)}
-            {renderSummaryValue("Número control", request.numerocontrol)}
-            {renderSummaryValue(
-              "Solicitante código",
-              request.solicitantecodigo,
-            )}
-            {renderSummaryValue("Registrado por", request.registradopor)}
-            {renderSummaryValue("Owner user", request.owneruser)}
-            {renderSummaryValue("Observación", request.observacion)}
-          </View>
-
           <View className="rounded-2xl bg-background dark:bg-dark-background px-3 py-2.5">
             <Text className="text-xs text-mutedForeground dark:text-dark-mutedForeground">
-              Flujo
+              Observación
             </Text>
             <Text className="text-sm font-bold text-foreground dark:text-dark-foreground mt-1">
-              Autorizado: {formatStatusFlag(request.autorizado)} • Anulado:{" "}
-              {formatStatusFlag(request.anulado)} • Despachar:{" "}
-              {formatStatusFlag(request.despachar)}
-            </Text>
-            <Text className="text-sm font-bold text-foreground dark:text-dark-foreground mt-1">
-              Pedido: {formatStatusFlag(request.pedido)} • Comprar:{" "}
-              {formatStatusFlag(request.comprar)} • Compra:{" "}
-              {formatStatusFlag(request.compra)}
+              {request.observacion}
             </Text>
           </View>
 
@@ -505,15 +484,27 @@ export default function RequestsListScreen() {
           </View>
 
           <View className="rounded-2xl bg-background dark:bg-dark-background px-3 py-2.5">
-            <Text className="text-xs text-mutedForeground dark:text-dark-mutedForeground">
+            <Text className="text-sm text-mutedForeground dark:text-dark-mutedForeground">
               Comentarios de flujo
             </Text>
-            <Text className="text-sm font-bold text-foreground dark:text-dark-foreground mt-1">
-              {request.comentadespachar ||
-                request.comentacomprar ||
-                request.motivoanulado ||
-                "No indicado"}
-            </Text>
+            <View className="mt-2 gap-2">
+              <View>
+                <Text className="text-[11px] font-semibold text-mutedForeground dark:text-dark-mutedForeground uppercase">
+                  Despachar
+                </Text>
+                <Text className="text-sm font-bold text-foreground dark:text-dark-foreground mt-0.5">
+                  {request.comentadespachar || "-"}
+                </Text>
+              </View>
+              <View>
+                <Text className="text-[11px] font-semibold text-mutedForeground dark:text-dark-mutedForeground uppercase">
+                  Comprar
+                </Text>
+                <Text className="text-sm font-bold text-foreground dark:text-dark-foreground mt-0.5">
+                  {request.comentacomprar || "-"}
+                </Text>
+              </View>
+            </View>
           </View>
         </View>
       )}
