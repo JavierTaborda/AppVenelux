@@ -158,6 +158,21 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
     </View>
   );
 
+  const renderDetailField = (label: string, value?: string | null) => (
+    <View className="mt-1 rounded-2xl bg-componentbg dark:bg-dark-componentbg px-3 py-1">
+      <Text className="text-sm font-bold text-foreground dark:text-dark-foreground">
+        {label}
+      </Text>
+      <Text className="mt-1 text-sm font-normal text-gray-800 dark:text-dark-mutedForeground">
+        {value || "No indicado"}
+      </Text>
+    </View>
+  );
+
+  const renderDetailDivider = () => (
+    <View className="my-2 border-b border-zinc-100 dark:border-zinc-800" />
+  );
+
   const renderMaterialKey = (item: Request["items"][number], index: number) => {
     const code = item.codigomaterial?.trim() || "SIN";
     const codart = item.codart != null ? String(item.codart) : "sin-codart";
@@ -397,72 +412,31 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
           </Text>
         </View>
       )}
-
-      <View className="mt-2.5 rounded-2xl bg-componentbg dark:bg-dark-componentbg px-3 py-2.5">
-        <Text className="text-xs text-foreground dark:text-dark-foreground ">
-          Solicitante
-        </Text>
-        <Text className="text-sm font-bold text-mutedForeground dark:text-dark-mutedForeground mt-1">
-          {requestData.solicitanteuser}
-        </Text>
-      </View>
-      <View className="mt-2.5 rounded-2xl bg-componentbg dark:bg-dark-componentbg px-3 py-2.5">
-        <Text className="text-xs text-mutedForeground dark:text-dark-mutedForeground">
-          Utilización
-        </Text>
-        <Text className="text-sm font-bold text-foreground dark:text-dark-foreground mt-1">
-          {formatOptionalDate(requestData.fechautilizacion)}
-        </Text>
-      </View>
-
-      {!!requestData.actividad && (
-        <View className="mt-2.5 rounded-2xl bg-componentbg dark:bg-dark-componentbg px-3 py-2.5">
-          <Text className="text-xs text-mutedForeground dark:text-dark-mutedForeground">
-            Partida
-          </Text>
-          <Text className="text-sm font-bold text-foreground dark:text-dark-foreground mt-1">
-            {requestData.actividad}
-          </Text>
-        </View>
+      {renderDetailDivider()}
+      {renderDetailField("Solicitante", requestData.solicitanteuser)}
+      {renderDetailDivider()}
+      {renderDetailField(
+        "Utilización",
+        formatOptionalDate(requestData.fechautilizacion),
       )}
-      {!!requestData.direccionentrega && (
-        <View className="mt-2.5 rounded-2xl bg-componentbg dark:bg-dark-componentbg px-3 py-2.5">
-          <Text className="text-xs text-mutedForeground dark:text-dark-mutedForeground">
-            Dirección de entrega
-          </Text>
-          <Text className="text-sm font-bold text-foreground dark:text-dark-foreground mt-1">
-            {requestData.direccionentrega}
-          </Text>
-        </View>
+      {renderDetailDivider()}
+      {!!requestData.actividad &&
+        renderDetailField("Partida", requestData.actividad)}
+      {!!requestData.actividad && renderDetailDivider()}
+      {!!requestData.direccionentrega &&
+        renderDetailField("Dirección de entrega", requestData.direccionentrega)}
+      {!!requestData.direccionentrega && renderDetailDivider()}
+      {renderDetailField("Observación", requestData.observacion)}
+      {renderDetailDivider()}
+      {renderDetailField(
+        "Comentario de despacho",
+        requestData.comentadespachar || "-",
       )}
-      <View className="rounded-[22px] bg-componentbg dark:bg-dark-componentbg px-3 py-2.5">
-        <Text className="text-xs text-mutedForeground dark:text-dark-mutedForeground">
-          Observación
-        </Text>
-        <Text className="mt-1 text-sm font-bold text-foreground dark:text-dark-foreground">
-          {requestData.observacion}
-        </Text>
-      </View>
-      <View className="rounded-[22px] bg-componentbg dark:bg-dark-componentbg px-3 py-2.5">
-        <View className="mt-2 gap-2">
-          <View>
-            <Text className="text-[11px] font-semibold text-mutedForeground dark:text-dark-mutedForeground uppercase">
-              Comentario de despacho
-            </Text>
-            <Text className="text-sm font-bold text-foreground dark:text-dark-foreground mt-0.5">
-              {requestData.comentadespachar || "-"}
-            </Text>
-          </View>
-          <View>
-            <Text className="text-[11px] font-semibold text-mutedForeground dark:text-dark-mutedForeground uppercase">
-              Comentario de compra
-            </Text>
-            <Text className="text-sm font-bold text-foreground dark:text-dark-foreground mt-0.5">
-              {requestData.comentacomprar || "-"}
-            </Text>
-          </View>
-        </View>
-      </View>
+      {renderDetailDivider()}
+      {renderDetailField(
+        "Comentario de compra",
+        requestData.comentacomprar || "-",
+      )}
 
       <View className="mt-4 mb-2.5 flex-row items-center justify-between">
         <Text className="text-base font-extrabold text-foreground dark:text-dark-foreground">
