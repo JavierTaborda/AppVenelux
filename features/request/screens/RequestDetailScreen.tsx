@@ -1,8 +1,9 @@
-import SelectedItemsFab from "@/features/request/components/SelectedItemsFab";
+import CustomFlatList from "@/components/ui/CustomFlatList";
+import CustomImagen from "@/components/ui/CustomImagen";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
-import { Alert, Pressable, ScrollView, Text, View } from "react-native";
+import { Pressable, ScrollView, Text, View } from "react-native";
 import StatusBadge from "../components/StatusBadge";
 import { RequestService } from "../services/RequestService";
 import type { Request } from "../types/request";
@@ -11,6 +12,21 @@ interface Props {
   requestId?: string;
   request?: Request;
 }
+
+type RequestModalItem =
+  | { type: "summary"; request: Request }
+  | { type: "empty"; id: string }
+  | { type: "material"; material: Request["items"][number]; index: number };
+
+const STATUS_DATE_ITEMS: { status: Request["status"]; label: string }[] = [
+  { status: 0, label: "Solicitud" },
+  { status: 1, label: "Autorizada solicitud" },
+  { status: 2, label: "Autorizado despacho" },
+  { status: 3, label: "En despacho" },
+  { status: 4, label: "Autorizado comprar" },
+  { status: 5, label: "En compra" },
+  { status: 6, label: "Anulado" },
+];
 
 function RequestDetailSkeleton() {
   return (
@@ -61,11 +77,29 @@ function RequestDetailSkeleton() {
   );
 }
 
+function MaterialEmptyState() {
+  return (
+    <View className="rounded-3xl border border-dashed border-zinc-300 dark:border-zinc-700 p-5 items-center bg-componentbg dark:bg-dark-componentbg">
+      <Ionicons name="cube-outline" size={32} color="#9CA3AF" />
+      <Text className="mt-2 text-sm text-mutedForeground dark:text-dark-mutedForeground text-center">
+        Esta solicitud no trae detalle de materiales.
+      </Text>
+    </View>
+  );
+}
+
 export default function RequestDetailScreen({ request, requestId }: Props) {
   const router = useRouter();
-  const params = useLocalSearchParams<{ id?: string }>();
+  const params = useLocalSearchParams<{
+    id?: string;
+    scrollY?: string;
+    filter?: string;
+    q?: string;
+  }>();
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<Request | null>(request ?? null);
+  const [showStatusTracking, setShowStatusTracking] = useState(false);
+  const [showMoreInfo, setShowMoreInfo] = useState(false);
 
   const resolvedId = useMemo(
     () => requestId ?? params.id ?? request?.id ?? null,
@@ -99,27 +133,496 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
 
   const s = data;
 
-  const markApproved = async () => {
-    try {
-      if (!s) return;
-      await RequestService.updateStatus(s.id, 1, "Ingeniero jefe");
-      Alert.alert("Solicitud", "Marcada como aprobada");
-    } catch {
-      Alert.alert("Error", "No se pudo actualizar el estado");
-    }
-  };
-
   const formatDate = (isoDate: string) => {
     const parsed = new Date(isoDate);
     if (Number.isNaN(parsed.getTime())) return "Sin fecha";
     return parsed.toLocaleDateString();
   };
 
+  const formatOptionalDate = (isoDate?: string | null) => {
+    if (!isoDate) return "No realizado";
+    return formatDate(isoDate);
+  };
+
+  const renderSummaryValue = (label: string, value?: string | null) => (
+    <View className="w-[48.5%] rounded-2xl bg-background dark:bg-dark-background px-3 py-2.5">
+      <Text className="text-[11px] font-semibold text-mutedForeground dark:text-dark-mutedForeground">
+        {label}
+      </Text>
+      <Text
+        className="text-sm font-extrabold text-foreground dark:text-dark-foreground mt-0.5"
+        numberOfLines={2}
+      >
+        {value || "No indicado"}
+      </Text>
+    </View>
+  );
+
+  const renderMaterialKey = (item: Request["items"][number], index: number) => {
+    const code = item.codigomaterial?.trim() || "SIN";
+    const codart = item.codart != null ? String(item.codart) : "sin-codart";
+    return `${code}-${codart}-${index}`;
+  };
+
+  const formatMoney = (value?: number | null) => {
+    if (value == null || Number.isNaN(value)) return null;
+    return value.toLocaleString("es-VE", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  };
+
+  const renderMaterialCard = (material: Request["items"][number]) => {
+    const price = formatMoney(material.precio);
+    const requestedQuantity = Math.max(
+      1,
+      material.quantity || material.cantidadsolicitada || 1,
+    );
+    const approvedQuantity = Math.max(0, material.cantidadautorizada || 0);
+    const purchasedQuantity = Math.max(0, material.cantidadcompra || 0);
+    const dispatchedQuantity = Math.max(0, material.cantidaddespacho || 0);
+    const availableQuantity = Math.max(0, material.cantidaddisponible || 0);
+    const percent = (value: number) =>
+      Math.min(100, Math.round((value / requestedQuantity) * 100));
+    const approvedPercent = percent(approvedQuantity);
+    const purchasedPercent = percent(purchasedQuantity);
+    const lineInfo = [material.linea, material.sublinea, material.categoria]
+      .filter(Boolean)
+      .join(" / ");
+
+    return (
+      <View className="mb-3 overflow-hidden rounded-[26px] border border-zinc-100/90 dark:border-zinc-800/80 bg-componentbg dark:bg-dark-componentbg p-4 shadow-sm shadow-black/5">
+        <View className="flex-row gap-4">
+          <View className="relative h-28 w-28 rounded-[22px] overflow-hidden bg-neutral-50 dark:bg-dark-background border border-zinc-200/50 dark:border-zinc-800/60 shrink-0">
+            <CustomImagen img={material.imagen1 ?? ""} content="cover" />
+
+            <View className="absolute left-1.5 top-1.5 rounded-full bg-primary dark:bg-dark-primary px-2.5 py-1 shadow-sm">
+              <Text className="text-[10px] font-black tracking-[0.8px] text-white dark:text-zinc-950 uppercase">
+                x{requestedQuantity}
+              </Text>
+            </View>
+          </View>
+          <View className="flex-1 justify-between py-0.5 min-h-28">
+            <View className="gap-2">
+              <View className="flex-row items-start justify-between gap-2">
+                <View className="flex-1 pr-1">
+                  <Text className="text-[11px] font-semibold tracking-[1.2px] text-primary dark:text-dark-primary uppercase">
+                    {material.codigomaterial || "SIN CÓDIGO"}
+                  </Text>
+                  <Text
+                    className="mt-1 text-[15px] font-extrabold leading-5 text-foreground dark:text-dark-foreground"
+                    numberOfLines={2}
+                  >
+                    {material.description ||
+                      material.material ||
+                      "Material sin descripción"}
+                  </Text>
+                </View>
+
+                <View className="items-end gap-1 shrink-0">
+                  {material.coduni || material.unidad ? (
+                    <View className="rounded-full border border-zinc-200/60 dark:border-zinc-800 bg-background dark:bg-dark-background px-2.5 py-1">
+                      <Text className="text-[10px] font-bold text-mutedForeground dark:text-dark-mutedForeground uppercase">
+                        {material.coduni || material.unidad}
+                      </Text>
+                    </View>
+                  ) : null}
+
+                  {price && (
+                    <View className="items-end">
+                      <Text className="text-[10px] font-semibold text-mutedForeground dark:text-dark-mutedForeground uppercase">
+                        Total
+                      </Text>
+                      <Text className="text-sm font-black tracking-tight text-foreground dark:text-dark-foreground">
+                        {price}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              </View>
+
+              <Text
+                className="text-[11px] font-medium text-mutedForeground dark:text-dark-mutedForeground/80"
+                numberOfLines={1}
+              >
+                {lineInfo || "Sin categoría"}
+              </Text>
+
+              <View className="flex-row flex-wrap gap-2 pt-1">
+                <View className="rounded-full bg-primary/10 dark:bg-dark-primary/20 px-2.5 py-1">
+                  <Text className="text-[10px] font-bold text-primary dark:text-dark-primary uppercase">
+                    {material.autorizado ? "Aprobado" : "Pendiente"}
+                  </Text>
+                </View>
+                <View className="rounded-full bg-emerald-500/10 dark:bg-emerald-500/20 px-2.5 py-1">
+                  <Text className="text-[10px] font-bold text-emerald-600 dark:text-emerald-300 uppercase">
+                    {material.comprar ? "En compra" : "Sin compra"}
+                  </Text>
+                </View>
+                <View className="rounded-full bg-background dark:bg-dark-background border border-zinc-200 dark:border-zinc-800 px-2.5 py-1">
+                  <Text className="text-[10px] font-bold text-mutedForeground dark:text-dark-mutedForeground uppercase">
+                    Solicitado {requestedQuantity}
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            <View className="mt-4 rounded-[22px] border border-zinc-100 dark:border-zinc-800 bg-background dark:bg-dark-background px-3 py-3">
+              <View className="flex-row items-center justify-between gap-2">
+                <Text className="text-xs font-semibold text-mutedForeground dark:text-dark-mutedForeground uppercase">
+                  Progreso
+                </Text>
+                <Text className="text-[11px] font-bold text-foreground dark:text-dark-foreground">
+                  {approvedQuantity}/{requestedQuantity} aprobado
+                </Text>
+              </View>
+
+              <View className="mt-2.5 gap-2.5">
+                <View>
+                  <View className="flex-row items-center justify-between">
+                    <Text className="text-[11px] font-semibold text-mutedForeground dark:text-dark-mutedForeground uppercase">
+                      Aprobado
+                    </Text>
+                    <Text className="text-[11px] font-bold text-foreground dark:text-dark-foreground">
+                      {approvedQuantity}/{requestedQuantity}
+                    </Text>
+                  </View>
+                  <View className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800">
+                    <View
+                      className="h-full rounded-full bg-primary dark:bg-dark-primary"
+                      style={{ width: `${approvedPercent}%` }}
+                    />
+                  </View>
+                </View>
+
+                <View>
+                  <View className="flex-row items-center justify-between">
+                    <Text className="text-[11px] font-semibold text-mutedForeground dark:text-dark-mutedForeground uppercase">
+                      Comprado
+                    </Text>
+                    <Text className="text-[11px] font-bold text-foreground dark:text-dark-foreground">
+                      {purchasedQuantity}/{requestedQuantity}
+                    </Text>
+                  </View>
+                  <View className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800">
+                    <View
+                      className="h-full rounded-full bg-emerald-500"
+                      style={{ width: `${purchasedPercent}%` }}
+                    />
+                  </View>
+                </View>
+              </View>
+
+              <View className="mt-3 flex-row gap-2">
+                <View className="flex-1 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-componentbg dark:bg-dark-componentbg px-2.5 py-2">
+                  <Text className="text-[10px] font-semibold text-mutedForeground dark:text-dark-mutedForeground uppercase">
+                    Despachado
+                  </Text>
+                  <Text className="mt-0.5 text-sm font-black text-foreground dark:text-dark-foreground">
+                    {dispatchedQuantity}
+                  </Text>
+                </View>
+                <View className="flex-1 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-componentbg dark:bg-dark-componentbg px-2.5 py-2">
+                  <Text className="text-[10px] font-semibold text-mutedForeground dark:text-dark-mutedForeground uppercase">
+                    Disponible
+                  </Text>
+                  <Text className="mt-0.5 text-sm font-black text-foreground dark:text-dark-foreground">
+                    {availableQuantity}
+                  </Text>
+                </View>
+              </View>
+
+              {(material.autorizadopor ||
+                material.fechaautorizado ||
+                material.observacion) && (
+                <View className="mt-3 rounded-2xl border border-zinc-100 dark:border-zinc-800 bg-componentbg dark:bg-dark-componentbg px-3 py-2.5">
+                  {material.autorizadopor ? (
+                    <Text className="text-xs text-mutedForeground dark:text-dark-mutedForeground">
+                      Autorizado por:{" "}
+                      <Text className="font-bold text-foreground dark:text-dark-foreground">
+                        {material.autorizadopor}
+                      </Text>
+                    </Text>
+                  ) : null}
+                  {material.fechaautorizado ? (
+                    <Text className="mt-0.5 text-xs text-mutedForeground dark:text-dark-mutedForeground">
+                      Fecha de autorización:{" "}
+                      <Text className="font-bold text-foreground dark:text-dark-foreground">
+                        {formatDate(String(material.fechaautorizado))}
+                      </Text>
+                    </Text>
+                  ) : null}
+                  {material.observacion ? (
+                    <Text className="mt-0.5 text-xs text-mutedForeground dark:text-dark-mutedForeground">
+                      Observación:{" "}
+                      <Text className="font-bold text-foreground dark:text-dark-foreground">
+                        {material.observacion}
+                      </Text>
+                    </Text>
+                  ) : null}
+                </View>
+              )}
+            </View>
+          </View>
+        </View>
+      </View>
+    );
+  };
+
+  const renderRequestHeaderSummary = (requestData: Request) => (
+    <View className="mb-2 rounded-2xl border border-zinc-200/70 dark:border-zinc-800 bg-componentbg dark:bg-dark-componentbg px-3 py-3">
+      <View className="flex-row items-start justify-between gap-3">
+        <View className="flex-1">
+          <Text className="mt-1 text-lg font-extrabold text-foreground dark:text-dark-foreground leading-6">
+            {requestData.title}
+          </Text>
+          <Text className="mt-1 text-sm text-mutedForeground dark:text-dark-mutedForeground">
+            {requestData.materiales.length} materiales
+          </Text>
+        </View>
+        <StatusBadge
+          status={requestData.status}
+          label={requestData.estatusLabel}
+        />
+      </View>
+      {requestData.anulado === 1 && (
+        <View className="mt-3 rounded-2xl border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/30 px-3 py-2.5">
+          <Text className="text-xs font-bold text-red-700 dark:text-red-300 uppercase">
+            Solicitud anulada
+          </Text>
+          <Text className="mt-1 text-sm font-semibold text-red-700 dark:text-red-200">
+            {requestData.motivoanulado || "No se indicó motivo"}
+          </Text>
+          <Text className="mt-1 text-xs text-red-600 dark:text-red-300">
+            {formatOptionalDate(requestData.fechaanulado)}
+          </Text>
+        </View>
+      )}
+      <View className="mt-3 flex-row flex-wrap justify-between gap-y-2.5">
+        {renderSummaryValue("Solicitante", requestData.solicitanteuser)}
+        {renderSummaryValue(
+          "Utilización",
+          formatOptionalDate(requestData.fechautilizacion),
+        )}
+      </View>
+      {!!requestData.actividad && (
+        <View className="mt-2.5 rounded-2xl bg-background dark:bg-dark-background px-3 py-2.5">
+          <Text className="text-xs text-mutedForeground dark:text-dark-mutedForeground">
+            Partida
+          </Text>
+          <Text className="text-sm font-bold text-foreground dark:text-dark-foreground mt-1">
+            {requestData.actividad}
+          </Text>
+        </View>
+      )}
+      {!!requestData.direccionentrega && (
+        <View className="mt-2.5 rounded-2xl bg-background dark:bg-dark-background px-3 py-2.5">
+          <Text className="text-xs text-mutedForeground dark:text-dark-mutedForeground">
+            Dirección de entrega
+          </Text>
+          <Text className="text-sm font-bold text-foreground dark:text-dark-foreground mt-1">
+            {requestData.direccionentrega}
+          </Text>
+        </View>
+      )}
+
+      <View className="mt-4 flex-row items-center justify-between gap-2">
+        <Text className="text-base font-extrabold text-foreground dark:text-dark-foreground">
+          Más información
+        </Text>
+        <Pressable
+          onPress={() => setShowMoreInfo((prev) => !prev)}
+          className="flex-row items-center gap-1.5 rounded-full bg-primary/10 dark:bg-dark-primary/20 px-3 py-1.5"
+          accessibilityRole="button"
+          accessibilityLabel={
+            showMoreInfo ? "Ocultar más información" : "Mostrar más información"
+          }
+        >
+          <Ionicons
+            name={showMoreInfo ? "chevron-up-outline" : "chevron-down-outline"}
+            size={14}
+            color="#0EA5E9"
+          />
+          <Text className="text-xs font-extrabold text-primary dark:text-dark-primary">
+            {showMoreInfo ? "Ocultar" : "Mostrar"}
+          </Text>
+        </Pressable>
+      </View>
+
+      {showMoreInfo && (
+        <View className="mt-2.5 gap-2.5">
+          <View className="rounded-2xl bg-background dark:bg-dark-background px-3 py-2.5">
+            <Text className="text-xs text-mutedForeground dark:text-dark-mutedForeground">
+              Observación
+            </Text>
+            <Text className="text-sm font-bold text-foreground dark:text-dark-foreground mt-1">
+              {requestData.observacion}
+            </Text>
+          </View>
+
+          <View className="flex-row flex-wrap justify-between gap-y-2.5">
+            {renderSummaryValue(
+              "Fecha solicitud",
+              formatOptionalDate(requestData.fechasolicitud),
+            )}
+            {renderSummaryValue(
+              "Fecha autorización",
+              formatOptionalDate(requestData.fechaautorizado),
+            )}
+            {renderSummaryValue(
+              "Fecha anulado",
+              formatOptionalDate(requestData.fechaanulado),
+            )}
+            {renderSummaryValue(
+              "Fecha despacho",
+              formatOptionalDate(requestData.fechadespachar),
+            )}
+            {renderSummaryValue(
+              "Fecha pedido",
+              formatOptionalDate(requestData.fec_emis_ped),
+            )}
+            {renderSummaryValue(
+              "Fecha compra",
+              formatOptionalDate(requestData.fechacomprar),
+            )}
+            {renderSummaryValue(
+              "Fecha emisión pedido",
+              formatOptionalDate(requestData.fec_emis_ped),
+            )}
+            {renderSummaryValue(
+              "Fecha emisión compra",
+              formatOptionalDate(requestData.fec_emis_comp),
+            )}
+          </View>
+
+          <View className="rounded-2xl bg-background dark:bg-dark-background px-3 py-2.5">
+            <Text className="text-sm text-mutedForeground dark:text-dark-mutedForeground">
+              Comentarios de flujo
+            </Text>
+            <View className="mt-2 gap-2">
+              <View>
+                <Text className="text-[11px] font-semibold text-mutedForeground dark:text-dark-mutedForeground uppercase">
+                  Despachar
+                </Text>
+                <Text className="text-sm font-bold text-foreground dark:text-dark-foreground mt-0.5">
+                  {requestData.comentadespachar || "-"}
+                </Text>
+              </View>
+              <View>
+                <Text className="text-[11px] font-semibold text-mutedForeground dark:text-dark-mutedForeground uppercase">
+                  Comprar
+                </Text>
+                <Text className="text-sm font-bold text-foreground dark:text-dark-foreground mt-0.5">
+                  {requestData.comentacomprar || "-"}
+                </Text>
+              </View>
+            </View>
+          </View>
+        </View>
+      )}
+
+      <View className="mt-4 mb-2.5 flex-row items-center justify-between">
+        <Text className="text-base font-extrabold text-foreground dark:text-dark-foreground">
+          Seguimiento de estatus
+        </Text>
+        <Pressable
+          onPress={() => setShowStatusTracking((prev) => !prev)}
+          className="flex-row items-center gap-1.5 rounded-full bg-primary/10 dark:bg-dark-primary/20 px-3 py-1.5"
+          accessibilityRole="button"
+          accessibilityLabel={
+            showStatusTracking
+              ? "Ocultar seguimiento de estatus"
+              : "Mostrar seguimiento de estatus"
+          }
+        >
+          <Ionicons
+            name={showStatusTracking ? "eye-off-outline" : "eye-outline"}
+            size={14}
+            color="#0EA5E9"
+          />
+          <Text className="text-xs font-extrabold text-primary dark:text-dark-primary">
+            {showStatusTracking ? "Ocultar" : "Mostrar"}
+          </Text>
+        </Pressable>
+      </View>
+
+      {showStatusTracking && (
+        <View className="gap-1.5">
+          {STATUS_DATE_ITEMS.map((item) => {
+            const date = requestData.statusDates[item.status];
+            const isCurrent = requestData.status === item.status;
+            const isDone = Boolean(date);
+
+            return (
+              <View
+                key={item.status}
+                className={`flex-row items-center justify-between rounded-2xl border px-3 py-2.5 ${isCurrent ? "border-primary bg-primary/10 dark:border-dark-primary dark:bg-dark-primary/15" : "border-zinc-200 dark:border-zinc-800 bg-background dark:bg-dark-background"}`}
+              >
+                <View className="flex-1 pr-3 flex-row items-center gap-2.5">
+                  <View
+                    className={`h-2.5 w-2.5 rounded-full ${isCurrent ? "bg-primary dark:bg-dark-primary" : isDone ? "bg-green-500" : "bg-zinc-300 dark:bg-zinc-700"}`}
+                  />
+                  <View className="flex-1">
+                    <Text className="text-sm font-bold text-foreground dark:text-dark-foreground">
+                      {item.label}
+                    </Text>
+                    <Text className="text-xs text-mutedForeground dark:text-dark-mutedForeground mt-0.5">
+                      {isCurrent
+                        ? "Estatus actual"
+                        : isDone
+                          ? "Completado"
+                          : "Pendiente"}
+                    </Text>
+                  </View>
+                </View>
+                <Text
+                  className={`text-xs font-bold ${isDone ? "text-foreground dark:text-dark-foreground" : "text-mutedForeground dark:text-dark-mutedForeground"}`}
+                >
+                  {formatOptionalDate(date)}
+                </Text>
+              </View>
+            );
+          })}
+        </View>
+      )}
+    </View>
+  );
+
+  const modalData = useMemo<RequestModalItem[]>(() => {
+    if (!s) return [];
+
+    const materialItems = s.items.map((material, index) => ({
+      type: "material" as const,
+      material,
+      index,
+    }));
+
+    return [
+      { type: "summary", request: s },
+      ...(materialItems.length > 0
+        ? materialItems
+        : [{ type: "empty" as const, id: "empty-materials" }]),
+    ];
+  }, [s]);
+
+  const renderModalItem = ({ item }: { item: RequestModalItem }) => {
+    if (item.type === "summary")
+      return renderRequestHeaderSummary(item.request);
+    if (item.type === "empty") return <MaterialEmptyState />;
+    return renderMaterialCard(item.material);
+  };
+
+  const renderModalItemKey = (item: RequestModalItem) => {
+    if (item.type === "summary") return `summary-${item.request.id}`;
+    if (item.type === "empty") return item.id;
+    return renderMaterialKey(item.material, item.index);
+  };
+
   if (loading) {
     return <RequestDetailSkeleton />;
   }
 
-  if (!s)
+  if (!s) {
     return (
       <View className="flex-1 items-center justify-center p-6 bg-background dark:bg-dark-background">
         <Ionicons name="document-text-outline" size={36} color="#9CA3AF" />
@@ -127,7 +630,16 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
           No se encontró la solicitud
         </Text>
         <Pressable
-          onPress={() => router.back()}
+          onPress={() =>
+            router.replace({
+              pathname: "/(main)/(tabs)/(request)",
+              params: {
+                scrollY: params.scrollY ?? "0",
+                filter: params.filter ?? "",
+                q: params.q ?? "",
+              },
+            })
+          }
           className="mt-4 rounded-full border border-primary px-4 py-2"
         >
           <Text className="font-semibold text-primary dark:text-dark-primary">
@@ -136,129 +648,48 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
         </Pressable>
       </View>
     );
+  }
 
   return (
-    <ScrollView
-      className="flex-1 bg-background dark:bg-dark-background"
-      contentContainerStyle={{ padding: 16, paddingBottom: 120 }}
-    >
-      <View className="rounded-3xl border border-zinc-200/70 dark:border-zinc-800 bg-componentbg dark:bg-dark-componentbg p-4">
-        <View className="flex-row items-start justify-between gap-3">
-          <View className="flex-1">
-            <Text className="text-xs font-bold tracking-[1px] text-primary dark:text-dark-primary uppercase">
-              {s.solicitudnumero
-                ? `Solicitud ${s.solicitudnumero}`
-                : `Solicitud ${s.id}`}
-            </Text>
-            <Text className="text-2xl font-extrabold text-foreground dark:text-dark-foreground mt-1">
-              {s.title}
-            </Text>
-          </View>
-          <StatusBadge status={s.status} label={s.estatusLabel} />
-        </View>
-
-        {!!s.description && (
-          <Text className="text-sm text-mutedForeground dark:text-dark-mutedForeground mt-2">
-            {s.description}
+    <View className="flex-1 bg-background dark:bg-dark-background mb-32">
+      <View className="px-4 pt-4 pb-2">
+        <Pressable
+          onPress={() =>
+            router.replace({
+              pathname: "/(main)/(tabs)/(request)",
+              params: {
+                scrollY: params.scrollY ?? "0",
+                filter: params.filter ?? "",
+                q: params.q ?? "",
+              },
+            })
+          }
+          className="self-start flex-row items-center gap-2 rounded-full border border-zinc-200 dark:border-zinc-800 bg-componentbg dark:bg-dark-componentbg px-3 py-2"
+          accessibilityRole="button"
+          accessibilityLabel="Volver a la pantalla anterior"
+        >
+          <Ionicons name="chevron-back" size={16} color="#0EA5E9" />
+          <Text className="text-sm font-semibold text-foreground dark:text-dark-foreground">
+            Volver
           </Text>
-        )}
-
-        <View className="mt-4 flex-row items-center justify-between">
-          <View>
-            <Text className="text-xs text-mutedForeground dark:text-dark-mutedForeground">
-              Fecha
-            </Text>
-            <Text className="text-base font-bold text-foreground dark:text-dark-foreground">
-              {formatDate(s.createdAt)}
-            </Text>
-          </View>
-          <View>
-            <Text className="text-xs text-mutedForeground dark:text-dark-mutedForeground">
-              Materiales
-            </Text>
-            <Text className="text-base font-bold text-foreground dark:text-dark-foreground">
-              {s.items.length}
-            </Text>
-          </View>
-          <View>
-            <Text className="text-xs text-mutedForeground dark:text-dark-mutedForeground">
-              En etapa
-            </Text>
-            <Text
-              className={`text-base font-bold ${s.diasEnEstatus >= 2 ? "text-red-500 dark:text-red-400" : "text-foreground dark:text-dark-foreground"}`}
-            >
-              {s.diasEnEstatus.toFixed(1)} d
-            </Text>
-          </View>
-        </View>
+        </Pressable>
       </View>
 
-      <View className="mt-4 mb-2 flex-row items-center justify-between">
-        <Text className="text-lg font-extrabold text-foreground dark:text-dark-foreground">
-          Lista de materiales
-        </Text>
+      <View className="flex-1 px-4">
+        <CustomFlatList
+          data={modalData}
+          keyExtractor={renderModalItemKey}
+          renderItem={renderModalItem}
+          refreshing={false}
+          canRefresh={false}
+          handleRefresh={() => {}}
+          showtitle={false}
+          showScrollTopButton={false}
+          estimatedItemSize={132}
+          contentContainerStyle={{ paddingTop: 2, paddingBottom: 18 }}
+          paddingHorizontal={0}
+        />
       </View>
-
-      {s.items.length === 0 ? (
-        <View className="rounded-3xl border border-dashed border-zinc-300 dark:border-zinc-700 p-5 items-center bg-componentbg dark:bg-dark-componentbg">
-          <Ionicons name="cube-outline" size={32} color="#9CA3AF" />
-          <Text className="mt-2 text-sm text-mutedForeground dark:text-dark-mutedForeground">
-            Esta solicitud no trae detalle de materiales.
-          </Text>
-        </View>
-      ) : (
-        s.items.map((it, index) => {
-          const unique = `${it.codigomaterial || "SIN"}-${it.codart ?? index}-${index}`;
-          return (
-            <View
-              key={unique}
-              className="mb-3 rounded-3xl border border-zinc-200/70 dark:border-zinc-800 bg-componentbg dark:bg-dark-componentbg p-4"
-            >
-              <View className="flex-row items-start justify-between gap-2">
-                <View className="flex-1 pr-2">
-                  <Text className="text-sm font-bold text-foreground dark:text-dark-foreground">
-                    {it.codigomaterial || "Sin codigomaterial"}
-                  </Text>
-                  <Text
-                    className="text-base font-semibold text-foreground dark:text-dark-foreground mt-0.5"
-                    numberOfLines={2}
-                  >
-                    {it.description ||
-                      it.material ||
-                      "Material sin descripcion"}
-                  </Text>
-                </View>
-
-                <View className="rounded-full bg-primary/10 dark:bg-dark-primary/20 px-3 py-1">
-                  <Text className="text-xs font-bold text-primary dark:text-dark-primary">
-                    x{it.quantity} {it.coduni || it.unidad || "UND"}
-                  </Text>
-                </View>
-              </View>
-
-              <Text className="text-xs text-mutedForeground dark:text-dark-mutedForeground mt-2">
-                {it.linea || "Sin linea"} • {it.sublinea || "Sin sublinea"} •{" "}
-                {it.categoria || "Sin categoria"}
-              </Text>
-            </View>
-          );
-        })
-      )}
-
-      <View className="mt-4">
-        {s.status === 0 && (
-          <Pressable
-            className="bg-primary px-4 py-3 rounded-2xl"
-            onPress={markApproved}
-            accessibilityRole="button"
-          >
-            <Text className="text-white text-center font-semibold">
-              Aprobar solicitud
-            </Text>
-          </Pressable>
-        )}
-      </View>
-      <SelectedItemsFab />
-    </ScrollView>
+    </View>
   );
 }

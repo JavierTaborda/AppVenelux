@@ -1,17 +1,12 @@
 import ScreenSearchLayout from "@/components/screens/ScreenSearchLayout";
-import BottomModal from "@/components/ui/BottomModal";
 import CustomFlatList from "@/components/ui/CustomFlatList";
-import CustomImagen from "@/components/ui/CustomImagen";
 import { Ionicons } from "@expo/vector-icons";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import StatusBadge from "../components/StatusBadge";
 import { useRequest } from "../hooks/useRequest";
-import type {
-  Request,
-  RequestMaterialItem,
-  RequestStatus,
-} from "../types/request";
+import type { Request, RequestStatus } from "../types/request";
 import { STATUSES, STATUS_LABELS } from "../utils/statuses";
 
 const REQUEST_SKELETON_ITEMS = Array.from(
@@ -22,21 +17,6 @@ const REQUEST_SKELETON_ITEMS = Array.from(
 type RequestListItem =
   | { type: "skeleton"; id: string }
   | { type: "request"; request: Request };
-
-type RequestModalItem =
-  | { type: "summary"; request: Request }
-  | { type: "empty"; id: string }
-  | { type: "material"; material: RequestMaterialItem; index: number };
-
-const STATUS_DATE_ITEMS: { status: RequestStatus; label: string }[] = [
-  { status: 0, label: "Solicitud" },
-  { status: 1, label: "Autorizada solicitud" },
-  { status: 2, label: "Autorizado despacho" },
-  { status: 3, label: "En despacho" },
-  { status: 4, label: "Autorizado comprar" },
-  { status: 5, label: "En compra" },
-  { status: 6, label: "Anulado" },
-];
 
 function MetricPill({
   label,
@@ -103,24 +83,31 @@ function RequestEmptyState() {
   );
 }
 
-function MaterialEmptyState() {
-  return (
-    <View className="rounded-3xl border border-dashed border-zinc-300 dark:border-zinc-700 p-5 items-center bg-componentbg dark:bg-dark-componentbg">
-      <Ionicons name="cube-outline" size={32} color="#9CA3AF" />
-      <Text className="mt-2 text-sm text-mutedForeground dark:text-dark-mutedForeground text-center">
-        Esta solicitud no trae detalle de materiales.
-      </Text>
-    </View>
-  );
-}
-
 export default function RequestsListScreen() {
+  const params = useLocalSearchParams<{
+    scrollY?: string;
+    filter?: string;
+    q?: string;
+  }>();
+  const router = useRouter();
   const { requests, loading, fetchRequests } = useRequest();
-  const [filter, setFilter] = useState<RequestStatus | null>(null);
-  const [searchText, setSearchText] = useState("");
-  const [selectedRequest, setSelectedRequest] = useState<Request | null>(null);
-  const [showStatusTracking, setShowStatusTracking] = useState(false);
-  const [showMoreInfo, setShowMoreInfo] = useState(false);
+
+  const [filter, setFilter] = useState<RequestStatus | null>(() => {
+    const parsed = Number(params.filter);
+    return Number.isInteger(parsed) &&
+      STATUSES.includes(parsed as RequestStatus)
+      ? (parsed as RequestStatus)
+      : null;
+  });
+  const [searchText, setSearchText] = useState(() => params.q ?? "");
+  const [currentScrollY, setCurrentScrollY] = useState(() => {
+    const parsed = Number(params.scrollY);
+    return Number.isFinite(parsed) ? parsed : 0;
+  });
+  const restoredScrollOffset = useMemo(() => {
+    const parsed = Number(params.scrollY);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }, [params.scrollY]);
   const showInitialSkeleton = loading && requests.length === 0;
 
   const filtered = useMemo(() => {
@@ -159,23 +146,6 @@ export default function RequestsListScreen() {
     return filtered.map((request) => ({ type: "request", request }));
   }, [filtered, showInitialSkeleton]);
 
-  const modalData = useMemo<RequestModalItem[]>(() => {
-    if (!selectedRequest) return [];
-
-    const materialItems = selectedRequest.items.map((material, index) => ({
-      type: "material" as const,
-      material,
-      index,
-    }));
-
-    return [
-      { type: "summary", request: selectedRequest },
-      ...(materialItems.length > 0
-        ? materialItems
-        : [{ type: "empty" as const, id: "empty-materials" }]),
-    ];
-  }, [selectedRequest]);
-
   const statusCount = useMemo(
     () =>
       STATUSES.reduce(
@@ -194,28 +164,6 @@ export default function RequestsListScreen() {
     return parsed.toLocaleDateString();
   };
 
-  const formatOptionalDate = (isoDate?: string | null) => {
-    if (!isoDate) return "No realizado";
-    return formatDate(isoDate);
-  };
-
-  const formatStatusFlag = (value?: number | null) =>
-    value === 1 ? "Sí" : value === 0 ? "No" : "No indicado";
-
-  const renderMaterialKey = (item: Request["items"][number], index: number) => {
-    const code = item.codigomaterial?.trim() || "SIN";
-    const codart = item.codart != null ? String(item.codart) : "sin-codart";
-    return `${code}-${codart}-${index}`;
-  };
-
-  const formatMoney = (value?: number | null) => {
-    if (value == null || Number.isNaN(value)) return null;
-    return value.toLocaleString("es-VE", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
-  };
-
   const renderRequestItem = ({ item }: { item: RequestListItem }) => {
     if (item.type === "skeleton") return <RequestSkeletonCard />;
 
@@ -223,7 +171,17 @@ export default function RequestsListScreen() {
 
     return (
       <Pressable
-        onPress={() => setSelectedRequest(request)}
+        onPress={() =>
+          router.push({
+            pathname: "/(main)/(tabs)/(request)/[id]",
+            params: {
+              id: String(request.id),
+              scrollY: String(currentScrollY),
+              filter: filter == null ? "" : String(filter),
+              q: searchText,
+            },
+          })
+        }
         className="mb-3 rounded-2xl border border-zinc-200/70 dark:border-zinc-800 bg-componentbg dark:bg-dark-componentbg p-3.5"
       >
         <View className="flex-row items-start justify-between gap-2.5">
@@ -273,452 +231,6 @@ export default function RequestsListScreen() {
         </View>
       </Pressable>
     );
-  };
-
-  const renderMaterialCard = (material: RequestMaterialItem) => {
-    const price = formatMoney(material.precio);
-    const requestedQuantity = Math.max(
-      1,
-      material.quantity || material.cantidadsolicitada || 1,
-    );
-    const approvedQuantity = Math.max(0, material.cantidadautorizada || 0);
-    const purchasedQuantity = Math.max(0, material.cantidadcompra || 0);
-    const dispatchedQuantity = Math.max(0, material.cantidaddespacho || 0);
-    const availableQuantity = Math.max(0, material.cantidaddisponible || 0);
-    const percent = (value: number) =>
-      Math.min(100, Math.round((value / requestedQuantity) * 100));
-    const approvedPercent = percent(approvedQuantity);
-    const purchasedPercent = percent(purchasedQuantity);
-    const lineInfo = [material.linea, material.sublinea, material.categoria]
-      .filter(Boolean)
-      .join(" / ");
-
-    return (
-      <View className="mb-3 overflow-hidden rounded-[26px] border border-zinc-100/90 dark:border-zinc-800/80 bg-componentbg dark:bg-dark-componentbg p-4 shadow-sm shadow-black/5">
-        <View className="flex-row gap-4">
-          <View className="relative h-28 w-28 rounded-[22px] overflow-hidden bg-neutral-50 dark:bg-dark-background border border-zinc-200/50 dark:border-zinc-800/60 shrink-0">
-            <CustomImagen img={material.imagen1 ?? ""} content="cover" />
-
-            <View className="absolute left-1.5 top-1.5 rounded-full bg-primary dark:bg-dark-primary px-2.5 py-1 shadow-sm">
-              <Text className="text-[10px] font-black tracking-[0.8px] text-white dark:text-zinc-950 uppercase">
-                x{requestedQuantity}
-              </Text>
-            </View>
-          </View>
-          <View className="flex-1 justify-between py-0.5 min-h-28">
-            <View className="gap-2">
-              <View className="flex-row items-start justify-between gap-2">
-                <View className="flex-1 pr-1">
-                  <Text className="text-[11px] font-semibold tracking-[1.2px] text-primary dark:text-dark-primary uppercase">
-                    {material.codigomaterial || "SIN CÓDIGO"}
-                  </Text>
-                  <Text
-                    className="mt-1 text-[15px] font-extrabold leading-5 text-foreground dark:text-dark-foreground"
-                    numberOfLines={2}
-                  >
-                    {material.description ||
-                      material.material ||
-                      "Material sin descripción"}
-                  </Text>
-                </View>
-
-                <View className="items-end gap-1 shrink-0">
-                  {material.coduni || material.unidad ? (
-                    <View className="rounded-full border border-zinc-200/60 dark:border-zinc-800 bg-background dark:bg-dark-background px-2.5 py-1">
-                      <Text className="text-[10px] font-bold text-mutedForeground dark:text-dark-mutedForeground uppercase">
-                        {material.coduni || material.unidad}
-                      </Text>
-                    </View>
-                  ) : null}
-
-                  {price && (
-                    <View className="items-end">
-                      <Text className="text-[10px] font-semibold text-mutedForeground dark:text-dark-mutedForeground uppercase">
-                        Total
-                      </Text>
-                      <Text className="text-sm font-black tracking-tight text-foreground dark:text-dark-foreground">
-                        {price}
-                      </Text>
-                    </View>
-                  )}
-                </View>
-              </View>
-
-              <Text
-                className="text-[11px] font-medium text-mutedForeground dark:text-dark-mutedForeground/80"
-                numberOfLines={1}
-              >
-                {lineInfo || "Sin categoría"}
-              </Text>
-
-              <View className="flex-row flex-wrap gap-2 pt-1">
-                <View className="rounded-full bg-primary/10 dark:bg-dark-primary/20 px-2.5 py-1">
-                  <Text className="text-[10px] font-bold text-primary dark:text-dark-primary uppercase">
-                    {material.autorizado ? "Aprobado" : "Pendiente"}
-                  </Text>
-                </View>
-                <View className="rounded-full bg-emerald-500/10 dark:bg-emerald-500/20 px-2.5 py-1">
-                  <Text className="text-[10px] font-bold text-emerald-600 dark:text-emerald-300 uppercase">
-                    {material.comprar ? "En compra" : "Sin compra"}
-                  </Text>
-                </View>
-                <View className="rounded-full bg-background dark:bg-dark-background border border-zinc-200 dark:border-zinc-800 px-2.5 py-1">
-                  <Text className="text-[10px] font-bold text-mutedForeground dark:text-dark-mutedForeground uppercase">
-                    Solicitado {requestedQuantity}
-                  </Text>
-                </View>
-              </View>
-            </View>
-
-            <View className="mt-4 rounded-[22px] border border-zinc-100 dark:border-zinc-800 bg-background dark:bg-dark-background px-3 py-3">
-              <View className="flex-row items-center justify-between gap-2">
-                <Text className="text-xs font-semibold text-mutedForeground dark:text-dark-mutedForeground uppercase">
-                  Progreso
-                </Text>
-                <Text className="text-[11px] font-bold text-foreground dark:text-dark-foreground">
-                  {approvedQuantity}/{requestedQuantity} aprobado
-                </Text>
-              </View>
-
-              <View className="mt-2.5 gap-2.5">
-                <View>
-                  <View className="flex-row items-center justify-between">
-                    <Text className="text-[11px] font-semibold text-mutedForeground dark:text-dark-mutedForeground uppercase">
-                      Aprobado
-                    </Text>
-                    <Text className="text-[11px] font-bold text-foreground dark:text-dark-foreground">
-                      {approvedQuantity}/{requestedQuantity}
-                    </Text>
-                  </View>
-                  <View className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800">
-                    <View
-                      className="h-full rounded-full bg-primary dark:bg-dark-primary"
-                      style={{ width: `${approvedPercent}%` }}
-                    />
-                  </View>
-                </View>
-
-                <View>
-                  <View className="flex-row items-center justify-between">
-                    <Text className="text-[11px] font-semibold text-mutedForeground dark:text-dark-mutedForeground uppercase">
-                      Comprado
-                    </Text>
-                    <Text className="text-[11px] font-bold text-foreground dark:text-dark-foreground">
-                      {purchasedQuantity}/{requestedQuantity}
-                    </Text>
-                  </View>
-                  <View className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800">
-                    <View
-                      className="h-full rounded-full bg-emerald-500"
-                      style={{ width: `${purchasedPercent}%` }}
-                    />
-                  </View>
-                </View>
-              </View>
-
-              <View className="mt-3 flex-row gap-2">
-                <View className="flex-1 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-componentbg dark:bg-dark-componentbg px-2.5 py-2">
-                  <Text className="text-[10px] font-semibold text-mutedForeground dark:text-dark-mutedForeground uppercase">
-                    Despachado
-                  </Text>
-                  <Text className="mt-0.5 text-sm font-black text-foreground dark:text-dark-foreground">
-                    {dispatchedQuantity}
-                  </Text>
-                </View>
-                <View className="flex-1 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-componentbg dark:bg-dark-componentbg px-2.5 py-2">
-                  <Text className="text-[10px] font-semibold text-mutedForeground dark:text-dark-mutedForeground uppercase">
-                    Disponible
-                  </Text>
-                  <Text className="mt-0.5 text-sm font-black text-foreground dark:text-dark-foreground">
-                    {availableQuantity}
-                  </Text>
-                </View>
-              </View>
-
-              {(material.autorizadopor ||
-                material.fechaautorizado ||
-                material.observacion) && (
-                <View className="mt-3 rounded-2xl border border-zinc-100 dark:border-zinc-800 bg-componentbg dark:bg-dark-componentbg px-3 py-2.5">
-                  {material.autorizadopor ? (
-                    <Text className="text-xs text-mutedForeground dark:text-dark-mutedForeground">
-                      Autorizado por:{" "}
-                      <Text className="font-bold text-foreground dark:text-dark-foreground">
-                        {material.autorizadopor}
-                      </Text>
-                    </Text>
-                  ) : null}
-                  {material.fechaautorizado ? (
-                    <Text className="mt-0.5 text-xs text-mutedForeground dark:text-dark-mutedForeground">
-                      Fecha de autorización:{" "}
-                      <Text className="font-bold text-foreground dark:text-dark-foreground">
-                        {formatDate(String(material.fechaautorizado))}
-                      </Text>
-                    </Text>
-                  ) : null}
-                  {material.observacion ? (
-                    <Text className="mt-0.5 text-xs text-mutedForeground dark:text-dark-mutedForeground">
-                      Observación:{" "}
-                      <Text className="font-bold text-foreground dark:text-dark-foreground">
-                        {material.observacion}
-                      </Text>
-                    </Text>
-                  ) : null}
-                </View>
-              )}
-            </View>
-          </View>
-        </View>
-      </View>
-    );
-  };
-  const renderSummaryValue = (label: string, value?: string | null) => (
-    <View className="w-[48.5%] rounded-2xl bg-background dark:bg-dark-background px-3 py-2.5">
-      <Text className="text-[11px] font-semibold text-mutedForeground dark:text-dark-mutedForeground">
-        {label}
-      </Text>
-      <Text
-        className="text-sm font-extrabold text-foreground dark:text-dark-foreground mt-0.5"
-        numberOfLines={2}
-      >
-        {value || "No indicado"}
-      </Text>
-    </View>
-  );
-
-  const renderRequestHeaderSummary = (request: Request) => (
-    <View className="mb-2 rounded-2xl border border-zinc-200/70 dark:border-zinc-800 bg-componentbg dark:bg-dark-componentbg px-3 py-3">
-      <View className="flex-row items-start justify-between gap-3">
-        <View className="flex-1">
-          <Text className="mt-1 text-lg font-extrabold text-foreground dark:text-dark-foreground leading-6">
-            {request.title}
-          </Text>
-          <Text className="mt-1 text-sm text-mutedForeground dark:text-dark-mutedForeground">
-            {request.materiales.length} materiales
-          </Text>
-        </View>
-        <StatusBadge status={request.status} label={request.estatusLabel} />
-      </View>
-      {request.anulado === 1 && (
-        <View className="mt-3 rounded-2xl border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/30 px-3 py-2.5">
-          <Text className="text-xs font-bold text-red-700 dark:text-red-300 uppercase">
-            Solicitud anulada
-          </Text>
-          <Text className="mt-1 text-sm font-semibold text-red-700 dark:text-red-200">
-            {request.motivoanulado || "No se indicó motivo"}
-          </Text>
-          <Text className="mt-1 text-xs text-red-600 dark:text-red-300">
-            {formatOptionalDate(request.fechaanulado)}
-          </Text>
-        </View>
-      )}
-      <View className="mt-3 flex-row flex-wrap justify-between gap-y-2.5">
-        {/* {renderSummaryValue("Empresa", request.empresa)} */}
-        {renderSummaryValue("Solicitante", request.solicitanteuser)}
-
-        {renderSummaryValue(
-          "Utilización",
-          formatOptionalDate(request.fechautilizacion),
-        )}
-        {/* {renderSummaryValue("Registrado por", request.registradopor)} */}
-      </View>
-      {!!request.actividad && (
-        <View className="mt-2.5 rounded-2xl bg-background dark:bg-dark-background px-3 py-2.5">
-          <Text className="text-xs text-mutedForeground dark:text-dark-mutedForeground">
-            Partida
-          </Text>
-          <Text className="text-sm font-bold text-foreground dark:text-dark-foreground mt-1">
-            {request.actividad}
-          </Text>
-        </View>
-      )}
-      {!!request.direccionentrega && (
-        <View className="mt-2.5 rounded-2xl bg-background dark:bg-dark-background px-3 py-2.5">
-          <Text className="text-xs text-mutedForeground dark:text-dark-mutedForeground">
-            Dirección de entrega
-          </Text>
-          <Text className="text-sm font-bold text-foreground dark:text-dark-foreground mt-1">
-            {request.direccionentrega}
-          </Text>
-        </View>
-      )}
-
-      <View className="mt-4 flex-row items-center justify-between gap-2">
-        <Text className="text-base font-extrabold text-foreground dark:text-dark-foreground">
-          Más información
-        </Text>
-        <Pressable
-          onPress={() => setShowMoreInfo((prev) => !prev)}
-          className="flex-row items-center gap-1.5 rounded-full bg-primary/10 dark:bg-dark-primary/20 px-3 py-1.5"
-          accessibilityRole="button"
-          accessibilityLabel={
-            showMoreInfo ? "Ocultar más información" : "Mostrar más información"
-          }
-        >
-          <Ionicons
-            name={showMoreInfo ? "chevron-up-outline" : "chevron-down-outline"}
-            size={14}
-            color="#0EA5E9"
-          />
-          <Text className="text-xs font-extrabold text-primary dark:text-dark-primary">
-            {showMoreInfo ? "Ocultar" : "Mostrar"}
-          </Text>
-        </Pressable>
-      </View>
-
-      {showMoreInfo && (
-        <View className="mt-2.5 gap-2.5">
-          <View className="rounded-2xl bg-background dark:bg-dark-background px-3 py-2.5">
-            <Text className="text-xs text-mutedForeground dark:text-dark-mutedForeground">
-              Observación
-            </Text>
-            <Text className="text-sm font-bold text-foreground dark:text-dark-foreground mt-1">
-              {request.observacion}
-            </Text>
-          </View>
-
-          <View className="flex-row flex-wrap justify-between gap-y-2.5">
-            {renderSummaryValue(
-              "Fecha solicitud",
-              formatOptionalDate(request.fechasolicitud),
-            )}
-            {renderSummaryValue(
-              "Fecha autorización",
-              formatOptionalDate(request.fechaautorizado),
-            )}
-            {renderSummaryValue(
-              "Fecha anulado",
-              formatOptionalDate(request.fechaanulado),
-            )}
-            {renderSummaryValue(
-              "Fecha despacho",
-              formatOptionalDate(request.fechadespachar),
-            )}
-            {renderSummaryValue(
-              "Fecha pedido",
-              formatOptionalDate(request.fec_emis_ped),
-            )}
-            {renderSummaryValue(
-              "Fecha compra",
-              formatOptionalDate(request.fechacomprar),
-            )}
-            {renderSummaryValue(
-              "Fecha emisión pedido",
-              formatOptionalDate(request.fec_emis_ped),
-            )}
-            {renderSummaryValue(
-              "Fecha emisión compra",
-              formatOptionalDate(request.fec_emis_comp),
-            )}
-          </View>
-
-          <View className="rounded-2xl bg-background dark:bg-dark-background px-3 py-2.5">
-            <Text className="text-sm text-mutedForeground dark:text-dark-mutedForeground">
-              Comentarios de flujo
-            </Text>
-            <View className="mt-2 gap-2">
-              <View>
-                <Text className="text-[11px] font-semibold text-mutedForeground dark:text-dark-mutedForeground uppercase">
-                  Despachar
-                </Text>
-                <Text className="text-sm font-bold text-foreground dark:text-dark-foreground mt-0.5">
-                  {request.comentadespachar || "-"}
-                </Text>
-              </View>
-              <View>
-                <Text className="text-[11px] font-semibold text-mutedForeground dark:text-dark-mutedForeground uppercase">
-                  Comprar
-                </Text>
-                <Text className="text-sm font-bold text-foreground dark:text-dark-foreground mt-0.5">
-                  {request.comentacomprar || "-"}
-                </Text>
-              </View>
-            </View>
-          </View>
-        </View>
-      )}
-
-      <View className="mt-4 mb-2.5 flex-row items-center justify-between">
-        <Text className="text-base font-extrabold text-foreground dark:text-dark-foreground">
-          Seguimiento de estatus
-        </Text>
-        <Pressable
-          onPress={() => setShowStatusTracking((prev) => !prev)}
-          className="flex-row items-center gap-1.5 rounded-full bg-primary/10 dark:bg-dark-primary/20 px-3 py-1.5"
-          accessibilityRole="button"
-          accessibilityLabel={
-            showStatusTracking
-              ? "Ocultar seguimiento de estatus"
-              : "Mostrar seguimiento de estatus"
-          }
-        >
-          <Ionicons
-            name={showStatusTracking ? "eye-off-outline" : "eye-outline"}
-            size={14}
-            color="#0EA5E9"
-          />
-          <Text className="text-xs font-extrabold text-primary dark:text-dark-primary">
-            {showStatusTracking ? "Ocultar" : "Mostrar"}
-          </Text>
-        </Pressable>
-      </View>
-      {showStatusTracking && (
-        <View className="gap-1.5">
-          {STATUS_DATE_ITEMS.map((item) => {
-            const date = request.statusDates[item.status];
-            const isCurrent = request.status === item.status;
-            const isDone = Boolean(date);
-
-            return (
-              <View
-                key={item.status}
-                className={`flex-row items-center justify-between rounded-2xl border px-3 py-2.5 ${isCurrent ? "border-primary bg-primary/10 dark:border-dark-primary dark:bg-dark-primary/15" : "border-zinc-200 dark:border-zinc-800 bg-background dark:bg-dark-background"}`}
-              >
-                <View className="flex-1 pr-3 flex-row items-center gap-2.5">
-                  <View
-                    className={`h-2.5 w-2.5 rounded-full ${isCurrent ? "bg-primary dark:bg-dark-primary" : isDone ? "bg-green-500" : "bg-zinc-300 dark:bg-zinc-700"}`}
-                  />
-                  <View className="flex-1">
-                    <Text className="text-sm font-bold text-foreground dark:text-dark-foreground">
-                      {item.label}
-                    </Text>
-                    <Text className="text-xs text-mutedForeground dark:text-dark-mutedForeground mt-0.5">
-                      {isCurrent
-                        ? "Estatus actual"
-                        : isDone
-                          ? "Completado"
-                          : "Pendiente"}
-                    </Text>
-                  </View>
-                </View>
-                <Text
-                  className={`text-xs font-bold ${isDone ? "text-foreground dark:text-dark-foreground" : "text-mutedForeground dark:text-dark-mutedForeground"}`}
-                >
-                  {formatOptionalDate(date)}
-                </Text>
-              </View>
-            );
-          })}
-        </View>
-      )}
-    </View>
-  );
-
-  const renderModalItem = ({ item }: { item: RequestModalItem }) => {
-    if (item.type === "summary") {
-      return renderRequestHeaderSummary(item.request);
-    }
-
-    if (item.type === "empty") {
-      return <MaterialEmptyState />;
-    }
-
-    return renderMaterialCard(item.material);
-  };
-
-  const renderModalItemKey = (item: RequestModalItem) => {
-    if (item.type === "summary") return `summary-${item.request.id}`;
-    if (item.type === "empty") return item.id;
-    return renderMaterialKey(item.material, item.index);
   };
 
   return (
@@ -812,59 +324,10 @@ export default function RequestsListScreen() {
           estimatedItemSize={170}
           contentContainerStyle={{ paddingBottom: 120, paddingTop: 2 }}
           paddingHorizontal={16}
+          onScrollOffsetChange={setCurrentScrollY}
+          restoreScrollOffset={restoredScrollOffset}
         />
       </View>
-
-      <BottomModal
-        visible={!!selectedRequest}
-        onClose={() => setSelectedRequest(null)}
-        heightPercentage={0.82}
-      >
-        {selectedRequest && (
-          <View className="flex-1">
-            <View className="flex-row items-start justify-between gap-3 pb-1">
-              <View className="flex-1">
-                <Text className="text-xs font-bold tracking-[1px] text-primary dark:text-dark-primary uppercase">
-                  {selectedRequest.solicitudnumero
-                    ? `Solicitud ${selectedRequest.solicitudnumero}`
-                    : `Solicitud ${selectedRequest.id}`}
-                </Text>
-                <Text className="mt-1 text-sm text-mutedForeground dark:text-dark-mutedForeground">
-                  {selectedRequest.empresa ||
-                    selectedRequest.codigoobra ||
-                    selectedRequest.descripcionobra ||
-                    "Solicitud seleccionada"}
-                </Text>
-              </View>
-            </View>
-
-            <View className=" flex-row items-center justify-between">
-              <Text className="text-xl font-extrabold text-foreground dark:text-dark-foreground">
-                Resumen de la solicitud
-              </Text>
-              <View className="rounded-full bg-primary/10 dark:bg-dark-primary/20 px-2 py-1.5">
-                <Text className="text-md font-semibold text-primary dark:text-dark-primary">
-                  {selectedRequest.materiales.length} items
-                </Text>
-              </View>
-            </View>
-
-            <CustomFlatList
-              data={modalData}
-              keyExtractor={renderModalItemKey}
-              renderItem={renderModalItem}
-              refreshing={false}
-              canRefresh={false}
-              handleRefresh={() => {}}
-              showtitle={false}
-              showScrollTopButton={false}
-              estimatedItemSize={132}
-              contentContainerStyle={{ paddingTop: 14, paddingBottom: 18 }}
-              paddingHorizontal={0}
-            />
-          </View>
-        )}
-      </BottomModal>
     </ScreenSearchLayout>
   );
 }

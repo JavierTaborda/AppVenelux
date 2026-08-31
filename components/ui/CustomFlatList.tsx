@@ -1,19 +1,19 @@
 import {
-  FlashList,
-  FlashListProps,
-  FlashListRef,
-  ViewToken,
+    FlashList,
+    FlashListProps,
+    FlashListRef,
+    ViewToken,
 } from "@shopify/flash-list";
 import React, { useEffect, useMemo, useRef } from "react";
 
 import {
-  Platform,
-  Pressable,
-  RefreshControl,
-  StyleSheet,
-  Text,
-  ToastAndroid,
-  View,
+    Platform,
+    Pressable,
+    RefreshControl,
+    StyleSheet,
+    Text,
+    ToastAndroid,
+    View,
 } from "react-native";
 
 import { useScrollHeader } from "@/hooks/useScrollHeader";
@@ -44,6 +44,8 @@ type Props<T> = {
   showScrollTopButton?: boolean;
 
   onViewableItemsChanged?: (info: { viewableItems: ViewToken<T>[] }) => void;
+  onScrollOffsetChange?: (offsetY: number) => void;
+  restoreScrollOffset?: number | null;
 
   contentContainerStyle?: any;
 
@@ -80,6 +82,8 @@ function CustomFlashList<T>({
   showScrollTopButton = true,
 
   onViewableItemsChanged,
+  onScrollOffsetChange,
+  restoreScrollOffset,
 
   contentContainerStyle,
 
@@ -89,6 +93,7 @@ function CustomFlashList<T>({
   paddingHorizontal,
 }: Props<T>) {
   const listRef = useRef<FlashListRef<T>>(null);
+  const appliedRestoreOffset = useRef<number | null>(null);
 
   const { handleScroll, showScrollTop, headerVisible } = useScrollHeader();
 
@@ -115,6 +120,21 @@ function CustomFlashList<T>({
       showToast(`Espera ${cooldown}s antes de refrescar`);
     }
   };
+
+  useEffect(() => {
+    if (restoreScrollOffset == null) return;
+    if (appliedRestoreOffset.current === restoreScrollOffset) return;
+
+    const frame = requestAnimationFrame(() => {
+      listRef.current?.scrollToOffset({
+        offset: restoreScrollOffset,
+        animated: false,
+      });
+      appliedRestoreOffset.current = restoreScrollOffset;
+    });
+
+    return () => cancelAnimationFrame(frame);
+  }, [restoreScrollOffset, data]);
 
   //  refresh control memoizado
   const refreshControl = useMemo(
@@ -195,7 +215,10 @@ function CustomFlashList<T>({
         drawDistance={drawDistance}
         numColumns={numColumns}
         removeClippedSubviews={removeClippedSubviews}
-        onScroll={handleScroll}
+        onScroll={(event) => {
+          handleScroll(event);
+          onScrollOffsetChange?.(event.nativeEvent.contentOffset.y);
+        }}
         scrollEventThrottle={16}
         onEndReached={onEndReached}
         onEndReachedThreshold={onEndReachedThreshold}
