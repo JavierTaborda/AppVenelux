@@ -145,12 +145,12 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
   };
 
   const renderSummaryValue = (label: string, value?: string | null) => (
-    <View className="w-[48.5%] rounded-2xl bg-background dark:bg-dark-background px-3 py-2.5">
-      <Text className="text-[11px] font-semibold text-mutedForeground dark:text-dark-mutedForeground">
+    <View className="w-[48.5%] rounded-[20px] border border-zinc-200/70 dark:border-zinc-800 bg-background dark:bg-dark-background px-3 py-2.5">
+      <Text className="text-[10px] font-semibold tracking-[0.8px] text-mutedForeground dark:text-dark-mutedForeground uppercase">
         {label}
       </Text>
       <Text
-        className="text-sm font-extrabold text-foreground dark:text-dark-foreground mt-0.5"
+        className="mt-1 text-sm font-extrabold leading-5 text-foreground dark:text-dark-foreground"
         numberOfLines={2}
       >
         {value || "No indicado"}
@@ -182,6 +182,8 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
     const purchasedQuantity = Math.max(0, material.cantidadcompra || 0);
     const dispatchedQuantity = Math.max(0, material.cantidaddespacho || 0);
     const availableQuantity = Math.max(0, material.cantidaddisponible || 0);
+    const materialTitle =
+      material.description || material.material || "Material sin descripción";
     const percent = (value: number) =>
       Math.min(100, Math.round((value / requestedQuantity) * 100));
     const approvedPercent = percent(approvedQuantity);
@@ -191,64 +193,57 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
       .join(" / ");
 
     return (
-      <View className="mb-3 overflow-hidden rounded-[26px] border border-zinc-100/90 dark:border-zinc-800/80 bg-componentbg dark:bg-dark-componentbg p-4 shadow-sm shadow-black/5">
-        <View className="flex-row gap-4">
-          <View className="relative h-28 w-28 rounded-[22px] overflow-hidden bg-neutral-50 dark:bg-dark-background border border-zinc-200/50 dark:border-zinc-800/60 shrink-0">
-            <CustomImagen img={material.imagen1 ?? ""} content="cover" />
-
-            <View className="absolute left-1.5 top-1.5 rounded-full bg-primary dark:bg-dark-primary px-2.5 py-1 shadow-sm">
-              <Text className="text-[10px] font-black tracking-[0.8px] text-white dark:text-zinc-950 uppercase">
-                x{requestedQuantity}
-              </Text>
+      <View className="mb-3 overflow-hidden rounded-[28px] border border-zinc-200/70 dark:border-zinc-800 bg-componentbg dark:bg-dark-componentbg shadow-sm shadow-black/5">
+        <View className="h-1.5 bg-primary dark:bg-dark-primary" />
+        <View className="p-4">
+          <View className="flex-row gap-3">
+            <View className="relative h-24 w-24 overflow-hidden rounded-[22px] border border-zinc-200/60 dark:border-zinc-800/60 bg-neutral-50 dark:bg-dark-background shrink-0">
+              <CustomImagen img={material.imagen1 ?? ""} content="cover" />
+              <View className="absolute left-1.5 top-1.5 rounded-full bg-primary dark:bg-dark-primary px-2.5 py-1">
+                <Text className="text-[10px] font-black tracking-[0.8px] text-white dark:text-zinc-950 uppercase">
+                  x{requestedQuantity}
+                </Text>
+              </View>
             </View>
-          </View>
-          <View className="flex-1 justify-between py-0.5 min-h-28">
-            <View className="gap-2">
-              <View className="flex-row items-start justify-between gap-2">
-                <View className="flex-1 pr-1">
-                  <Text className="text-[11px] font-semibold tracking-[1.2px] text-primary dark:text-dark-primary uppercase">
-                    {material.codigomaterial || "SIN CÓDIGO"}
-                  </Text>
-                  <Text
-                    className="mt-1 text-[15px] font-extrabold leading-5 text-foreground dark:text-dark-foreground"
-                    numberOfLines={2}
-                  >
-                    {material.description ||
-                      material.material ||
-                      "Material sin descripción"}
-                  </Text>
+
+            <View className="flex-1 min-h-24 justify-between py-0.5">
+              <View>
+                <View className="flex-row items-start justify-between gap-2">
+                  <View className="flex-1 pr-1">
+                    <Text className="text-[10px] font-semibold tracking-[1.2px] text-primary dark:text-dark-primary uppercase">
+                      {material.codigomaterial || "SIN CÓDIGO"}
+                    </Text>
+                    <Text
+                      className="mt-1 text-[15px] font-extrabold leading-5 text-foreground dark:text-dark-foreground"
+                      numberOfLines={2}
+                    >
+                      {materialTitle}
+                    </Text>
+                  </View>
+
+                  <View className="items-end gap-1 shrink-0">
+                    {price ? (
+                      <View className="items-end">
+                        <Text className="text-[10px] font-semibold text-mutedForeground dark:text-dark-mutedForeground uppercase">
+                          Total
+                        </Text>
+                        <Text className="text-sm font-black tracking-tight text-foreground dark:text-dark-foreground">
+                          {price}
+                        </Text>
+                      </View>
+                    ) : null}
+                  </View>
                 </View>
 
-                <View className="items-end gap-1 shrink-0">
-                  {material.coduni || material.unidad ? (
-                    <View className="rounded-full border border-zinc-200/60 dark:border-zinc-800 bg-background dark:bg-dark-background px-2.5 py-1">
-                      <Text className="text-[10px] font-bold text-mutedForeground dark:text-dark-mutedForeground uppercase">
-                        {material.coduni || material.unidad}
-                      </Text>
-                    </View>
-                  ) : null}
-
-                  {price && (
-                    <View className="items-end">
-                      <Text className="text-[10px] font-semibold text-mutedForeground dark:text-dark-mutedForeground uppercase">
-                        Total
-                      </Text>
-                      <Text className="text-sm font-black tracking-tight text-foreground dark:text-dark-foreground">
-                        {price}
-                      </Text>
-                    </View>
-                  )}
-                </View>
+                <Text
+                  className="mt-1 text-[11px] font-medium text-mutedForeground dark:text-dark-mutedForeground/80"
+                  numberOfLines={1}
+                >
+                  {lineInfo || "Sin categoría"}
+                </Text>
               </View>
 
-              <Text
-                className="text-[11px] font-medium text-mutedForeground dark:text-dark-mutedForeground/80"
-                numberOfLines={1}
-              >
-                {lineInfo || "Sin categoría"}
-              </Text>
-
-              <View className="flex-row flex-wrap gap-2 pt-1">
+              <View className="mt-2 flex-row flex-wrap gap-2">
                 <View className="rounded-full bg-primary/10 dark:bg-dark-primary/20 px-2.5 py-1">
                   <Text className="text-[10px] font-bold text-primary dark:text-dark-primary uppercase">
                     {material.autorizado ? "Aprobado" : "Pendiente"}
@@ -259,110 +254,112 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
                     {material.comprar ? "En compra" : "Sin compra"}
                   </Text>
                 </View>
-                <View className="rounded-full bg-background dark:bg-dark-background border border-zinc-200 dark:border-zinc-800 px-2.5 py-1">
-                  <Text className="text-[10px] font-bold text-mutedForeground dark:text-dark-mutedForeground uppercase">
-                    Solicitado {requestedQuantity}
+                {(material.coduni || material.unidad) && (
+                  <View className="rounded-full border border-zinc-200 dark:border-zinc-800 bg-background dark:bg-dark-background px-2.5 py-1">
+                    <Text className="text-[10px] font-bold text-mutedForeground dark:text-dark-mutedForeground uppercase">
+                      {material.coduni || material.unidad}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            </View>
+          </View>
+
+          <View className="mt-4 rounded-[22px] border border-zinc-200/70 dark:border-zinc-800 bg-background dark:bg-dark-background px-3 py-3">
+            <View className="flex-row items-center justify-between gap-2">
+              <Text className="text-xs font-semibold text-mutedForeground dark:text-dark-mutedForeground uppercase">
+                Progreso
+              </Text>
+              <Text className="text-[11px] font-bold text-foreground dark:text-dark-foreground">
+                {approvedQuantity}/{requestedQuantity} aprobado
+              </Text>
+            </View>
+
+            <View className="mt-2.5 gap-2.5">
+              <View>
+                <View className="flex-row items-center justify-between">
+                  <Text className="text-[11px] font-semibold text-mutedForeground dark:text-dark-mutedForeground uppercase">
+                    Aprobado
                   </Text>
+                  <Text className="text-[11px] font-bold text-foreground dark:text-dark-foreground">
+                    {approvedQuantity}/{requestedQuantity}
+                  </Text>
+                </View>
+                <View className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800">
+                  <View
+                    className="h-full rounded-full bg-primary dark:bg-dark-primary"
+                    style={{ width: `${approvedPercent}%` }}
+                  />
+                </View>
+              </View>
+
+              <View>
+                <View className="flex-row items-center justify-between">
+                  <Text className="text-[11px] font-semibold text-mutedForeground dark:text-dark-mutedForeground uppercase">
+                    Comprado
+                  </Text>
+                  <Text className="text-[11px] font-bold text-foreground dark:text-dark-foreground">
+                    {purchasedQuantity}/{requestedQuantity}
+                  </Text>
+                </View>
+                <View className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800">
+                  <View
+                    className="h-full rounded-full bg-emerald-500"
+                    style={{ width: `${purchasedPercent}%` }}
+                  />
                 </View>
               </View>
             </View>
 
-            <View className="mt-4 rounded-[22px] border border-zinc-100 dark:border-zinc-800 bg-background dark:bg-dark-background px-3 py-3">
-              <View className="flex-row items-center justify-between gap-2">
-                <Text className="text-xs font-semibold text-mutedForeground dark:text-dark-mutedForeground uppercase">
-                  Progreso
+            <View className="mt-3 flex-row gap-2">
+              <View className="flex-1 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-componentbg dark:bg-dark-componentbg px-2.5 py-2">
+                <Text className="text-[10px] font-semibold text-mutedForeground dark:text-dark-mutedForeground uppercase">
+                  Despachado
                 </Text>
-                <Text className="text-[11px] font-bold text-foreground dark:text-dark-foreground">
-                  {approvedQuantity}/{requestedQuantity} aprobado
+                <Text className="mt-0.5 text-sm font-black text-foreground dark:text-dark-foreground">
+                  {dispatchedQuantity}
                 </Text>
               </View>
-
-              <View className="mt-2.5 gap-2.5">
-                <View>
-                  <View className="flex-row items-center justify-between">
-                    <Text className="text-[11px] font-semibold text-mutedForeground dark:text-dark-mutedForeground uppercase">
-                      Aprobado
-                    </Text>
-                    <Text className="text-[11px] font-bold text-foreground dark:text-dark-foreground">
-                      {approvedQuantity}/{requestedQuantity}
-                    </Text>
-                  </View>
-                  <View className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800">
-                    <View
-                      className="h-full rounded-full bg-primary dark:bg-dark-primary"
-                      style={{ width: `${approvedPercent}%` }}
-                    />
-                  </View>
-                </View>
-
-                <View>
-                  <View className="flex-row items-center justify-between">
-                    <Text className="text-[11px] font-semibold text-mutedForeground dark:text-dark-mutedForeground uppercase">
-                      Comprado
-                    </Text>
-                    <Text className="text-[11px] font-bold text-foreground dark:text-dark-foreground">
-                      {purchasedQuantity}/{requestedQuantity}
-                    </Text>
-                  </View>
-                  <View className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800">
-                    <View
-                      className="h-full rounded-full bg-emerald-500"
-                      style={{ width: `${purchasedPercent}%` }}
-                    />
-                  </View>
-                </View>
+              <View className="flex-1 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-componentbg dark:bg-dark-componentbg px-2.5 py-2">
+                <Text className="text-[10px] font-semibold text-mutedForeground dark:text-dark-mutedForeground uppercase">
+                  Disponible
+                </Text>
+                <Text className="mt-0.5 text-sm font-black text-foreground dark:text-dark-foreground">
+                  {availableQuantity}
+                </Text>
               </View>
-
-              <View className="mt-3 flex-row gap-2">
-                <View className="flex-1 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-componentbg dark:bg-dark-componentbg px-2.5 py-2">
-                  <Text className="text-[10px] font-semibold text-mutedForeground dark:text-dark-mutedForeground uppercase">
-                    Despachado
-                  </Text>
-                  <Text className="mt-0.5 text-sm font-black text-foreground dark:text-dark-foreground">
-                    {dispatchedQuantity}
-                  </Text>
-                </View>
-                <View className="flex-1 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-componentbg dark:bg-dark-componentbg px-2.5 py-2">
-                  <Text className="text-[10px] font-semibold text-mutedForeground dark:text-dark-mutedForeground uppercase">
-                    Disponible
-                  </Text>
-                  <Text className="mt-0.5 text-sm font-black text-foreground dark:text-dark-foreground">
-                    {availableQuantity}
-                  </Text>
-                </View>
-              </View>
-
-              {(material.autorizadopor ||
-                material.fechaautorizado ||
-                material.observacion) && (
-                <View className="mt-3 rounded-2xl border border-zinc-100 dark:border-zinc-800 bg-componentbg dark:bg-dark-componentbg px-3 py-2.5">
-                  {material.autorizadopor ? (
-                    <Text className="text-xs text-mutedForeground dark:text-dark-mutedForeground">
-                      Autorizado por:{" "}
-                      <Text className="font-bold text-foreground dark:text-dark-foreground">
-                        {material.autorizadopor}
-                      </Text>
-                    </Text>
-                  ) : null}
-                  {material.fechaautorizado ? (
-                    <Text className="mt-0.5 text-xs text-mutedForeground dark:text-dark-mutedForeground">
-                      Fecha de autorización:{" "}
-                      <Text className="font-bold text-foreground dark:text-dark-foreground">
-                        {formatDate(String(material.fechaautorizado))}
-                      </Text>
-                    </Text>
-                  ) : null}
-                  {material.observacion ? (
-                    <Text className="mt-0.5 text-xs text-mutedForeground dark:text-dark-mutedForeground">
-                      Observación:{" "}
-                      <Text className="font-bold text-foreground dark:text-dark-foreground">
-                        {material.observacion}
-                      </Text>
-                    </Text>
-                  ) : null}
-                </View>
-              )}
             </View>
+
+            {(material.autorizadopor ||
+              material.fechaautorizado ||
+              material.observacion) && (
+              <View className="mt-3 rounded-2xl border border-zinc-200/70 dark:border-zinc-800 bg-componentbg dark:bg-dark-componentbg px-3 py-2.5">
+                {material.autorizadopor ? (
+                  <Text className="text-xs text-mutedForeground dark:text-dark-mutedForeground">
+                    Autorizado por:{" "}
+                    <Text className="font-bold text-foreground dark:text-dark-foreground">
+                      {material.autorizadopor}
+                    </Text>
+                  </Text>
+                ) : null}
+                {material.fechaautorizado ? (
+                  <Text className="mt-0.5 text-xs text-mutedForeground dark:text-dark-mutedForeground">
+                    Fecha de autorización:{" "}
+                    <Text className="font-bold text-foreground dark:text-dark-foreground">
+                      {formatDate(String(material.fechaautorizado))}
+                    </Text>
+                  </Text>
+                ) : null}
+                {material.observacion ? (
+                  <Text className="mt-0.5 text-xs text-mutedForeground dark:text-dark-mutedForeground">
+                    Observación:{" "}
+                    <Text className="font-bold text-foreground dark:text-dark-foreground">
+                      {material.observacion}
+                    </Text>
+                  </Text>
+                ) : null}
+              </View>
+            )}
           </View>
         </View>
       </View>
@@ -377,7 +374,9 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
             {requestData.title}
           </Text>
           <Text className="mt-1 text-sm text-mutedForeground dark:text-dark-mutedForeground">
-            {requestData.materiales.length} materiales
+            {requestData.materiales.length > 1
+              ? requestData.materiales.length + " materiales"
+              : requestData.materiales.length + " material"}
           </Text>
         </View>
         <StatusBadge
@@ -426,95 +425,96 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
         </View>
       )}
 
-      <View className="mt-4 flex-row items-center justify-between gap-2">
-        <Text className="text-base font-extrabold text-foreground dark:text-dark-foreground">
-          Más información
-        </Text>
+      <View className="mt-4 flex-row items-center justify-between gap-3 rounded-[22px] border border-zinc-200/70 dark:border-zinc-800 bg-background/80 dark:bg-dark-background/80 px-3 py-2.5">
+        <View className="flex-1 pr-3">
+          <Text className="text-sm font-extrabold text-foreground dark:text-dark-foreground">
+            Información extendida
+          </Text>
+          <Text className="mt-0.5 text-[11px] font-medium text-mutedForeground dark:text-dark-mutedForeground">
+            Toca los tres puntos para ver la tarjeta completa
+          </Text>
+        </View>
         <Pressable
           onPress={() => setShowMoreInfo((prev) => !prev)}
-          className="flex-row items-center gap-1.5 rounded-full bg-primary/10 dark:bg-dark-primary/20 px-3 py-1.5"
+          className={`h-10 w-10 items-center justify-center rounded-full border ${showMoreInfo ? "border-primary bg-primary/10 dark:border-dark-primary dark:bg-dark-primary/20" : "border-zinc-200 dark:border-zinc-800 bg-componentbg dark:bg-dark-componentbg"}`}
           accessibilityRole="button"
           accessibilityLabel={
             showMoreInfo ? "Ocultar más información" : "Mostrar más información"
           }
         >
-          <Ionicons
-            name={showMoreInfo ? "chevron-up-outline" : "chevron-down-outline"}
-            size={14}
-            color="#0EA5E9"
-          />
-          <Text className="text-xs font-extrabold text-primary dark:text-dark-primary">
-            {showMoreInfo ? "Ocultar" : "Mostrar"}
-          </Text>
+          <Ionicons name="ellipsis-horizontal" size={20} color="#0EA5E9" />
         </Pressable>
       </View>
 
       {showMoreInfo && (
-        <View className="mt-2.5 gap-2.5">
-          <View className="rounded-2xl bg-background dark:bg-dark-background px-3 py-2.5">
-            <Text className="text-xs text-mutedForeground dark:text-dark-mutedForeground">
-              Observación
-            </Text>
-            <Text className="text-sm font-bold text-foreground dark:text-dark-foreground mt-1">
-              {requestData.observacion}
-            </Text>
-          </View>
+        <View className="mt-2.5 overflow-hidden rounded-[28px] border border-zinc-200/70 dark:border-zinc-800 bg-componentbg dark:bg-dark-componentbg">
+          <View className="h-1.5 bg-primary dark:bg-dark-primary" />
+          <View className="p-3.5 gap-3">
+            <View className="rounded-[22px] bg-background dark:bg-dark-background px-3 py-2.5">
+              <Text className="text-xs text-mutedForeground dark:text-dark-mutedForeground">
+                Observación
+              </Text>
+              <Text className="mt-1 text-sm font-bold text-foreground dark:text-dark-foreground">
+                {requestData.observacion}
+              </Text>
+            </View>
 
-          <View className="flex-row flex-wrap justify-between gap-y-2.5">
-            {renderSummaryValue(
-              "Fecha solicitud",
-              formatOptionalDate(requestData.fechasolicitud),
-            )}
-            {renderSummaryValue(
-              "Fecha autorización",
-              formatOptionalDate(requestData.fechaautorizado),
-            )}
-            {renderSummaryValue(
-              "Fecha anulado",
-              formatOptionalDate(requestData.fechaanulado),
-            )}
-            {renderSummaryValue(
-              "Fecha despacho",
-              formatOptionalDate(requestData.fechadespachar),
-            )}
-            {renderSummaryValue(
-              "Fecha pedido",
-              formatOptionalDate(requestData.fec_emis_ped),
-            )}
-            {renderSummaryValue(
-              "Fecha compra",
-              formatOptionalDate(requestData.fechacomprar),
-            )}
-            {renderSummaryValue(
-              "Fecha emisión pedido",
-              formatOptionalDate(requestData.fec_emis_ped),
-            )}
-            {renderSummaryValue(
-              "Fecha emisión compra",
-              formatOptionalDate(requestData.fec_emis_comp),
-            )}
-          </View>
+            <View className="flex-row flex-wrap justify-between gap-y-2.5">
+              {renderSummaryValue(
+                "Fecha solicitud",
+                formatOptionalDate(requestData.fechasolicitud),
+              )}
+              {renderSummaryValue(
+                "Fecha autorización",
+                formatOptionalDate(requestData.fechaautorizado),
+              )}
+              {renderSummaryValue(
+                "Fecha anulado",
+                formatOptionalDate(requestData.fechaanulado),
+              )}
+              {renderSummaryValue(
+                "Fecha despacho",
+                formatOptionalDate(requestData.fechadespachar),
+              )}
+              {renderSummaryValue(
+                "Fecha pedido",
+                formatOptionalDate(requestData.fec_emis_ped),
+              )}
+              {renderSummaryValue(
+                "Fecha compra",
+                formatOptionalDate(requestData.fechacomprar),
+              )}
+              {renderSummaryValue(
+                "Fecha emisión pedido",
+                formatOptionalDate(requestData.fec_emis_ped),
+              )}
+              {renderSummaryValue(
+                "Fecha emisión compra",
+                formatOptionalDate(requestData.fec_emis_comp),
+              )}
+            </View>
 
-          <View className="rounded-2xl bg-background dark:bg-dark-background px-3 py-2.5">
-            <Text className="text-sm text-mutedForeground dark:text-dark-mutedForeground">
-              Comentarios de flujo
-            </Text>
-            <View className="mt-2 gap-2">
-              <View>
-                <Text className="text-[11px] font-semibold text-mutedForeground dark:text-dark-mutedForeground uppercase">
-                  Despachar
-                </Text>
-                <Text className="text-sm font-bold text-foreground dark:text-dark-foreground mt-0.5">
-                  {requestData.comentadespachar || "-"}
-                </Text>
-              </View>
-              <View>
-                <Text className="text-[11px] font-semibold text-mutedForeground dark:text-dark-mutedForeground uppercase">
-                  Comprar
-                </Text>
-                <Text className="text-sm font-bold text-foreground dark:text-dark-foreground mt-0.5">
-                  {requestData.comentacomprar || "-"}
-                </Text>
+            <View className="rounded-[22px] bg-background dark:bg-dark-background px-3 py-2.5">
+              <Text className="text-sm text-mutedForeground dark:text-dark-mutedForeground">
+                Comentarios de flujo
+              </Text>
+              <View className="mt-2 gap-2">
+                <View>
+                  <Text className="text-[11px] font-semibold text-mutedForeground dark:text-dark-mutedForeground uppercase">
+                    Despachar
+                  </Text>
+                  <Text className="text-sm font-bold text-foreground dark:text-dark-foreground mt-0.5">
+                    {requestData.comentadespachar || "-"}
+                  </Text>
+                </View>
+                <View>
+                  <Text className="text-[11px] font-semibold text-mutedForeground dark:text-dark-mutedForeground uppercase">
+                    Comprar
+                  </Text>
+                  <Text className="text-sm font-bold text-foreground dark:text-dark-foreground mt-0.5">
+                    {requestData.comentacomprar || "-"}
+                  </Text>
+                </View>
               </View>
             </View>
           </View>
