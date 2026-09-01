@@ -144,19 +144,39 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
     return formatDate(isoDate);
   };
 
-  const renderSummaryValue = (label: string, value?: string | null) => (
-    <View className="w-[48.5%] rounded-[20px] border border-zinc-200/70 dark:border-zinc-800 bg-background dark:bg-dark-background px-3 py-2.5">
-      <Text className="text-[10px] font-semibold tracking-[0.8px] text-mutedForeground dark:text-dark-mutedForeground uppercase">
-        {label}
-      </Text>
-      <Text
-        className="mt-1 text-sm font-extrabold leading-5 text-foreground dark:text-dark-foreground"
-        numberOfLines={2}
-      >
-        {value || "No indicado"}
-      </Text>
-    </View>
-  );
+  const getStatusActor = (requestData: Request, status: Request["status"]) => {
+    switch (status) {
+      case 0:
+        return {
+          label: "Creado por",
+          value: requestData.registradopor || requestData.owneruser,
+        };
+      case 1:
+      case 4:
+        return {
+          label: "Autorizado por",
+          value: requestData.autorizadopor,
+        };
+      case 2:
+      case 3:
+        return {
+          label: "Despachado por",
+          value: requestData.despacharpor,
+        };
+      case 5:
+        return {
+          label: "Comprado por",
+          value: requestData.comprarpor,
+        };
+      case 6:
+        return {
+          label: "Anulado por",
+          value: requestData.anuladopor,
+        };
+      default:
+        return null;
+    }
+  };
 
   const renderDetailField = (label: string, value?: string | null) => (
     <View className="mt-1 rounded-2xl bg-componentbg dark:bg-dark-componentbg px-3 ">
@@ -209,7 +229,7 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
 
     return (
       <View className="mb-3 overflow-hidden rounded-[28px] border border-zinc-200/70 dark:border-zinc-800 bg-componentbg dark:bg-dark-componentbg shadow-sm shadow-black/5">
-        <View className="h-1.5 bg-primary dark:bg-dark-primary" />
+        <View className="h-1.5 bg-primary/90 dark:bg-dark-primary" />
         <View className="p-4">
           <View className="flex-row gap-3">
             <View className="relative h-24 w-24 overflow-hidden rounded-[22px] border border-zinc-200/60 dark:border-zinc-800/60 bg-neutral-50 dark:bg-dark-background shrink-0">
@@ -451,12 +471,18 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
           requestData.comentacomprar || "-",
         )}
 
-        <View className="mt-5 rounded-3xl p-4 ">
+        <View className="mt-5 rounded-3xl border border-sky-100/70 dark:border-sky-900/30 bg-sky-50/40 dark:bg-slate-950/25 p-4">
           <View className="flex-row items-center justify-between pb-3 border-b border-sky-100/80 dark:border-sky-900/30">
             <View className="flex-row items-center gap-2.5">
+              <View className="h-8 w-8 items-center justify-center rounded-full bg-sky-500/10 dark:bg-sky-400/15">
+                <Ionicons name="time-outline" size={16} color="#0EA5E9" />
+              </View>
               <View>
-                <Text className="text-[14px] font-semibold  text-foreground dark:text-dark-foreground ">
+                <Text className="text-[14px] font-extrabold text-foreground dark:text-dark-foreground">
                   Seguimiento de estatus
+                </Text>
+                <Text className="text-xs text-mutedForeground dark:text-dark-mutedForeground">
+                  Línea de tiempo de la solicitud
                 </Text>
               </View>
             </View>
@@ -491,6 +517,7 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
                 const isLast = index === visibleStatusItems.length - 1;
                 const isAnulado =
                   item.status === 6 || (isCurrent && requestData.anulado === 1);
+                const actor = getStatusActor(requestData, item.status);
 
                 return (
                   <View key={item.status} className="flex-row">
@@ -560,32 +587,30 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
                               </Text>
                             </View>
                           )}
-                          {isDone && !isCurrent && (
-                            <View className="rounded-full bg-emerald-500/10 dark:bg-emerald-500/20 px-2 py-0.5">
-                              <Text className="text-[10px] font-extrabold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
-                                Completado
-                              </Text>
-                            </View>
-                          )}
                         </View>
 
-                        <View className="mt-1 flex-row items-center justify-between">
-                          <Text className="text-xs font-medium text-sky-800/70 dark:text-sky-100/65">
-                            {isCurrent
-                              ? "En esta etapa actualmente"
-                              : isDone
-                                ? "Fecha de realización"
-                                : "Pendiente por procesar"}
-                          </Text>
-                          <Text
-                            className={`text-xs font-bold ${
-                              isDone
-                                ? "text-sky-900 dark:text-sky-100"
-                                : "text-sky-700/55 dark:text-sky-200/50"
-                            }`}
-                          >
-                            {formatOptionalDate(date)}
-                          </Text>
+                        <View className="mt-2 rounded-xl bg-componentbg dark:bg-slate-950/35 px-3 py-2">
+                          <View className="flex-row items-start justify-between gap-2">
+                            <Text className="flex-1 text-xs font-medium text-sky-800/70 dark:text-sky-100/65 leading-4">
+                              {actor
+                                ? `${actor.label}: ${actor.value || "No indicado"}`
+                                : "No indicado"}
+                            </Text>
+                            <Text
+                              className={`shrink-0 text-xs font-bold text-right ${
+                                isDone
+                                  ? "text-sky-900 dark:text-sky-100"
+                                  : "text-sky-700/55 dark:text-sky-200/50"
+                              }`}
+                            >
+                              {formatOptionalDate(date)}
+                            </Text>
+                          </View>
+                          {/* {actor && item.status === 0 ? (
+                            <Text className="mt-1 text-[11px] text-sky-800/75 dark:text-sky-100/70 leading-4 flex-wrap">
+                              {actor.label}: {actor.value || "No indicado"}
+                            </Text>
+                          ) : null} */}
                         </View>
                       </View>
                     </View>
