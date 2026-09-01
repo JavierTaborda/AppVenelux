@@ -159,8 +159,8 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
   );
 
   const renderDetailField = (label: string, value?: string | null) => (
-    <View className="mt-1 rounded-2xl bg-componentbg dark:bg-dark-componentbg px-3 py-1">
-      <Text className="text-sm font-bold text-foreground dark:text-dark-foreground">
+    <View className="mt-1 rounded-2xl bg-componentbg dark:bg-dark-componentbg px-3 ">
+      <Text className="text-[14px] font-semibold text-foreground dark:text-dark-foreground">
         {label}
       </Text>
       <Text className="mt-1 text-sm font-normal text-gray-800 dark:text-dark-mutedForeground">
@@ -381,129 +381,223 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
     );
   };
 
-  const renderRequestHeaderSummary = (requestData: Request) => (
-    <View className="mb-2 rounded-2xl border border-zinc-200/70 dark:border-zinc-800 bg-componentbg dark:bg-dark-componentbg px-3 py-3">
-      <View className="flex-row items-start justify-between gap-3">
-        <View className="flex-1">
-          <Text className="mt-1 text-lg font-extrabold text-foreground dark:text-dark-foreground leading-6">
-            {requestData.title}
-          </Text>
-          <Text className="mt-1 text-sm text-mutedForeground dark:text-dark-mutedForeground">
-            {requestData.materiales.length > 1
-              ? requestData.materiales.length + " materiales"
-              : requestData.materiales.length + " material"}
-          </Text>
-        </View>
-        <StatusBadge
-          status={requestData.status}
-          label={requestData.estatusLabel}
-        />
-      </View>
-      {requestData.anulado === 1 && (
-        <View className="mt-3 rounded-2xl border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/30 px-3 py-2.5">
-          <Text className="text-xs font-bold text-red-700 dark:text-red-300 uppercase">
-            Solicitud anulada
-          </Text>
-          <Text className="mt-1 text-sm font-semibold text-red-700 dark:text-red-200">
-            {requestData.motivoanulado || "No se indicó motivo"}
-          </Text>
-          <Text className="mt-1 text-xs text-red-600 dark:text-red-300">
-            {formatOptionalDate(requestData.fechaanulado)}
-          </Text>
-        </View>
-      )}
-      {renderDetailDivider()}
-      {renderDetailField("Solicitante", requestData.solicitanteuser)}
-      {renderDetailDivider()}
-      {renderDetailField(
-        "Utilización",
-        formatOptionalDate(requestData.fechautilizacion),
-      )}
-      {renderDetailDivider()}
-      {!!requestData.actividad &&
-        renderDetailField("Partida", requestData.actividad)}
-      {!!requestData.actividad && renderDetailDivider()}
-      {!!requestData.direccionentrega &&
-        renderDetailField("Dirección de entrega", requestData.direccionentrega)}
-      {!!requestData.direccionentrega && renderDetailDivider()}
-      {renderDetailField("Observación", requestData.observacion)}
-      {renderDetailDivider()}
-      {renderDetailField(
-        "Comentario de despacho",
-        requestData.comentadespachar || "-",
-      )}
-      {renderDetailDivider()}
-      {renderDetailField(
-        "Comentario de compra",
-        requestData.comentacomprar || "-",
-      )}
+  const renderRequestHeaderSummary = (requestData: Request) => {
+    const visibleStatusItems = STATUS_DATE_ITEMS.filter((item) => {
+      if (item.status === 6) {
+        return (
+          requestData.anulado === 1 || Boolean(requestData.statusDates?.[6])
+        );
+      }
+      return true;
+    });
 
-      <View className="mt-4 mb-2.5 flex-row items-center justify-between">
-        <Text className="text-base font-extrabold text-foreground dark:text-dark-foreground">
-          Seguimiento de estatus
-        </Text>
-        <Pressable
-          onPress={() => setShowStatusTracking((prev) => !prev)}
-          className="flex-row items-center gap-1.5 rounded-full bg-primary/10 dark:bg-dark-primary/20 px-3 py-1.5"
-          accessibilityRole="button"
-          accessibilityLabel={
-            showStatusTracking
-              ? "Ocultar seguimiento de estatus"
-              : "Mostrar seguimiento de estatus"
-          }
-        >
-          <Ionicons
-            name={showStatusTracking ? "eye-off-outline" : "eye-outline"}
-            size={14}
-            color="#0EA5E9"
+    return (
+      <View className="mb-2 rounded-2xl border border-zinc-200/70 dark:border-zinc-800 bg-componentbg dark:bg-dark-    componentbg px-3 py-3">
+        <View className="flex-row items-start justify-between gap-3">
+          <View className="flex-1">
+            <Text className="mt-1 text-lg font-extrabold text-foreground dark:text-dark-foreground leading-6">
+              {requestData.title}
+            </Text>
+            <Text className="mt-1 text-sm text-mutedForeground dark:text-dark-mutedForeground">
+              {requestData.materiales.length > 1
+                ? requestData.materiales.length + " materiales"
+                : requestData.materiales.length + " material"}
+            </Text>
+          </View>
+          <StatusBadge
+            status={requestData.status}
+            label={requestData.estatusLabel}
           />
-          <Text className="text-xs font-extrabold text-primary dark:text-dark-primary">
-            {showStatusTracking ? "Ocultar" : "Mostrar"}
-          </Text>
-        </Pressable>
-      </View>
+        </View>
+        {requestData.anulado === 1 && (
+          <View className="mt-3 rounded-2xl border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/30 px-3 py-2.5">
+            <Text className="text-xs font-bold text-red-700 dark:text-red-300 uppercase">
+              Solicitud anulada
+            </Text>
+            <Text className="mt-1 text-sm font-semibold text-red-700 dark:text-red-200">
+              {requestData.motivoanulado || "No se indicó motivo"}
+            </Text>
+            <Text className="mt-1 text-xs text-red-600 dark:text-red-300">
+              {formatOptionalDate(requestData.fechaanulado)}
+            </Text>
+          </View>
+        )}
+        {renderDetailDivider()}
+        {renderDetailField("Solicitante", requestData.solicitanteuser)}
+        {renderDetailDivider()}
+        {renderDetailField(
+          "Utilización",
+          formatOptionalDate(requestData.fechautilizacion),
+        )}
+        {renderDetailDivider()}
+        {!!requestData.actividad &&
+          renderDetailField("Partida", requestData.actividad)}
+        {!!requestData.actividad && renderDetailDivider()}
+        {!!requestData.direccionentrega &&
+          renderDetailField(
+            "Dirección de entrega",
+            requestData.direccionentrega,
+          )}
+        {!!requestData.direccionentrega && renderDetailDivider()}
+        {renderDetailField("Observación", requestData.observacion)}
+        {renderDetailDivider()}
+        {renderDetailField(
+          "Comentario de despacho",
+          requestData.comentadespachar || "-",
+        )}
+        {renderDetailDivider()}
+        {renderDetailField(
+          "Comentario de compra",
+          requestData.comentacomprar || "-",
+        )}
 
-      {showStatusTracking && (
-        <View className="gap-1.5">
-          {STATUS_DATE_ITEMS.map((item) => {
-            const date = requestData.statusDates[item.status];
-            const isCurrent = requestData.status === item.status;
-            const isDone = Boolean(date);
-
-            return (
-              <View
-                key={item.status}
-                className={`flex-row items-center justify-between rounded-2xl border px-3 py-2.5 ${isCurrent ? "border-primary bg-primary/10 dark:border-dark-primary dark:bg-dark-primary/15" : "border-zinc-200 dark:border-zinc-800 bg-background dark:bg-dark-background"}`}
-              >
-                <View className="flex-1 pr-3 flex-row items-center gap-2.5">
-                  <View
-                    className={`h-2.5 w-2.5 rounded-full ${isCurrent ? "bg-primary dark:bg-dark-primary" : isDone ? "bg-green-500" : "bg-zinc-300 dark:bg-zinc-700"}`}
-                  />
-                  <View className="flex-1">
-                    <Text className="text-sm font-bold text-foreground dark:text-dark-foreground">
-                      {item.label}
-                    </Text>
-                    <Text className="text-xs text-mutedForeground dark:text-dark-mutedForeground mt-0.5">
-                      {isCurrent
-                        ? "Estatus actual"
-                        : isDone
-                          ? "Completado"
-                          : "Pendiente"}
-                    </Text>
-                  </View>
-                </View>
-                <Text
-                  className={`text-xs font-bold ${isDone ? "text-foreground dark:text-dark-foreground" : "text-mutedForeground dark:text-dark-mutedForeground"}`}
-                >
-                  {formatOptionalDate(date)}
+        <View className="mt-5 rounded-3xl p-4 ">
+          <View className="flex-row items-center justify-between pb-3 border-b border-sky-100/80 dark:border-sky-900/30">
+            <View className="flex-row items-center gap-2.5">
+              <View>
+                <Text className="text-[14px] font-semibold  text-foreground dark:text-dark-foreground ">
+                  Seguimiento de estatus
                 </Text>
               </View>
-            );
-          })}
+            </View>
+
+            <Pressable
+              onPress={() => setShowStatusTracking((prev) => !prev)}
+              className="flex-row items-center gap-1 rounded-full bg-sky-100/90 dark:bg-sky-900/35 px-3 py-1.5 active:opacity-70"
+              accessibilityRole="button"
+              accessibilityLabel={
+                showStatusTracking
+                  ? "Ocultar seguimiento de estatus"
+                  : "Mostrar seguimiento de estatus"
+              }
+            >
+              <Text className="text-xs font-extrabold text-sky-700 dark:text-sky-200">
+                {showStatusTracking ? "Ocultar" : "Ver todo"}
+              </Text>
+              <Ionicons
+                name={showStatusTracking ? "chevron-up" : "chevron-down"}
+                size={14}
+                color="#0EA5E9"
+              />
+            </Pressable>
+          </View>
+
+          {showStatusTracking && (
+            <View className="pt-4 px-1">
+              {visibleStatusItems.map((item, index) => {
+                const date = requestData.statusDates?.[item.status];
+                const isCurrent = requestData.status === item.status;
+                const isDone = Boolean(date);
+                const isLast = index === visibleStatusItems.length - 1;
+                const isAnulado =
+                  item.status === 6 || (isCurrent && requestData.anulado === 1);
+
+                return (
+                  <View key={item.status} className="flex-row">
+                    <View className="items-center mr-3.5">
+                      {isAnulado ? (
+                        <View className="h-6 w-6 rounded-full bg-rose-500 items-center justify-center shadow-sm shadow-rose-500/20">
+                          <Ionicons name="close" size={14} color="#FFFFFF" />
+                        </View>
+                      ) : isCurrent ? (
+                        <View className="h-6 w-6 rounded-full border-2 border-sky-500 dark:border-sky-400 bg-sky-500/20 dark:bg-sky-400/20 items-center justify-center">
+                          <View className="h-2.5 w-2.5 rounded-full bg-sky-600 dark:bg-sky-300" />
+                        </View>
+                      ) : isDone ? (
+                        <View className="h-6 w-6 rounded-full bg-emerald-500 items-center justify-center shadow-sm shadow-emerald-500/20">
+                          <Ionicons
+                            name="checkmark"
+                            size={14}
+                            color="#FFFFFF"
+                          />
+                        </View>
+                      ) : (
+                        <View className="h-6 w-6 rounded-full border border-sky-200 dark:border-sky-900/50 bg-white/80 dark:bg-slate-950/60 items-center justify-center">
+                          <View className="h-1.5 w-1.5 rounded-full bg-sky-300 dark:bg-sky-700" />
+                        </View>
+                      )}
+
+                      {!isLast && (
+                        <View
+                          className={`w-[2px] flex-1 my-1 ${
+                            isDone && !isCurrent
+                              ? "bg-emerald-500/60 dark:bg-emerald-500/40"
+                              : isCurrent
+                                ? "bg-sky-400/60 dark:bg-sky-400/35"
+                                : "bg-sky-100 dark:bg-sky-900/35"
+                          }`}
+                        />
+                      )}
+                    </View>
+
+                    <View className={`flex-1 ${!isLast ? "pb-3.5" : "pb-1"}`}>
+                      <View
+                        className={`rounded-2xl p-3 border ${
+                          isCurrent
+                            ? "border-sky-400/40 bg-sky-100/90 dark:border-sky-400/35 dark:bg-sky-950/25"
+                            : isDone
+                              ? "border-emerald-200/70 dark:border-emerald-900/50 bg-emerald-50/70 dark:bg-emerald-950/15"
+                              : "border-sky-100 dark:border-sky-900/35 bg-sky-50/40 dark:bg-slate-950/25 opacity-85"
+                        }`}
+                      >
+                        <View className="flex-row items-center justify-between gap-2">
+                          <Text
+                            className={`text-sm font-extrabold ${
+                              isCurrent
+                                ? "text-sky-700 dark:text-sky-200"
+                                : isDone
+                                  ? "text-emerald-800 dark:text-emerald-200"
+                                  : "text-sky-700/70 dark:text-sky-200/60"
+                            }`}
+                          >
+                            {item.label}
+                          </Text>
+
+                          {isCurrent && (
+                            <View className="rounded-full bg-sky-500/15 dark:bg-sky-400/20 px-2 py-0.5">
+                              <Text className="text-[10px] font-black text-sky-700 dark:text-sky-200 uppercase tracking-wider">
+                                Actual
+                              </Text>
+                            </View>
+                          )}
+                          {isDone && !isCurrent && (
+                            <View className="rounded-full bg-emerald-500/10 dark:bg-emerald-500/20 px-2 py-0.5">
+                              <Text className="text-[10px] font-extrabold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
+                                Completado
+                              </Text>
+                            </View>
+                          )}
+                        </View>
+
+                        <View className="mt-1 flex-row items-center justify-between">
+                          <Text className="text-xs font-medium text-sky-800/70 dark:text-sky-100/65">
+                            {isCurrent
+                              ? "En esta etapa actualmente"
+                              : isDone
+                                ? "Fecha de realización"
+                                : "Pendiente por procesar"}
+                          </Text>
+                          <Text
+                            className={`text-xs font-bold ${
+                              isDone
+                                ? "text-sky-900 dark:text-sky-100"
+                                : "text-sky-700/55 dark:text-sky-200/50"
+                            }`}
+                          >
+                            {formatOptionalDate(date)}
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
+          )}
         </View>
-      )}
-    </View>
-  );
+      </View>
+    );
+  };
 
   const modalData = useMemo<RequestModalItem[]>(() => {
     if (!s) return [];
