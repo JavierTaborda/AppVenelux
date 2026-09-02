@@ -1,6 +1,8 @@
 import CustomFlatList from "@/components/ui/CustomFlatList";
 import CustomImagen from "@/components/ui/CustomImagen";
+import { useOverlayStore } from "@/stores/useSuccessOverlayStore";
 import { Ionicons } from "@expo/vector-icons";
+import * as Clipboard from "expo-clipboard";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
@@ -90,6 +92,7 @@ function MaterialEmptyState() {
 
 export default function RequestDetailScreen({ request, requestId }: Props) {
   const router = useRouter();
+  const showOverlay = useOverlayStore((s) => s.show);
   const params = useLocalSearchParams<{
     id?: string;
     scrollY?: string;
@@ -139,43 +142,68 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
     return parsed.toLocaleDateString();
   };
 
+  const formatDateTime = (isoDate?: string | null) => {
+    if (!isoDate) return "No realizado";
+
+    const parsed = new Date(isoDate);
+    if (Number.isNaN(parsed.getTime())) return "Sin fecha";
+
+    return parsed.toLocaleString("es-VE", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
   const formatOptionalDate = (isoDate?: string | null) => {
     if (!isoDate) return "No realizado";
     return formatDate(isoDate);
   };
 
-  const getStatusActor = (requestData: Request, status: Request["status"]) => {
+  const getStatusAct = (requestData: Request, status: Request["status"]) => {
     switch (status) {
       case 0:
         return {
           label: "Creado por",
-          value: requestData.registradopor || requestData.owneruser,
+          value: requestData.registradopor ? requestData.registradopor : "-",
         };
       case 1:
-      case 4:
         return {
           label: "Autorizado por",
-          value: requestData.autorizadopor,
+          value: requestData.autorizadopor ? requestData.autorizadopor : "-",
         };
       case 2:
         return {
           label: "Autorizado Despacho",
-          value: requestData.despacharpor,
+          value: requestData.despacharpor ? requestData.despacharpor : "-",
         };
       case 3:
-        return {
-          label: "Pedido",
-          value: ` ${requestData.ped_num}`,
-        };
+        return requestData.ped_num
+          ? {
+              label: "Pedido",
+              value: requestData.ped_num,
+            }
+          : null;
+      case 4:
+        return requestData.co_us_comp
+          ? {
+              label: "Comprador",
+              value: `${requestData.co_us_comp}`,
+            }
+          : null;
       case 5:
-        return {
-          label: "Comprador / Número de compra",
-          value: `${requestData.co_us_comp} / ${requestData.comp_num}`,
-        };
+        return requestData.comp_num
+          ? {
+              label: "Nro. de compra",
+              value: `#${requestData.comp_num}`,
+            }
+          : null;
       case 6:
         return {
           label: "Anulado por",
-          value: requestData.anuladopor,
+          value: requestData.anuladopor ? requestData.anuladopor : "-",
         };
       default:
         return null;
@@ -196,6 +224,24 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
   const renderDetailDivider = () => (
     <View className="my-2 border-b border-zinc-100 dark:border-zinc-800" />
   );
+
+  const copyOrderNumber = async (orderNumber?: string | null) => {
+    const value = orderNumber?.trim();
+    if (!value) return;
+
+    try {
+      await Clipboard.setStringAsync(value);
+      showOverlay("info", {
+        title: "Número copiado",
+        subtitle: `Pedido ${value} copiado al portapapeles.`,
+      });
+    } catch {
+      showOverlay("error", {
+        title: "No se pudo copiar",
+        subtitle: "Intenta nuevamente.",
+      });
+    }
+  };
 
   const renderMaterialKey = (item: Request["items"][number], index: number) => {
     const code = item.codigomaterial?.trim() || "SIN";
@@ -524,7 +570,7 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
                 const isLast = index === visibleStatusItems.length - 1;
                 const isAnulado =
                   item.status === 6 || (isCurrent && requestData.anulado === 1);
-                const actor = getStatusActor(requestData, item.status);
+                const act = getStatusAct(requestData, item.status);
 
                 return (
                   <View key={item.status} className="flex-row">
@@ -599,8 +645,8 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
                         <View className="mt-2 rounded-xl bg-componentbg dark:bg-slate-950/35 px-3 py-2">
                           <View className="flex-row items-start justify-between gap-2">
                             <Text className="flex-1 text-xs font-medium text-sky-800/70 dark:text-sky-100/65 leading-4">
-                              {actor
-                                ? `${actor.label}: ${actor.value || "No indicado"}`
+                              {act
+                                ? `${act.label}: ${act.value || "No indicado"}`
                                 : "No indicado"}
                             </Text>
                             <Text
@@ -610,14 +656,34 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
                                   : "text-sky-700/55 dark:text-sky-200/50"
                               }`}
                             >
-                              {formatOptionalDate(date)}
+                              {formatDateTime(date)}
                             </Text>
                           </View>
-                          {/* {actor && item.status === 0 ? (
-                            <Text className="mt-1 text-[11px] text-sky-800/75 dark:text-sky-100/70 leading-4 flex-wrap">
-                              {actor.label}: {actor.value || "No indicado"}
-                            </Text>
-                          ) : null} */}
+                          {act &&
+                          (item.status === 3 || item.status === 5) &&
+                          act.value ? (
+                            <Pressable
+                              onPress={() => void copyOrderNumber(act.value)}
+                              className="mt-1 flex-row items-center gap-1 self-start rounded-full bg-sky-500/10 dark:bg-sky-400/15 px-2.5 py-1.5 active:opacity-70"
+                              accessibilityRole="button"
+                              accessibilityLabel={
+                                item.status === 5
+                                  ? "Copiar número de compra"
+                                  : "Copiar número de pedido"
+                              }
+                            >
+                              <Ionicons
+                                name="copy-outline"
+                                size={12}
+                                color="#0EA5E9"
+                              />
+                              <Text className="text-[11px] font-bold text-sky-700 dark:text-sky-200">
+                                {item.status === 5
+                                  ? "Copiar compra"
+                                  : "Copiar pedido"}
+                              </Text>
+                            </Pressable>
+                          ) : null}
                         </View>
                       </View>
                     </View>
