@@ -419,7 +419,10 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
       <View className="mb-2 rounded-2xl border border-zinc-200/70 dark:border-zinc-800 bg-componentbg dark:bg-dark-    componentbg px-3 py-3">
         <View className="flex-row items-start justify-between gap-3">
           <View className="flex-1">
-            <Text className="mt-1 text-lg font-extrabold text-foreground dark:text-dark-foreground leading-6">
+            <Text className="mt-1 text-xl font-black text-foreground dark:text-dark-foreground leading-6">
+              SOLICITUD {requestData.id}
+            </Text>
+            <Text className="mt-1 text-lg font-bold text-foreground dark:text-dark-foreground leading-6">
               {requestData.title}
             </Text>
             <Text className="mt-1 text-sm text-mutedForeground dark:text-dark-mutedForeground">
