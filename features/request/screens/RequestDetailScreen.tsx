@@ -158,15 +158,19 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
           value: requestData.autorizadopor,
         };
       case 2:
+        return {
+          label: "Autorizado Despacho",
+          value: requestData.despacharpor,
+        };
       case 3:
         return {
-          label: "Despachado por",
-          value: requestData.despacharpor,
+          label: "Pedido",
+          value: ` ${requestData.ped_num}`,
         };
       case 5:
         return {
-          label: "Comprado por",
-          value: requestData.comprarpor,
+          label: "Comprador / Número de compra",
+          value: `${requestData.co_us_comp} / ${requestData.comp_num}`,
         };
       case 6:
         return {
