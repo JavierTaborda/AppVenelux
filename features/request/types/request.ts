@@ -66,6 +66,7 @@ export interface VeneluxSolicitudMaterial {
   categoria: string | null;
   cantidadsolicitada: number;
   precioventa: number | null;
+  materialnuevo?: boolean;
   autorizado: boolean;
   fechaautorizado?: string | Date | null;
   autorizadopor?: string | null;

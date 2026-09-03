@@ -18,31 +18,233 @@ interface Props {
 type RequestModalItem =
   | { type: "summary"; request: Request }
   | { type: "empty"; id: string }
-  | { type: "material"; material: Request["items"][number]; index: number };
+  | {
+      type: "material";
+      material: Request["items"][number];
+      index: number;
+    };
 
 const STATUS_DATE_ITEMS: {
   status: Request["status"];
   label: string;
   icon: keyof typeof Ionicons.glyphMap;
 }[] = [
-  { status: 0, label: "Solicitud", icon: "document-text-outline" },
+  {
+    status: 0,
+    label: "Solicitud",
+    icon: "document-text-outline",
+  },
   {
     status: 1,
     label: "Autorizada solicitud",
     icon: "checkmark-circle-outline",
   },
-  { status: 2, label: "Autorizado despacho", icon: "checkmark-done-outline" },
-  { status: 3, label: "En despacho", icon: "cube-outline" },
-  { status: 4, label: "Autorizado comprar", icon: "cash-outline" },
-  { status: 5, label: "En compra", icon: "cart-outline" },
-  { status: 6, label: "Anulado", icon: "close-circle-outline" },
+  {
+    status: 2,
+    label: "Autorizado despacho",
+    icon: "checkmark-done-outline",
+  },
+  {
+    status: 3,
+    label: "En despacho",
+    icon: "cube-outline",
+  },
+  {
+    status: 4,
+    label: "Autorizado comprar",
+    icon: "cash-outline",
+  },
+  {
+    status: 5,
+    label: "En compra",
+    icon: "cart-outline",
+  },
+  {
+    status: 6,
+    label: "Anulado",
+    icon: "close-circle-outline",
+  },
 ];
+
+/**
+ * Estados propios del material.
+ *
+ * IMPORTANTE:
+ * dtsolicimat no tiene una fecha/campo específico para cada uno
+ * de los estados intermedios del proceso.
+ *
+ * Por eso:
+ *
+ * - Solicitud -> siempre existe porque existe el item.
+ * - Autorizada solicitud -> autorizado / cantidadautorizada.
+ * - Autorizado despacho -> se infiere cuando existe cantidad despachada.
+ * - En despacho -> se infiere cuando existe cantidad despachada.
+ * - Autorizado comprar -> comprar.
+ * - En compra -> cantidadcompra.
+ */
+type MaterialProcessStep = {
+  key:
+    | "request"
+    | "authorized"
+    | "dispatchAuthorized"
+    | "dispatch"
+    | "purchaseAuthorized"
+    | "purchase";
+  label: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  done: boolean;
+  current: boolean;
+  detail?: string;
+};
+
+function getMaterialProcess(
+  material: Request["items"][number],
+): MaterialProcessStep[] {
+  const requestedQuantity = Math.max(
+    1,
+    Number(material.quantity ?? material.cantidadsolicitada ?? 1),
+  );
+
+  const approvedQuantity = Math.max(
+    0,
+    Number(material.cantidadautorizada ?? 0),
+  );
+
+  const dispatchedQuantity = Math.max(
+    0,
+    Number(material.cantidaddespacho ?? 0),
+  );
+
+  const purchasedQuantity = Math.max(0, Number(material.cantidadcompra ?? 0));
+
+  const isAuthorized = Boolean(material.autorizado) || approvedQuantity > 0;
+
+  const hasDispatch = dispatchedQuantity > 0;
+
+  const isPurchaseAuthorized =
+    Boolean(material.comprar) || purchasedQuantity > 0;
+
+  const isPurchased = purchasedQuantity > 0;
+  const isNewMaterial = Boolean(material.materialnuevo);
+
+  const shouldShowPurchaseStages =
+    isNewMaterial || isPurchaseAuthorized || isPurchased;
+
+  /**
+   * Determinamos el estado actual.
+   *
+   * La compra tiene prioridad si existe actividad de compra.
+   * Luego despacho.
+   * Luego autorización.
+   */
+  let currentKey: MaterialProcessStep["key"] = "request";
+
+  if (isPurchased) {
+    currentKey = "purchase";
+  } else if (isPurchaseAuthorized) {
+    currentKey = "purchaseAuthorized";
+  } else if (hasDispatch) {
+    currentKey = "dispatch";
+  } else if (isAuthorized) {
+    currentKey = "authorized";
+  }
+
+  const requestedLabel = `${requestedQuantity} ${
+    requestedQuantity === 1 ? "unidad" : "unidades"
+  } solicitadas`;
+
+  const authorizedLabel =
+    approvedQuantity > 0
+      ? `${approvedQuantity}/${requestedQuantity} autorizadas`
+      : "Pendiente de autorización";
+
+  const dispatchLabel =
+    dispatchedQuantity > 0
+      ? `${dispatchedQuantity}/${requestedQuantity} despachadas`
+      : "Pendiente de despacho";
+
+  const steps: MaterialProcessStep[] = [
+    {
+      key: "request",
+      label: "Solicitud",
+      icon: "document-text-outline",
+      done: true,
+      current: currentKey === "request",
+      detail: requestedLabel,
+    },
+    {
+      key: "authorized",
+      label: "Autorizada solicitud",
+      icon: "checkmark-circle-outline",
+      done: isAuthorized,
+      current: currentKey === "authorized",
+      detail: authorizedLabel,
+    },
+    {
+      key: "dispatchAuthorized",
+      label: "Autorizado despacho",
+      icon: "checkmark-done-outline",
+      done: hasDispatch,
+      current: false,
+      detail: hasDispatch ? "Existe cantidad despachada" : "Pendiente",
+    },
+    {
+      key: "dispatch",
+      label: "En despacho",
+      icon: "cube-outline",
+      done: hasDispatch,
+      current: currentKey === "dispatch",
+      detail: dispatchLabel,
+    },
+  ];
+
+  if (shouldShowPurchaseStages) {
+    const purchaseLabel =
+      purchasedQuantity > 0
+        ? `${purchasedQuantity}/${requestedQuantity} compradas`
+        : material.comprar
+          ? "Compra autorizada"
+          : isNewMaterial
+            ? "Material nuevo"
+            : "No iniciado";
+
+    steps.push(
+      {
+        key: "purchaseAuthorized",
+        label: "Autorizado comprar",
+        icon: "cash-outline",
+        done: isPurchaseAuthorized,
+        current: currentKey === "purchaseAuthorized",
+        detail: material.comprar
+          ? "Compra autorizada"
+          : purchasedQuantity > 0
+            ? "Existe cantidad comprada"
+            : isNewMaterial
+              ? "Pendiente para material nuevo"
+              : "Pendiente",
+      },
+      {
+        key: "purchase",
+        label: "En compra",
+        icon: "cart-outline",
+        done: isPurchased,
+        current: currentKey === "purchase",
+        detail: purchaseLabel,
+      },
+    );
+  }
+
+  return steps;
+}
 
 function RequestDetailSkeleton() {
   return (
     <ScrollView
       className="flex-1 bg-background dark:bg-dark-background"
-      contentContainerStyle={{ padding: 16, paddingBottom: 120 }}
+      contentContainerStyle={{
+        padding: 16,
+        paddingBottom: 120,
+      }}
     >
       <View className="rounded-3xl border border-zinc-200/70 dark:border-zinc-800 bg-componentbg dark:bg-dark-componentbg p-4">
         <View className="flex-row items-start justify-between gap-3">
@@ -51,6 +253,7 @@ function RequestDetailSkeleton() {
             <View className="h-7 w-5/6 rounded-full bg-zinc-200 dark:bg-zinc-700 mt-3 animate-pulse" />
             <View className="h-4 w-2/3 rounded-full bg-zinc-200 dark:bg-zinc-700 mt-3 animate-pulse" />
           </View>
+
           <View className="h-8 w-24 rounded-full bg-zinc-200 dark:bg-zinc-700 animate-pulse" />
         </View>
 
@@ -59,6 +262,7 @@ function RequestDetailSkeleton() {
             <View className="h-3 w-12 rounded-full bg-zinc-200 dark:bg-zinc-700 animate-pulse" />
             <View className="h-5 w-20 rounded-full bg-zinc-200 dark:bg-zinc-700 mt-2 animate-pulse" />
           </View>
+
           <View>
             <View className="h-3 w-16 rounded-full bg-zinc-200 dark:bg-zinc-700 animate-pulse" />
             <View className="h-5 w-8 rounded-full bg-zinc-200 dark:bg-zinc-700 mt-2 animate-pulse" />
@@ -78,8 +282,10 @@ function RequestDetailSkeleton() {
               <View className="h-4 w-24 rounded-full bg-zinc-200 dark:bg-zinc-700 animate-pulse" />
               <View className="h-5 w-5/6 rounded-full bg-zinc-200 dark:bg-zinc-700 mt-3 animate-pulse" />
             </View>
+
             <View className="h-7 w-20 rounded-full bg-zinc-200 dark:bg-zinc-700 animate-pulse" />
           </View>
+
           <View className="h-3 w-3/4 rounded-full bg-zinc-200 dark:bg-zinc-700 mt-4 animate-pulse" />
         </View>
       ))}
@@ -93,9 +299,11 @@ function MaterialEmptyState() {
       <View className="h-14 w-14 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800">
         <Ionicons name="cube-outline" size={26} color="#9CA3AF" />
       </View>
+
       <Text className="mt-3 text-sm font-semibold text-foreground dark:text-dark-foreground text-center">
         Sin materiales
       </Text>
+
       <Text className="mt-1 text-xs text-mutedForeground dark:text-dark-mutedForeground text-center">
         Esta solicitud no trae detalle de materiales.
       </Text>
@@ -105,19 +313,21 @@ function MaterialEmptyState() {
 
 export default function RequestDetailScreen({ request, requestId }: Props) {
   const router = useRouter();
+
   const showOverlay = useOverlayStore((s) => s.show);
+
   const params = useLocalSearchParams<{
     id?: string;
     scrollY?: string;
     filter?: string;
     q?: string;
   }>();
+
   const [loading, setLoading] = useState(false);
+
   const [data, setData] = useState<Request | null>(request ?? null);
+
   const [showStatusTracking, setShowStatusTracking] = useState(true);
-  const [expandedMaterials, setExpandedMaterials] = useState<Set<string>>(
-    new Set(),
-  );
 
   const resolvedId = useMemo(
     () => requestId ?? params.id ?? request?.id ?? null,
@@ -126,19 +336,27 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
 
   useEffect(() => {
     let isMounted = true;
+
     const loadRequest = async () => {
       if (!resolvedId) return;
+
       if (request && request.id === resolvedId) {
         setData(request);
         return;
       }
 
       setLoading(true);
+
       try {
         const found = await RequestService.getById(resolvedId);
-        if (isMounted) setData(found);
+
+        if (isMounted) {
+          setData(found);
+        }
       } finally {
-        if (isMounted) setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
@@ -153,15 +371,24 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
 
   const formatDate = (isoDate: string) => {
     const parsed = new Date(isoDate);
-    if (Number.isNaN(parsed.getTime())) return "Sin fecha";
+
+    if (Number.isNaN(parsed.getTime())) {
+      return "Sin fecha";
+    }
+
     return parsed.toLocaleDateString();
   };
 
   const formatDateTime = (isoDate?: string | null) => {
-    if (!isoDate) return "Pendiente";
+    if (!isoDate) {
+      return "Pendiente";
+    }
 
     const parsed = new Date(isoDate);
-    if (Number.isNaN(parsed.getTime())) return "Sin fecha";
+
+    if (Number.isNaN(parsed.getTime())) {
+      return "Sin fecha";
+    }
 
     return parsed.toLocaleString("es-VE", {
       day: "2-digit",
@@ -173,7 +400,10 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
   };
 
   const formatOptionalDate = (isoDate?: string | null) => {
-    if (!isoDate) return "No realizado";
+    if (!isoDate) {
+      return "No realizado";
+    }
+
     return formatDate(isoDate);
   };
 
@@ -184,16 +414,19 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
           label: "Creado por",
           value: requestData.registradopor ? requestData.registradopor : "-",
         };
+
       case 1:
         return {
           label: "Autorizado por",
           value: requestData.autorizadopor ? requestData.autorizadopor : "-",
         };
+
       case 2:
         return {
           label: "Autorizado Despacho",
           value: requestData.despacharpor ? requestData.despacharpor : "-",
         };
+
       case 3:
         return requestData.ped_num
           ? {
@@ -201,6 +434,7 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
               value: requestData.ped_num,
             }
           : null;
+
       case 4:
         return requestData.co_us_comp
           ? {
@@ -208,6 +442,7 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
               value: `${requestData.co_us_comp}`,
             }
           : null;
+
       case 5:
         return requestData.comp_num
           ? {
@@ -215,11 +450,13 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
               value: `#${requestData.comp_num}`,
             }
           : null;
+
       case 6:
         return {
           label: "Anulado por",
           value: requestData.anuladopor ? requestData.anuladopor : "-",
         };
+
       default:
         return null;
     }
@@ -227,10 +464,14 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
 
   const copyOrderNumber = async (orderNumber?: string | null) => {
     const value = orderNumber?.trim();
-    if (!value) return;
+
+    if (!value) {
+      return;
+    }
 
     try {
       await Clipboard.setStringAsync(value);
+
       showOverlay("info", {
         title: "Número copiado",
         subtitle: `Pedido ${value} copiado al portapapeles.`,
@@ -243,26 +484,19 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
     }
   };
 
-  const toggleMaterialExpanded = (key: string) => {
-    setExpandedMaterials((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) {
-        next.delete(key);
-      } else {
-        next.add(key);
-      }
-      return next;
-    });
-  };
-
   const renderMaterialKey = (item: Request["items"][number], index: number) => {
     const code = item.codigomaterial?.trim() || "SIN";
+
     const codart = item.codart != null ? String(item.codart) : "sin-codart";
+
     return `${code}-${codart}-${index}`;
   };
 
   const formatMoney = (value?: number | null) => {
-    if (value == null || Number.isNaN(value)) return null;
+    if (value == null || Number.isNaN(value)) {
+      return null;
+    }
+
     return value.toLocaleString("es-VE", {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
@@ -289,12 +523,155 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
         <Text className="text-[15px] font-bold text-foreground dark:text-dark-foreground">
           {label}
         </Text>
+
         <Text
-          className="flex-1  text-[14px] text-mutedForeground dark:text-dark-mutedForeground"
+          className="flex-1 text-[14px] text-mutedForeground dark:text-dark-mutedForeground"
           numberOfLines={2}
         >
           {value || fallback}
         </Text>
+      </View>
+    );
+  };
+
+  /**
+   * Timeline visual del proceso de un material.
+   */
+  const MaterialProcessTimeline = ({
+    material,
+  }: {
+    material: Request["items"][number];
+  }) => {
+    const process = getMaterialProcess(material);
+
+    return (
+      <View className="mt-4 rounded-2xl border border-sky-100/80 dark:border-sky-900/40 bg-sky-50/40 dark:bg-slate-950/20 p-3">
+        <View className="flex-row items-center gap-2">
+          <View className="h-8 w-8 items-center justify-center rounded-full bg-sky-500/10 dark:bg-sky-400/15">
+            <Ionicons name="git-network-outline" size={16} color="#0EA5E9" />
+          </View>
+
+          <View className="flex-1">
+            <Text className="text-[13px] font-extrabold text-foreground dark:text-dark-foreground">
+              Proceso del material
+            </Text>
+
+            <Text className="text-[10px] text-mutedForeground dark:text-dark-mutedForeground">
+              Seguimiento individual
+            </Text>
+          </View>
+        </View>
+
+        <View className="mt-4">
+          {process.map((step, index) => {
+            const isLast = index === process.length - 1;
+
+            const isAnActiveStep = step.current && step.done;
+
+            return (
+              <View key={step.key} className="flex-row">
+                {/* Línea + indicador */}
+                <View className="items-center mr-3">
+                  {isAnActiveStep ? (
+                    <View className="h-7 w-7 rounded-full border-2 border-sky-500 dark:border-sky-400 bg-sky-500/20 dark:bg-sky-400/20 items-center justify-center">
+                      <View className="h-2.5 w-2.5 rounded-full bg-sky-600 dark:bg-sky-300" />
+                    </View>
+                  ) : step.done ? (
+                    <View className="h-7 w-7 rounded-full bg-emerald-500 items-center justify-center shadow-sm shadow-emerald-500/20">
+                      <Ionicons name="checkmark" size={15} color="#FFFFFF" />
+                    </View>
+                  ) : (
+                    <View className="h-7 w-7 rounded-full border border-sky-200 dark:border-sky-900/50 bg-white/80 dark:bg-slate-950/60 items-center justify-center">
+                      <View className="h-1.5 w-1.5 rounded-full bg-sky-300 dark:bg-sky-700" />
+                    </View>
+                  )}
+
+                  {!isLast && (
+                    <View
+                      className={`w-[2px] flex-1 my-1 ${
+                        step.done
+                          ? "bg-emerald-500/60 dark:bg-emerald-500/40"
+                          : "bg-sky-100 dark:bg-sky-900/35"
+                      }`}
+                    />
+                  )}
+                </View>
+
+                {/* Contenido */}
+                <View className={`flex-1 ${!isLast ? "pb-3" : "pb-1"}`}>
+                  <View
+                    className={`rounded-2xl border p-3 ${
+                      step.current
+                        ? "border-sky-400/40 bg-sky-100/90 dark:border-sky-400/35 dark:bg-sky-950/25"
+                        : step.done
+                          ? "border-emerald-200/70 dark:border-emerald-900/50 bg-emerald-50/70 dark:bg-emerald-950/15"
+                          : "border-sky-100 dark:border-sky-900/35 bg-sky-50/30 dark:bg-slate-950/20 opacity-80"
+                    }`}
+                  >
+                    <View className="flex-row items-center justify-between gap-2">
+                      <View className="flex-row items-center gap-1.5 flex-1">
+                        <Ionicons
+                          name={step.icon}
+                          size={13}
+                          color={
+                            step.current
+                              ? "#0369A1"
+                              : step.done
+                                ? "#047857"
+                                : "#7DD3FC"
+                          }
+                        />
+
+                        <Text
+                          className={`text-[12px] font-extrabold ${
+                            step.current
+                              ? "text-sky-700 dark:text-sky-200"
+                              : step.done
+                                ? "text-emerald-800 dark:text-emerald-200"
+                                : "text-sky-700/60 dark:text-sky-200/50"
+                          }`}
+                          numberOfLines={1}
+                        >
+                          {step.label}
+                        </Text>
+                      </View>
+
+                      {step.current && (
+                        <View className="rounded-full bg-sky-500/15 dark:bg-sky-400/20 px-2 py-0.5">
+                          <Text className="text-[9px] font-black text-sky-700 dark:text-sky-200 uppercase tracking-wider">
+                            Actual
+                          </Text>
+                        </View>
+                      )}
+
+                      {!step.current && step.done && (
+                        <View className="rounded-full bg-emerald-500/10 dark:bg-emerald-400/10 px-2 py-0.5">
+                          <Text className="text-[9px] font-bold text-emerald-700 dark:text-emerald-300 uppercase">
+                            Listo
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+
+                    {!!step.detail && (
+                      <Text
+                        className={`mt-1.5 text-[10px] leading-4 ${
+                          step.current
+                            ? "text-sky-800/80 dark:text-sky-100/70"
+                            : step.done
+                              ? "text-emerald-800/70 dark:text-emerald-100/65"
+                              : "text-mutedForeground dark:text-dark-mutedForeground"
+                        }`}
+                      >
+                        {step.detail}
+                      </Text>
+                    )}
+                  </View>
+                </View>
+              </View>
+            );
+          })}
+        </View>
       </View>
     );
   };
@@ -304,46 +681,67 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
     index: number,
   ) => {
     const key = renderMaterialKey(material, index);
-    const isExpanded = expandedMaterials.has(key);
 
     const price = formatMoney(material.precio);
+
     const requestedQuantity = Math.max(
       1,
-      material.quantity || material.cantidadsolicitada || 1,
+      Number(material.quantity ?? material.cantidadsolicitada ?? 1),
     );
-    const approvedQuantity = Math.max(0, material.cantidadautorizada || 0);
-    const purchasedQuantity = Math.max(0, material.cantidadcompra || 0);
-    const dispatchedQuantity = Math.max(0, material.cantidaddespacho || 0);
-    const availableQuantity = Math.max(0, material.cantidaddisponible || 0);
+
+    const approvedQuantity = Math.max(
+      0,
+      Number(material.cantidadautorizada ?? 0),
+    );
+
+    const purchasedQuantity = Math.max(0, Number(material.cantidadcompra ?? 0));
+
+    const dispatchedQuantity = Math.max(
+      0,
+      Number(material.cantidaddespacho ?? 0),
+    );
+
+    const availableQuantity = Math.max(
+      0,
+      Number(material.cantidaddisponible ?? 0),
+    );
+
     const materialTitle =
       material.description || material.material || "Material sin descripción";
-    const percent = (value: number) =>
-      Math.min(100, Math.round((value / requestedQuantity) * 100));
-    const approvedPercent = percent(approvedQuantity);
-    const purchasedPercent = percent(purchasedQuantity);
-    const lineInfo = [material.linea, material.sublinea, material.categoria]
-      .filter(Boolean)
-      .join(" / ");
-    const hasAuthInfo = Boolean(
-      material.autorizadopor ||
-      material.fechaautorizado ||
-      material.observacion,
-    );
+
+    const unitLabel = material.coduni || material.unidad || "No indicada";
+
+    const authorizerLabel = material.autorizadopor || "No indicado";
+
+    const process = getMaterialProcess(material);
+
+    const currentProcessStep =
+      process.find((step) => step.current) ?? process[0];
+
+    const statusBarClass =
+      currentProcessStep.key === "purchase" ||
+      currentProcessStep.key === "purchaseAuthorized"
+        ? "bg-sky-500"
+        : currentProcessStep.key === "dispatch"
+          ? "bg-violet-500"
+          : currentProcessStep.key === "authorized"
+            ? "bg-emerald-500"
+            : "bg-amber-400";
 
     return (
       <View
         key={key}
         className="mb-3 overflow-hidden rounded-[28px] border border-zinc-200/70 dark:border-zinc-800 bg-componentbg dark:bg-dark-componentbg shadow-sm shadow-black/5"
       >
-        <View
-          className={`h-1 ${material.autorizado ? "bg-emerald-500" : "bg-amber-400"}`}
-        />
+        {/* Indicador superior del estado */}
+        <View className={`h-1 ${statusBarClass}`} />
 
         <View className="p-4">
-          {/* Header: imagen + título + badges */}
+          {/* Header */}
           <View className="flex-row gap-3">
             <View className="relative h-24 w-24 overflow-hidden rounded-2xl border border-zinc-200/60 dark:border-zinc-800/60 bg-neutral-50 dark:bg-dark-background shrink-0">
               <CustomImagen img={material.imagen1 ?? ""} content="cover" />
+
               <View className="absolute left-1.5 top-1.5 rounded-full bg-primary dark:bg-dark-primary px-2 py-0.5">
                 <Text className="text-[10px] font-black text-white dark:text-zinc-950">
                   x{requestedQuantity}
@@ -355,46 +753,35 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
               <Text className="text-[10px] font-semibold tracking-[1px] text-primary dark:text-dark-primary uppercase">
                 {material.codigomaterial || "SIN CÓDIGO"}
               </Text>
+
               <Text
                 className="mt-0.5 text-[15px] font-black leading-5 text-foreground dark:text-dark-foreground"
                 numberOfLines={2}
               >
                 {materialTitle}
               </Text>
-              {!!lineInfo && (
-                <Text
-                  className="mt-1 text-[11px] font-medium text-mutedForeground dark:text-dark-mutedForeground/85"
-                  numberOfLines={1}
-                >
-                  {lineInfo}
-                </Text>
-              )}
 
               <View className="mt-2 flex-row flex-wrap gap-1.5">
-                <View
-                  className={`rounded-full px-2 py-1 ${
-                    material.autorizado
-                      ? "bg-emerald-500/10 dark:bg-emerald-500/20"
-                      : "bg-amber-500/10 dark:bg-amber-500/20"
-                  }`}
-                >
-                  <Text
-                    className={`text-[10px] font-bold uppercase ${
-                      material.autorizado
-                        ? "text-emerald-600 dark:text-emerald-300"
-                        : "text-amber-600 dark:text-amber-300"
-                    }`}
-                  >
-                    {material.autorizado ? "Aprobado" : "Pendiente"}
+                <View className="rounded-full bg-sky-500/10 dark:bg-sky-500/20 px-2 py-1">
+                  <Text className="text-[10px] font-bold text-sky-600 dark:text-sky-300 uppercase">
+                    Unidad: {unitLabel}
                   </Text>
                 </View>
+
+                <View className="rounded-full bg-emerald-500/10 dark:bg-emerald-500/20 px-2 py-1">
+                  <Text className="text-[10px] font-bold text-emerald-600 dark:text-emerald-300 uppercase">
+                    Autorizó: {authorizerLabel}
+                  </Text>
+                </View>
+
                 {material.comprar && (
                   <View className="rounded-full bg-sky-500/10 dark:bg-sky-500/20 px-2 py-1">
                     <Text className="text-[10px] font-bold text-sky-600 dark:text-sky-300 uppercase">
-                      En compra
+                      Compra autorizada
                     </Text>
                   </View>
                 )}
+
                 {price && (
                   <View className="rounded-full border border-zinc-200 dark:border-zinc-800 px-2 py-1">
                     <Text className="text-[10px] font-bold text-mutedForeground dark:text-dark-mutedForeground">
@@ -406,127 +793,51 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
             </View>
           </View>
 
-          {/* Progreso resumido: lo único que importa a simple vista */}
-          <View className="mt-4 gap-2.5">
-            <View>
-              <View className="flex-row items-center justify-between">
-                <Text className="text-[11px] font-semibold text-mutedForeground dark:text-dark-mutedForeground uppercase">
-                  Aprobado
-                </Text>
-                <Text className="text-[11px] font-bold text-foreground dark:text-dark-foreground">
-                  {approvedQuantity}/{requestedQuantity}
-                </Text>
-              </View>
-              <View className="mt-1 h-1.5 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800">
-                <View
-                  className="h-full rounded-full bg-primary dark:bg-dark-primary"
-                  style={{ width: `${approvedPercent}%` }}
-                />
-              </View>
+          {/* Resumen de cantidades */}
+          <View className="mt-4 flex-row gap-2">
+            <View className="flex-1 rounded-2xl bg-zinc-50 dark:bg-slate-950/30 border border-zinc-100 dark:border-zinc-800 px-3 py-2.5">
+              <Text className="text-[9px] font-bold text-mutedForeground dark:text-dark-mutedForeground uppercase">
+                Solicitado
+              </Text>
+
+              <Text className="mt-0.5 text-sm font-black text-foreground dark:text-dark-foreground">
+                {requestedQuantity}
+              </Text>
             </View>
 
-            <View>
-              <View className="flex-row items-center justify-between">
-                <Text className="text-[11px] font-semibold text-mutedForeground dark:text-dark-mutedForeground uppercase">
-                  Comprado
-                </Text>
-                <Text className="text-[11px] font-bold text-foreground dark:text-dark-foreground">
-                  {purchasedQuantity}/{requestedQuantity}
-                </Text>
-              </View>
-              <View className="mt-1 h-1.5 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800">
-                <View
-                  className="h-full rounded-full bg-emerald-500"
-                  style={{ width: `${purchasedPercent}%` }}
-                />
-              </View>
+            <View className="flex-1 rounded-2xl bg-emerald-50/60 dark:bg-emerald-950/10 border border-emerald-100 dark:border-emerald-900/30 px-3 py-2.5">
+              <Text className="text-[9px] font-bold text-emerald-600 dark:text-emerald-300 uppercase">
+                Autorizado
+              </Text>
+
+              <Text className="mt-0.5 text-sm font-black text-emerald-700 dark:text-emerald-200">
+                {approvedQuantity}
+              </Text>
+            </View>
+
+            <View className="flex-1 rounded-2xl bg-violet-50/60 dark:bg-violet-950/10 border border-violet-100 dark:border-violet-900/30 px-3 py-2.5">
+              <Text className="text-[9px] font-bold text-violet-600 dark:text-violet-300 uppercase">
+                Despachado
+              </Text>
+
+              <Text className="mt-0.5 text-sm font-black text-violet-700 dark:text-violet-200">
+                {dispatchedQuantity}
+              </Text>
+            </View>
+
+            <View className="flex-1 rounded-2xl bg-sky-50/60 dark:bg-sky-950/10 border border-sky-100 dark:border-sky-900/30 px-3 py-2.5">
+              <Text className="text-[9px] font-bold text-sky-600 dark:text-sky-300 uppercase">
+                Comprado
+              </Text>
+
+              <Text className="mt-0.5 text-sm font-black text-sky-700 dark:text-sky-200">
+                {purchasedQuantity}
+              </Text>
             </View>
           </View>
 
-          {/* Toggle de detalle */}
-          <Pressable
-            onPress={() => toggleMaterialExpanded(key)}
-            className="mt-3 flex-row items-center justify-center gap-1 rounded-xl py-2 active:opacity-60"
-            accessibilityRole="button"
-            accessibilityLabel={
-              isExpanded
-                ? "Ocultar detalle del material"
-                : "Ver detalle del material"
-            }
-          >
-            <Text className="text-xs font-bold text-primary dark:text-dark-primary">
-              {isExpanded ? "Ocultar detalle" : "Ver detalle"}
-            </Text>
-            <Ionicons
-              name={isExpanded ? "chevron-up" : "chevron-down"}
-              size={14}
-              color="#0EA5E9"
-            />
-          </Pressable>
-
-          {isExpanded && (
-            <View className="mt-1 rounded-2xl border border-zinc-200/70 dark:border-zinc-800 bg-background dark:bg-dark-background p-3">
-              <View className="flex-row flex-wrap gap-2">
-                {(material.coduni || material.unidad) && (
-                  <View className="basis-[31%] flex-1 min-w-[90px] rounded-xl bg-componentbg dark:bg-dark-componentbg px-2.5 py-2">
-                    <Text className="text-[9px] font-semibold text-mutedForeground dark:text-dark-mutedForeground uppercase">
-                      Unidad
-                    </Text>
-                    <Text className="mt-0.5 text-xs font-bold text-foreground dark:text-dark-foreground">
-                      {material.coduni || material.unidad}
-                    </Text>
-                  </View>
-                )}
-                {material.codart != null && (
-                  <View className="basis-[31%] flex-1 min-w-[90px] rounded-xl bg-componentbg dark:bg-dark-componentbg px-2.5 py-2">
-                    <Text className="text-[9px] font-semibold text-mutedForeground dark:text-dark-mutedForeground uppercase">
-                      Codart
-                    </Text>
-                    <Text className="mt-0.5 text-xs font-bold text-foreground dark:text-dark-foreground">
-                      {material.codart}
-                    </Text>
-                  </View>
-                )}
-                <View className="basis-[31%] flex-1 min-w-[90px] rounded-xl bg-componentbg dark:bg-dark-componentbg px-2.5 py-2">
-                  <Text className="text-[9px] font-semibold text-mutedForeground dark:text-dark-mutedForeground uppercase">
-                    Despachado
-                  </Text>
-                  <Text className="mt-0.5 text-xs font-bold text-foreground dark:text-dark-foreground">
-                    {dispatchedQuantity}
-                  </Text>
-                </View>
-                <View className="basis-[31%] flex-1 min-w-[90px] rounded-xl bg-componentbg dark:bg-dark-componentbg px-2.5 py-2">
-                  <Text className="text-[9px] font-semibold text-mutedForeground dark:text-dark-mutedForeground uppercase">
-                    Disponible
-                  </Text>
-                  <Text className="mt-0.5 text-xs font-bold text-foreground dark:text-dark-foreground">
-                    {availableQuantity}
-                  </Text>
-                </View>
-              </View>
-
-              {hasAuthInfo && (
-                <View className="mt-3 gap-1.5 border-t border-zinc-200/70 dark:border-zinc-800 pt-3">
-                  {material.autorizadopor ? (
-                    <Text className="text-xs text-mutedForeground dark:text-dark-mutedForeground">
-                      Autorizado por{" "}
-                      <Text className="font-bold text-foreground dark:text-dark-foreground">
-                        {material.autorizadopor}
-                      </Text>
-                      {material.fechaautorizado
-                        ? ` · ${formatDate(String(material.fechaautorizado))}`
-                        : ""}
-                    </Text>
-                  ) : null}
-                  {material.observacion ? (
-                    <Text className="text-xs text-mutedForeground dark:text-dark-mutedForeground">
-                      {material.observacion}
-                    </Text>
-                  ) : null}
-                </View>
-              )}
-            </View>
-          )}
+          {/* NUEVO: proceso individual del material */}
+          <MaterialProcessTimeline material={material} />
         </View>
       </View>
     );
@@ -539,6 +850,7 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
           requestData.anulado === 1 || Boolean(requestData.statusDates?.[6])
         );
       }
+
       return true;
     });
 
@@ -546,27 +858,31 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
 
     return (
       <View>
-        {/* --- Card principal: identidad de la solicitud --- */}
+        {/* Card principal */}
         <View className="rounded-3xl border border-zinc-200/70 dark:border-zinc-800 bg-componentbg dark:bg-dark-componentbg p-4">
           <View className="flex-row items-start justify-between gap-3">
             <View className="flex-1">
               <Text className="text-xl font-black tracking-[1.2px] text-primary dark:text-dark-primary uppercase">
                 Solicitud #{requestData.id}
               </Text>
+
               <Text
                 className="mt-1 text-xl font-bold leading-6 text-foreground dark:text-dark-foreground"
                 numberOfLines={2}
               >
                 {requestData.title}
               </Text>
+
               <View className="mt-2 flex-row items-center gap-1.5">
                 <Ionicons name="cube-outline" size={13} color="#9CA3AF" />
+
                 <Text className="text-sm font-medium text-mutedForeground dark:text-dark-mutedForeground">
                   {materialCount}{" "}
                   {materialCount === 1 ? "material" : "materiales"}
                 </Text>
               </View>
             </View>
+
             <StatusBadge
               status={requestData.status}
               label={requestData.estatusLabel}
@@ -576,13 +892,16 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
           {requestData.anulado === 1 && (
             <View className="mt-3 flex-row items-start gap-2.5 rounded-2xl border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/30 px-3 py-3">
               <Ionicons name="alert-circle" size={18} color="#DC2626" />
+
               <View className="flex-1">
                 <Text className="text-xs font-bold text-red-700 dark:text-red-300 uppercase">
                   Solicitud anulada
                 </Text>
+
                 <Text className="mt-1 text-sm font-semibold text-red-700 dark:text-red-200">
                   {requestData.motivoanulado || "No se indicó motivo"}
                 </Text>
+
                 <Text className="mt-1 text-xs text-red-500 dark:text-red-300/80">
                   {formatOptionalDate(requestData.fechaanulado)}
                 </Text>
@@ -592,21 +911,27 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
 
           <View className="mt-4 overflow-hidden rounded-2x">
             <MetaRow label="Solicitante" value={requestData.solicitanteuser} />
+
             <MetaRow
               label="Utilización"
               value={formatOptionalDate(requestData.fechautilizacion)}
             />
+
             <MetaRow label="Partida" value={requestData.actividad} />
+
             <MetaRow
               label="Dirección de entrega"
               value={requestData.direccionentrega}
             />
+
             <MetaRow label="Observación" value={requestData.observacion} />
+
             <MetaRow
               label="Comentario de despacho"
               value={requestData.comentadespachar}
               fallback="-"
             />
+
             <MetaRow
               label="Comentario de compra"
               value={requestData.comentacomprar}
@@ -616,7 +941,7 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
           </View>
         </View>
 
-        {/* --- Card de seguimiento de estatus --- */}
+        {/* Seguimiento de solicitud */}
         <View className="mt-3 rounded-3xl border border-sky-100/70 dark:border-sky-900/30 bg-componentbg/80 dark:bg-slate-950/25 p-4">
           <Pressable
             onPress={() => setShowStatusTracking((prev) => !prev)}
@@ -632,10 +957,12 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
               <View className="h-8 w-8 items-center justify-center rounded-full bg-sky-500/10 dark:bg-sky-400/15">
                 <Ionicons name="time-outline" size={16} color="#0EA5E9" />
               </View>
+
               <View>
                 <Text className="text-[14px] font-extrabold text-foreground dark:text-dark-foreground">
                   Seguimiento de estados
                 </Text>
+
                 <Text className="text-xs text-mutedForeground dark:text-dark-mutedForeground">
                   Línea de tiempo de la solicitud
                 </Text>
@@ -646,6 +973,7 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
               <Text className="text-xs font-extrabold text-sky-700 dark:text-sky-200">
                 {showStatusTracking ? "Ocultar" : "Ver todo"}
               </Text>
+
               <Ionicons
                 name={showStatusTracking ? "chevron-up" : "chevron-down"}
                 size={14}
@@ -658,11 +986,16 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
             <View className="pt-4 px-1">
               {visibleStatusItems.map((item, index) => {
                 const date = requestData.statusDates?.[item.status];
+
                 const isCurrent = requestData.status === item.status;
+
                 const isDone = Boolean(date);
+
                 const isLast = index === visibleStatusItems.length - 1;
+
                 const isAnulado =
                   item.status === 6 || (isCurrent && requestData.anulado === 1);
+
                 const act = getStatusAct(requestData, item.status);
 
                 return (
@@ -726,6 +1059,7 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
                                     : "#7DD3FC"
                               }
                             />
+
                             <Text
                               className={`text-sm font-extrabold ${
                                 isCurrent
@@ -755,6 +1089,7 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
                                 ? `${act.label}: ${act.value || "No indicado"}`
                                 : "No indicado"}
                             </Text>
+
                             <Text
                               className={`shrink-0 text-xs font-bold text-right ${
                                 isDone
@@ -765,6 +1100,7 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
                               {formatDateTime(date)}
                             </Text>
                           </View>
+
                           {act &&
                           (item.status === 3 || item.status === 5) &&
                           act.value ? (
@@ -783,6 +1119,7 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
                                 size={12}
                                 color="#0EA5E9"
                               />
+
                               <Text className="text-[11px] font-bold text-sky-700 dark:text-sky-200">
                                 {item.status === 5
                                   ? "Copiar compra"
@@ -798,22 +1135,25 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
               })}
             </View>
           )}
-        </View>
 
-        <View className="mt-5 mb-3 flex-row items-center justify-between">
-          <Text className="text-base font-extrabold text-foreground dark:text-dark-foreground">
-            Materiales
-          </Text>
-          <Text className="text-xs font-semibold text-mutedForeground dark:text-dark-mutedForeground">
-            {materialCount} {materialCount === 1 ? "ítem" : "ítems"}
-          </Text>
+          <View className="mt-5 mb-3 flex-row items-center justify-between">
+            <Text className="text-base font-extrabold text-foreground dark:text-dark-foreground">
+              Materiales
+            </Text>
+
+            <Text className="text-xs font-semibold text-mutedForeground dark:text-dark-mutedForeground">
+              {materialCount} {materialCount === 1 ? "ítem" : "ítems"}
+            </Text>
+          </View>
         </View>
       </View>
     );
   };
 
   const modalData = useMemo<RequestModalItem[]>(() => {
-    if (!s) return [];
+    if (!s) {
+      return [];
+    }
 
     const materialItems = s.items.map((material, index) => ({
       type: "material" as const,
@@ -822,23 +1162,42 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
     }));
 
     return [
-      { type: "summary", request: s },
+      {
+        type: "summary",
+        request: s,
+      },
       ...(materialItems.length > 0
         ? materialItems
-        : [{ type: "empty" as const, id: "empty-materials" }]),
+        : [
+            {
+              type: "empty" as const,
+              id: "empty-materials",
+            },
+          ]),
     ];
   }, [s]);
 
   const renderModalItem = ({ item }: { item: RequestModalItem }) => {
-    if (item.type === "summary")
+    if (item.type === "summary") {
       return renderRequestHeaderSummary(item.request);
-    if (item.type === "empty") return <MaterialEmptyState />;
+    }
+
+    if (item.type === "empty") {
+      return <MaterialEmptyState />;
+    }
+
     return renderMaterialCard(item.material, item.index);
   };
 
   const renderModalItemKey = (item: RequestModalItem) => {
-    if (item.type === "summary") return `summary-${item.request.id}`;
-    if (item.type === "empty") return item.id;
+    if (item.type === "summary") {
+      return `summary-${item.request.id}`;
+    }
+
+    if (item.type === "empty") {
+      return item.id;
+    }
+
     return renderMaterialKey(item.material, item.index);
   };
 
@@ -852,12 +1211,15 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
         <View className="h-16 w-16 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800">
           <Ionicons name="document-text-outline" size={30} color="#9CA3AF" />
         </View>
+
         <Text className="mt-4 text-lg font-bold text-foreground dark:text-dark-foreground">
           No se encontró la solicitud
         </Text>
+
         <Text className="mt-1 text-sm text-mutedForeground dark:text-dark-mutedForeground text-center">
           Puede que haya sido eliminada o el enlace no sea válido.
         </Text>
+
         <Pressable
           onPress={() =>
             router.replace({
@@ -899,6 +1261,7 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
           accessibilityLabel="Volver a la pantalla anterior"
         >
           <Ionicons name="chevron-back" size={16} color="#0EA5E9" />
+
           <Text className="text-sm font-semibold text-foreground dark:text-dark-foreground">
             Volver
           </Text>
@@ -916,7 +1279,10 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
           showtitle={false}
           showScrollTopButton={false}
           estimatedItemSize={132}
-          contentContainerStyle={{ paddingTop: 2, paddingBottom: 18 }}
+          contentContainerStyle={{
+            paddingTop: 2,
+            paddingBottom: 18,
+          }}
           paddingHorizontal={0}
         />
       </View>
