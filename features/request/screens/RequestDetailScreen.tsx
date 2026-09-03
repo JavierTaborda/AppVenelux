@@ -20,14 +20,22 @@ type RequestModalItem =
   | { type: "empty"; id: string }
   | { type: "material"; material: Request["items"][number]; index: number };
 
-const STATUS_DATE_ITEMS: { status: Request["status"]; label: string }[] = [
-  { status: 0, label: "Solicitud" },
-  { status: 1, label: "Autorizada solicitud" },
-  { status: 2, label: "Autorizado despacho" },
-  { status: 3, label: "En despacho" },
-  { status: 4, label: "Autorizado comprar" },
-  { status: 5, label: "En compra" },
-  { status: 6, label: "Anulado" },
+const STATUS_DATE_ITEMS: {
+  status: Request["status"];
+  label: string;
+  icon: keyof typeof Ionicons.glyphMap;
+}[] = [
+  { status: 0, label: "Solicitud", icon: "document-text-outline" },
+  {
+    status: 1,
+    label: "Autorizada solicitud",
+    icon: "checkmark-circle-outline",
+  },
+  { status: 2, label: "Autorizado despacho", icon: "checkmark-done-outline" },
+  { status: 3, label: "En despacho", icon: "cube-outline" },
+  { status: 4, label: "Autorizado comprar", icon: "cash-outline" },
+  { status: 5, label: "En compra", icon: "cart-outline" },
+  { status: 6, label: "Anulado", icon: "close-circle-outline" },
 ];
 
 function RequestDetailSkeleton() {
@@ -81,9 +89,14 @@ function RequestDetailSkeleton() {
 
 function MaterialEmptyState() {
   return (
-    <View className="rounded-3xl border border-dashed border-zinc-300 dark:border-zinc-700 p-5 items-center bg-componentbg dark:bg-dark-componentbg">
-      <Ionicons name="cube-outline" size={32} color="#9CA3AF" />
-      <Text className="mt-2 text-sm text-mutedForeground dark:text-dark-mutedForeground text-center">
+    <View className="items-center rounded-3xl border border-dashed border-zinc-300 dark:border-zinc-700 bg-componentbg dark:bg-dark-componentbg p-6">
+      <View className="h-14 w-14 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800">
+        <Ionicons name="cube-outline" size={26} color="#9CA3AF" />
+      </View>
+      <Text className="mt-3 text-sm font-semibold text-foreground dark:text-dark-foreground text-center">
+        Sin materiales
+      </Text>
+      <Text className="mt-1 text-xs text-mutedForeground dark:text-dark-mutedForeground text-center">
         Esta solicitud no trae detalle de materiales.
       </Text>
     </View>
@@ -101,8 +114,10 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
   }>();
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<Request | null>(request ?? null);
-  const [showStatusTracking, setShowStatusTracking] = useState(false);
-  const [showMoreInfo, setShowMoreInfo] = useState(false);
+  const [showStatusTracking, setShowStatusTracking] = useState(true);
+  const [expandedMaterials, setExpandedMaterials] = useState<Set<string>>(
+    new Set(),
+  );
 
   const resolvedId = useMemo(
     () => requestId ?? params.id ?? request?.id ?? null,
@@ -143,7 +158,7 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
   };
 
   const formatDateTime = (isoDate?: string | null) => {
-    if (!isoDate) return "No realizado";
+    if (!isoDate) return "Pendiente";
 
     const parsed = new Date(isoDate);
     if (Number.isNaN(parsed.getTime())) return "Sin fecha";
@@ -210,21 +225,6 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
     }
   };
 
-  const renderDetailField = (label: string, value?: string | null) => (
-    <View className="mt-1 rounded-2xl bg-componentbg dark:bg-dark-componentbg px-3 ">
-      <Text className="text-[14px] font-semibold text-foreground dark:text-dark-foreground">
-        {label}
-      </Text>
-      <Text className="mt-1 text-sm font-normal text-gray-800 dark:text-dark-mutedForeground">
-        {value || "No indicado"}
-      </Text>
-    </View>
-  );
-
-  const renderDetailDivider = () => (
-    <View className="my-2 border-b border-zinc-100 dark:border-zinc-800" />
-  );
-
   const copyOrderNumber = async (orderNumber?: string | null) => {
     const value = orderNumber?.trim();
     if (!value) return;
@@ -243,6 +243,18 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
     }
   };
 
+  const toggleMaterialExpanded = (key: string) => {
+    setExpandedMaterials((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  };
+
   const renderMaterialKey = (item: Request["items"][number], index: number) => {
     const code = item.codigomaterial?.trim() || "SIN";
     const codart = item.codart != null ? String(item.codart) : "sin-codart";
@@ -257,7 +269,43 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
     });
   };
 
-  const renderMaterialCard = (material: Request["items"][number]) => {
+  const MetaRow = ({
+    label,
+    value,
+    fallback = "No indicado",
+    isLast = false,
+  }: {
+    label: string;
+    value?: string | null;
+    fallback?: string;
+    isLast?: boolean;
+  }) => {
+    return (
+      <View
+        className={`flex-col items-start gap-1 py-2 ${
+          !isLast ? "border-b border-zinc-100 dark:border-zinc-800" : ""
+        }`}
+      >
+        <Text className="text-[15px] font-bold text-foreground dark:text-dark-foreground">
+          {label}
+        </Text>
+        <Text
+          className="flex-1  text-[14px] text-mutedForeground dark:text-dark-mutedForeground"
+          numberOfLines={2}
+        >
+          {value || fallback}
+        </Text>
+      </View>
+    );
+  };
+
+  const renderMaterialCard = (
+    material: Request["items"][number],
+    index: number,
+  ) => {
+    const key = renderMaterialKey(material, index);
+    const isExpanded = expandedMaterials.has(key);
+
     const price = formatMoney(material.precio);
     const requestedQuantity = Math.max(
       1,
@@ -276,199 +324,209 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
     const lineInfo = [material.linea, material.sublinea, material.categoria]
       .filter(Boolean)
       .join(" / ");
-    const statusLabel = material.autorizado ? "Aprobado" : "Pendiente";
-    const buyLabel = material.comprar ? "En compra" : "Sin compra";
+    const hasAuthInfo = Boolean(
+      material.autorizadopor ||
+      material.fechaautorizado ||
+      material.observacion,
+    );
 
     return (
-      <View className="mb-3 overflow-hidden rounded-[30px] border border-zinc-200/70 dark:border-zinc-800 bg-componentbg dark:bg-dark-componentbg shadow-sm shadow-black/5">
-        <View className="h-1.5 bg-primary/90 dark:bg-dark-primary" />
+      <View
+        key={key}
+        className="mb-3 overflow-hidden rounded-[28px] border border-zinc-200/70 dark:border-zinc-800 bg-componentbg dark:bg-dark-componentbg shadow-sm shadow-black/5"
+      >
+        <View
+          className={`h-1 ${material.autorizado ? "bg-emerald-500" : "bg-amber-400"}`}
+        />
+
         <View className="p-4">
+          {/* Header: imagen + título + badges */}
           <View className="flex-row gap-3">
-            <View className="relative h-28 w-28 overflow-hidden rounded-[24px] border border-zinc-200/60 dark:border-zinc-800/60 bg-neutral-50 dark:bg-dark-background shrink-0">
+            <View className="relative h-24 w-24 overflow-hidden rounded-2xl border border-zinc-200/60 dark:border-zinc-800/60 bg-neutral-50 dark:bg-dark-background shrink-0">
               <CustomImagen img={material.imagen1 ?? ""} content="cover" />
-              <View className="absolute left-2 top-2 rounded-full bg-primary dark:bg-dark-primary px-2.5 py-1">
-                <Text className="text-[10px] font-black tracking-[0.8px] text-white dark:text-zinc-950 uppercase">
+              <View className="absolute left-1.5 top-1.5 rounded-full bg-primary dark:bg-dark-primary px-2 py-0.5">
+                <Text className="text-[10px] font-black text-white dark:text-zinc-950">
                   x{requestedQuantity}
                 </Text>
               </View>
             </View>
 
-            <View className="flex-1 min-h-28 justify-between py-0.5">
-              <View>
-                <View className="flex-row items-start justify-between gap-3">
-                  <View className="flex-1 pr-1">
-                    <Text className="text-[10px] font-semibold tracking-[1.2px] text-primary dark:text-dark-primary uppercase">
-                      {material.codigomaterial || "SIN CÓDIGO"}
-                    </Text>
-                    <Text
-                      className="mt-1 text-[16px] font-black leading-5 text-foreground dark:text-dark-foreground"
-                      numberOfLines={3}
-                    >
-                      {materialTitle}
+            <View className="flex-1 justify-center">
+              <Text className="text-[10px] font-semibold tracking-[1px] text-primary dark:text-dark-primary uppercase">
+                {material.codigomaterial || "SIN CÓDIGO"}
+              </Text>
+              <Text
+                className="mt-0.5 text-[15px] font-black leading-5 text-foreground dark:text-dark-foreground"
+                numberOfLines={2}
+              >
+                {materialTitle}
+              </Text>
+              {!!lineInfo && (
+                <Text
+                  className="mt-1 text-[11px] font-medium text-mutedForeground dark:text-dark-mutedForeground/85"
+                  numberOfLines={1}
+                >
+                  {lineInfo}
+                </Text>
+              )}
+
+              <View className="mt-2 flex-row flex-wrap gap-1.5">
+                <View
+                  className={`rounded-full px-2 py-1 ${
+                    material.autorizado
+                      ? "bg-emerald-500/10 dark:bg-emerald-500/20"
+                      : "bg-amber-500/10 dark:bg-amber-500/20"
+                  }`}
+                >
+                  <Text
+                    className={`text-[10px] font-bold uppercase ${
+                      material.autorizado
+                        ? "text-emerald-600 dark:text-emerald-300"
+                        : "text-amber-600 dark:text-amber-300"
+                    }`}
+                  >
+                    {material.autorizado ? "Aprobado" : "Pendiente"}
+                  </Text>
+                </View>
+                {material.comprar && (
+                  <View className="rounded-full bg-sky-500/10 dark:bg-sky-500/20 px-2 py-1">
+                    <Text className="text-[10px] font-bold text-sky-600 dark:text-sky-300 uppercase">
+                      En compra
                     </Text>
                   </View>
-                </View>
+                )}
+                {price && (
+                  <View className="rounded-full border border-zinc-200 dark:border-zinc-800 px-2 py-1">
+                    <Text className="text-[10px] font-bold text-mutedForeground dark:text-dark-mutedForeground">
+                      ${price}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            </View>
+          </View>
 
-                <Text className="mt-2 text-[12px] font-medium leading-4 text-mutedForeground dark:text-dark-mutedForeground/85">
-                  {lineInfo || "Sin categoría"}
+          {/* Progreso resumido: lo único que importa a simple vista */}
+          <View className="mt-4 gap-2.5">
+            <View>
+              <View className="flex-row items-center justify-between">
+                <Text className="text-[11px] font-semibold text-mutedForeground dark:text-dark-mutedForeground uppercase">
+                  Aprobado
+                </Text>
+                <Text className="text-[11px] font-bold text-foreground dark:text-dark-foreground">
+                  {approvedQuantity}/{requestedQuantity}
                 </Text>
               </View>
+              <View className="mt-1 h-1.5 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800">
+                <View
+                  className="h-full rounded-full bg-primary dark:bg-dark-primary"
+                  style={{ width: `${approvedPercent}%` }}
+                />
+              </View>
+            </View>
 
-              <View className="mt-2 flex-row flex-wrap gap-2">
-                <View className="rounded-full bg-primary/10 dark:bg-dark-primary/20 px-2.5 py-1">
-                  <Text className="text-[10px] font-bold text-primary dark:text-dark-primary uppercase">
-                    {statusLabel}
-                  </Text>
-                </View>
-                <View className="rounded-full bg-emerald-500/10 dark:bg-emerald-500/20 px-2.5 py-1">
-                  <Text className="text-[10px] font-bold text-emerald-600 dark:text-emerald-300 uppercase">
-                    {buyLabel}
-                  </Text>
-                </View>
+            <View>
+              <View className="flex-row items-center justify-between">
+                <Text className="text-[11px] font-semibold text-mutedForeground dark:text-dark-mutedForeground uppercase">
+                  Comprado
+                </Text>
+                <Text className="text-[11px] font-bold text-foreground dark:text-dark-foreground">
+                  {purchasedQuantity}/{requestedQuantity}
+                </Text>
+              </View>
+              <View className="mt-1 h-1.5 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800">
+                <View
+                  className="h-full rounded-full bg-emerald-500"
+                  style={{ width: `${purchasedPercent}%` }}
+                />
+              </View>
+            </View>
+          </View>
+
+          {/* Toggle de detalle */}
+          <Pressable
+            onPress={() => toggleMaterialExpanded(key)}
+            className="mt-3 flex-row items-center justify-center gap-1 rounded-xl py-2 active:opacity-60"
+            accessibilityRole="button"
+            accessibilityLabel={
+              isExpanded
+                ? "Ocultar detalle del material"
+                : "Ver detalle del material"
+            }
+          >
+            <Text className="text-xs font-bold text-primary dark:text-dark-primary">
+              {isExpanded ? "Ocultar detalle" : "Ver detalle"}
+            </Text>
+            <Ionicons
+              name={isExpanded ? "chevron-up" : "chevron-down"}
+              size={14}
+              color="#0EA5E9"
+            />
+          </Pressable>
+
+          {isExpanded && (
+            <View className="mt-1 rounded-2xl border border-zinc-200/70 dark:border-zinc-800 bg-background dark:bg-dark-background p-3">
+              <View className="flex-row flex-wrap gap-2">
                 {(material.coduni || material.unidad) && (
-                  <View className="rounded-full border border-zinc-200 dark:border-zinc-800 bg-background dark:bg-dark-background px-2.5 py-1">
-                    <Text className="text-[10px] font-bold text-mutedForeground dark:text-dark-mutedForeground uppercase">
+                  <View className="basis-[31%] flex-1 min-w-[90px] rounded-xl bg-componentbg dark:bg-dark-componentbg px-2.5 py-2">
+                    <Text className="text-[9px] font-semibold text-mutedForeground dark:text-dark-mutedForeground uppercase">
+                      Unidad
+                    </Text>
+                    <Text className="mt-0.5 text-xs font-bold text-foreground dark:text-dark-foreground">
                       {material.coduni || material.unidad}
                     </Text>
                   </View>
                 )}
                 {material.codart != null && (
-                  <View className="rounded-full border border-zinc-200 dark:border-zinc-800 bg-background dark:bg-dark-background px-2.5 py-1">
-                    <Text className="text-[10px] font-bold text-mutedForeground dark:text-dark-mutedForeground uppercase">
-                      CODART {material.codart}
+                  <View className="basis-[31%] flex-1 min-w-[90px] rounded-xl bg-componentbg dark:bg-dark-componentbg px-2.5 py-2">
+                    <Text className="text-[9px] font-semibold text-mutedForeground dark:text-dark-mutedForeground uppercase">
+                      Codart
+                    </Text>
+                    <Text className="mt-0.5 text-xs font-bold text-foreground dark:text-dark-foreground">
+                      {material.codart}
                     </Text>
                   </View>
                 )}
-              </View>
-            </View>
-          </View>
-
-          <View className="mt-4 rounded-[24px] border border-zinc-200/70 dark:border-zinc-800 bg-background dark:bg-dark-background p-3">
-            <View className="flex-row items-center justify-between gap-2">
-              <Text className="text-xs font-semibold text-mutedForeground dark:text-dark-mutedForeground uppercase">
-                Resumen de cantidades
-              </Text>
-              <Text className="text-[11px] font-bold text-foreground dark:text-dark-foreground">
-                {approvedQuantity}/{requestedQuantity} aprobado
-              </Text>
-            </View>
-
-            <View className="mt-3 flex-row flex-wrap gap-2">
-              <View className="basis-[48%] flex-1 min-w-[140px] rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-componentbg dark:bg-dark-componentbg px-3 py-2.5">
-                <Text className="text-[10px] font-semibold text-mutedForeground dark:text-dark-mutedForeground uppercase">
-                  Solicitado
-                </Text>
-                <Text className="mt-0.5 text-base font-black text-foreground dark:text-dark-foreground">
-                  {requestedQuantity}
-                </Text>
-              </View>
-              <View className="basis-[48%] flex-1 min-w-[140px] rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-componentbg dark:bg-dark-componentbg px-3 py-2.5">
-                <Text className="text-[10px] font-semibold text-mutedForeground dark:text-dark-mutedForeground uppercase">
-                  Aprobado
-                </Text>
-                <Text className="mt-0.5 text-base font-black text-foreground dark:text-dark-foreground">
-                  {approvedQuantity}
-                </Text>
-              </View>
-              <View className="basis-[48%] flex-1 min-w-[140px] rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-componentbg dark:bg-dark-componentbg px-3 py-2.5">
-                <Text className="text-[10px] font-semibold text-mutedForeground dark:text-dark-mutedForeground uppercase">
-                  Comprado
-                </Text>
-                <Text className="mt-0.5 text-base font-black text-foreground dark:text-dark-foreground">
-                  {purchasedQuantity}
-                </Text>
-              </View>
-              <View className="basis-[48%] flex-1 min-w-[140px] rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-componentbg dark:bg-dark-componentbg px-3 py-2.5">
-                <Text className="text-[10px] font-semibold text-mutedForeground dark:text-dark-mutedForeground uppercase">
-                  Despachado
-                </Text>
-                <Text className="mt-0.5 text-base font-black text-foreground dark:text-dark-foreground">
-                  {dispatchedQuantity}
-                </Text>
-              </View>
-              <View className="basis-[48%] flex-1 min-w-[140px] rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-componentbg dark:bg-dark-componentbg px-3 py-2.5">
-                <Text className="text-[10px] font-semibold text-mutedForeground dark:text-dark-mutedForeground uppercase">
-                  Disponible
-                </Text>
-                <Text className="mt-0.5 text-base font-black text-foreground dark:text-dark-foreground">
-                  {availableQuantity}
-                </Text>
-              </View>
-            </View>
-
-            <View className="mt-4 gap-3">
-              <View>
-                <View className="flex-row items-center justify-between">
-                  <Text className="text-[11px] font-semibold text-mutedForeground dark:text-dark-mutedForeground uppercase">
-                    Aprobación
+                <View className="basis-[31%] flex-1 min-w-[90px] rounded-xl bg-componentbg dark:bg-dark-componentbg px-2.5 py-2">
+                  <Text className="text-[9px] font-semibold text-mutedForeground dark:text-dark-mutedForeground uppercase">
+                    Despachado
                   </Text>
-                  <Text className="text-[11px] font-bold text-foreground dark:text-dark-foreground">
-                    {approvedQuantity}/{requestedQuantity}
+                  <Text className="mt-0.5 text-xs font-bold text-foreground dark:text-dark-foreground">
+                    {dispatchedQuantity}
                   </Text>
                 </View>
-                <View className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800">
-                  <View
-                    className="h-full rounded-full bg-primary dark:bg-dark-primary"
-                    style={{ width: `${approvedPercent}%` }}
-                  />
+                <View className="basis-[31%] flex-1 min-w-[90px] rounded-xl bg-componentbg dark:bg-dark-componentbg px-2.5 py-2">
+                  <Text className="text-[9px] font-semibold text-mutedForeground dark:text-dark-mutedForeground uppercase">
+                    Disponible
+                  </Text>
+                  <Text className="mt-0.5 text-xs font-bold text-foreground dark:text-dark-foreground">
+                    {availableQuantity}
+                  </Text>
                 </View>
               </View>
 
-              <View>
-                <View className="flex-row items-center justify-between">
-                  <Text className="text-[11px] font-semibold text-mutedForeground dark:text-dark-mutedForeground uppercase">
-                    Compra
-                  </Text>
-                  <Text className="text-[11px] font-bold text-foreground dark:text-dark-foreground">
-                    {purchasedQuantity}/{requestedQuantity}
-                  </Text>
-                </View>
-                <View className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800">
-                  <View
-                    className="h-full rounded-full bg-emerald-500"
-                    style={{ width: `${purchasedPercent}%` }}
-                  />
-                </View>
-              </View>
-            </View>
-
-            {(material.autorizadopor ||
-              material.fechaautorizado ||
-              material.observacion) && (
-              <View className="mt-4 rounded-2xl border border-zinc-200/70 dark:border-zinc-800 bg-componentbg dark:bg-dark-componentbg px-3 py-3">
-                <Text className="text-[10px] font-semibold tracking-[1.2px] text-mutedForeground dark:text-dark-mutedForeground uppercase">
-                  Información de autorización
-                </Text>
-
-                <View className="mt-2 gap-1.5">
+              {hasAuthInfo && (
+                <View className="mt-3 gap-1.5 border-t border-zinc-200/70 dark:border-zinc-800 pt-3">
                   {material.autorizadopor ? (
                     <Text className="text-xs text-mutedForeground dark:text-dark-mutedForeground">
-                      Autorizado por:{" "}
+                      Autorizado por{" "}
                       <Text className="font-bold text-foreground dark:text-dark-foreground">
                         {material.autorizadopor}
                       </Text>
-                    </Text>
-                  ) : null}
-                  {material.fechaautorizado ? (
-                    <Text className="text-xs text-mutedForeground dark:text-dark-mutedForeground">
-                      Fecha de autorización:{" "}
-                      <Text className="font-bold text-foreground dark:text-dark-foreground">
-                        {formatDate(String(material.fechaautorizado))}
-                      </Text>
+                      {material.fechaautorizado
+                        ? ` · ${formatDate(String(material.fechaautorizado))}`
+                        : ""}
                     </Text>
                   ) : null}
                   {material.observacion ? (
                     <Text className="text-xs text-mutedForeground dark:text-dark-mutedForeground">
-                      Observación:{" "}
-                      <Text className="font-bold text-foreground dark:text-dark-foreground">
-                        {material.observacion}
-                      </Text>
+                      {material.observacion}
                     </Text>
                   ) : null}
                 </View>
-              </View>
-            )}
-          </View>
+              )}
+            </View>
+          )}
         </View>
       </View>
     );
@@ -484,78 +542,99 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
       return true;
     });
 
-    return (
-      <View className="mb-2 rounded-2xl border border-zinc-200/70 dark:border-zinc-800 bg-componentbg dark:bg-dark-    componentbg px-3 py-3">
-        <View className="flex-row items-start justify-between gap-3">
-          <View className="flex-1">
-            <Text className="mt-1 text-xl font-black text-foreground dark:text-dark-foreground leading-6">
-              SOLICITUD {requestData.id}
-            </Text>
-            <Text className="mt-1 text-lg font-bold text-foreground dark:text-dark-foreground leading-6">
-              {requestData.title}
-            </Text>
-            <Text className="mt-1 text-sm text-mutedForeground dark:text-dark-mutedForeground">
-              {requestData.materiales.length > 1
-                ? requestData.materiales.length + " materiales"
-                : requestData.materiales.length + " material"}
-            </Text>
-          </View>
-          <StatusBadge
-            status={requestData.status}
-            label={requestData.estatusLabel}
-          />
-        </View>
-        {requestData.anulado === 1 && (
-          <View className="mt-3 rounded-2xl border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/30 px-3 py-2.5">
-            <Text className="text-xs font-bold text-red-700 dark:text-red-300 uppercase">
-              Solicitud anulada
-            </Text>
-            <Text className="mt-1 text-sm font-semibold text-red-700 dark:text-red-200">
-              {requestData.motivoanulado || "No se indicó motivo"}
-            </Text>
-            <Text className="mt-1 text-xs text-red-600 dark:text-red-300">
-              {formatOptionalDate(requestData.fechaanulado)}
-            </Text>
-          </View>
-        )}
-        {renderDetailDivider()}
-        {renderDetailField("Solicitante", requestData.solicitanteuser)}
-        {renderDetailDivider()}
-        {renderDetailField(
-          "Utilización",
-          formatOptionalDate(requestData.fechautilizacion),
-        )}
-        {renderDetailDivider()}
-        {!!requestData.actividad &&
-          renderDetailField("Partida", requestData.actividad)}
-        {!!requestData.actividad && renderDetailDivider()}
-        {!!requestData.direccionentrega &&
-          renderDetailField(
-            "Dirección de entrega",
-            requestData.direccionentrega,
-          )}
-        {!!requestData.direccionentrega && renderDetailDivider()}
-        {renderDetailField("Observación", requestData.observacion)}
-        {renderDetailDivider()}
-        {renderDetailField(
-          "Comentario de despacho",
-          requestData.comentadespachar || "-",
-        )}
-        {renderDetailDivider()}
-        {renderDetailField(
-          "Comentario de compra",
-          requestData.comentacomprar || "-",
-        )}
+    const materialCount = requestData.materiales.length;
 
-        <View className="mt-5 rounded-3xl border border-sky-100/70 dark:border-sky-900/30 bg-sky-50/40 dark:bg-slate-950/25 p-4">
-          <View className="flex-row items-center justify-between pb-3 border-b border-sky-100/80 dark:border-sky-900/30">
+    return (
+      <View>
+        {/* --- Card principal: identidad de la solicitud --- */}
+        <View className="rounded-3xl border border-zinc-200/70 dark:border-zinc-800 bg-componentbg dark:bg-dark-componentbg p-4">
+          <View className="flex-row items-start justify-between gap-3">
+            <View className="flex-1">
+              <Text className="text-xl font-black tracking-[1.2px] text-primary dark:text-dark-primary uppercase">
+                Solicitud #{requestData.id}
+              </Text>
+              <Text
+                className="mt-1 text-xl font-bold leading-6 text-foreground dark:text-dark-foreground"
+                numberOfLines={2}
+              >
+                {requestData.title}
+              </Text>
+              <View className="mt-2 flex-row items-center gap-1.5">
+                <Ionicons name="cube-outline" size={13} color="#9CA3AF" />
+                <Text className="text-sm font-medium text-mutedForeground dark:text-dark-mutedForeground">
+                  {materialCount}{" "}
+                  {materialCount === 1 ? "material" : "materiales"}
+                </Text>
+              </View>
+            </View>
+            <StatusBadge
+              status={requestData.status}
+              label={requestData.estatusLabel}
+            />
+          </View>
+
+          {requestData.anulado === 1 && (
+            <View className="mt-3 flex-row items-start gap-2.5 rounded-2xl border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/30 px-3 py-3">
+              <Ionicons name="alert-circle" size={18} color="#DC2626" />
+              <View className="flex-1">
+                <Text className="text-xs font-bold text-red-700 dark:text-red-300 uppercase">
+                  Solicitud anulada
+                </Text>
+                <Text className="mt-1 text-sm font-semibold text-red-700 dark:text-red-200">
+                  {requestData.motivoanulado || "No se indicó motivo"}
+                </Text>
+                <Text className="mt-1 text-xs text-red-500 dark:text-red-300/80">
+                  {formatOptionalDate(requestData.fechaanulado)}
+                </Text>
+              </View>
+            </View>
+          )}
+
+          <View className="mt-4 overflow-hidden rounded-2x">
+            <MetaRow label="Solicitante" value={requestData.solicitanteuser} />
+            <MetaRow
+              label="Utilización"
+              value={formatOptionalDate(requestData.fechautilizacion)}
+            />
+            <MetaRow label="Partida" value={requestData.actividad} />
+            <MetaRow
+              label="Dirección de entrega"
+              value={requestData.direccionentrega}
+            />
+            <MetaRow label="Observación" value={requestData.observacion} />
+            <MetaRow
+              label="Comentario de despacho"
+              value={requestData.comentadespachar}
+              fallback="-"
+            />
+            <MetaRow
+              label="Comentario de compra"
+              value={requestData.comentacomprar}
+              fallback="-"
+              isLast
+            />
+          </View>
+        </View>
+
+        {/* --- Card de seguimiento de estatus --- */}
+        <View className="mt-3 rounded-3xl border border-sky-100/70 dark:border-sky-900/30 bg-componentbg/80 dark:bg-slate-950/25 p-4">
+          <Pressable
+            onPress={() => setShowStatusTracking((prev) => !prev)}
+            className="flex-row items-center justify-between active:opacity-70"
+            accessibilityRole="button"
+            accessibilityLabel={
+              showStatusTracking
+                ? "Ocultar seguimiento de estatus"
+                : "Mostrar seguimiento de estatus"
+            }
+          >
             <View className="flex-row items-center gap-2.5">
               <View className="h-8 w-8 items-center justify-center rounded-full bg-sky-500/10 dark:bg-sky-400/15">
                 <Ionicons name="time-outline" size={16} color="#0EA5E9" />
               </View>
               <View>
                 <Text className="text-[14px] font-extrabold text-foreground dark:text-dark-foreground">
-                  Seguimiento de estatus
+                  Seguimiento de estados
                 </Text>
                 <Text className="text-xs text-mutedForeground dark:text-dark-mutedForeground">
                   Línea de tiempo de la solicitud
@@ -563,16 +642,7 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
               </View>
             </View>
 
-            <Pressable
-              onPress={() => setShowStatusTracking((prev) => !prev)}
-              className="flex-row items-center gap-1 rounded-full bg-sky-100/90 dark:bg-sky-900/35 px-3 py-1.5 active:opacity-70"
-              accessibilityRole="button"
-              accessibilityLabel={
-                showStatusTracking
-                  ? "Ocultar seguimiento de estatus"
-                  : "Mostrar seguimiento de estatus"
-              }
-            >
+            <View className="flex-row items-center gap-1 rounded-full bg-sky-100/90 dark:bg-sky-900/35 px-3 py-1.5">
               <Text className="text-xs font-extrabold text-sky-700 dark:text-sky-200">
                 {showStatusTracking ? "Ocultar" : "Ver todo"}
               </Text>
@@ -581,8 +651,8 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
                 size={14}
                 color="#0EA5E9"
               />
-            </Pressable>
-          </View>
+            </View>
+          </Pressable>
 
           {showStatusTracking && (
             <View className="pt-4 px-1">
@@ -644,17 +714,30 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
                         }`}
                       >
                         <View className="flex-row items-center justify-between gap-2">
-                          <Text
-                            className={`text-sm font-extrabold ${
-                              isCurrent
-                                ? "text-sky-700 dark:text-sky-200"
-                                : isDone
-                                  ? "text-emerald-800 dark:text-emerald-200"
-                                  : "text-sky-700/70 dark:text-sky-200/60"
-                            }`}
-                          >
-                            {item.label}
-                          </Text>
+                          <View className="flex-row items-center gap-1.5">
+                            <Ionicons
+                              name={item.icon}
+                              size={13}
+                              color={
+                                isCurrent
+                                  ? "#0369A1"
+                                  : isDone
+                                    ? "#047857"
+                                    : "#7DD3FC"
+                              }
+                            />
+                            <Text
+                              className={`text-sm font-extrabold ${
+                                isCurrent
+                                  ? "text-sky-700 dark:text-sky-200"
+                                  : isDone
+                                    ? "text-emerald-800 dark:text-emerald-200"
+                                    : "text-sky-700/70 dark:text-sky-200/60"
+                              }`}
+                            >
+                              {item.label}
+                            </Text>
+                          </View>
 
                           {isCurrent && (
                             <View className="rounded-full bg-sky-500/15 dark:bg-sky-400/20 px-2 py-0.5">
@@ -716,6 +799,15 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
             </View>
           )}
         </View>
+
+        <View className="mt-5 mb-3 flex-row items-center justify-between">
+          <Text className="text-base font-extrabold text-foreground dark:text-dark-foreground">
+            Materiales
+          </Text>
+          <Text className="text-xs font-semibold text-mutedForeground dark:text-dark-mutedForeground">
+            {materialCount} {materialCount === 1 ? "ítem" : "ítems"}
+          </Text>
+        </View>
       </View>
     );
   };
@@ -741,7 +833,7 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
     if (item.type === "summary")
       return renderRequestHeaderSummary(item.request);
     if (item.type === "empty") return <MaterialEmptyState />;
-    return renderMaterialCard(item.material);
+    return renderMaterialCard(item.material, item.index);
   };
 
   const renderModalItemKey = (item: RequestModalItem) => {
@@ -757,9 +849,14 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
   if (!s) {
     return (
       <View className="flex-1 items-center justify-center p-6 bg-background dark:bg-dark-background">
-        <Ionicons name="document-text-outline" size={36} color="#9CA3AF" />
-        <Text className="mt-3 text-lg font-bold text-foreground dark:text-dark-foreground">
+        <View className="h-16 w-16 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800">
+          <Ionicons name="document-text-outline" size={30} color="#9CA3AF" />
+        </View>
+        <Text className="mt-4 text-lg font-bold text-foreground dark:text-dark-foreground">
           No se encontró la solicitud
+        </Text>
+        <Text className="mt-1 text-sm text-mutedForeground dark:text-dark-mutedForeground text-center">
+          Puede que haya sido eliminada o el enlace no sea válido.
         </Text>
         <Pressable
           onPress={() =>
@@ -772,9 +869,10 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
               },
             })
           }
-          className="mt-4 rounded-full border border-primary px-4 py-2"
+          className="mt-5 rounded-full bg-primary dark:bg-dark-primary px-5 py-2.5 active:opacity-80"
+          accessibilityRole="button"
         >
-          <Text className="font-semibold text-primary dark:text-dark-primary">
+          <Text className="font-semibold text-white dark:text-zinc-950">
             Volver
           </Text>
         </Pressable>
@@ -796,7 +894,7 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
               },
             })
           }
-          className="self-start flex-row items-center gap-2 rounded-full border border-zinc-200 dark:border-zinc-800 bg-componentbg dark:bg-dark-componentbg px-3 py-2"
+          className="self-start flex-row items-center gap-2 rounded-full border border-zinc-200 dark:border-zinc-800 bg-componentbg dark:bg-dark-componentbg px-3 py-2 active:opacity-70"
           accessibilityRole="button"
           accessibilityLabel="Volver a la pantalla anterior"
         >
