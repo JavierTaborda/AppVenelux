@@ -276,54 +276,40 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
     const lineInfo = [material.linea, material.sublinea, material.categoria]
       .filter(Boolean)
       .join(" / ");
+    const statusLabel = material.autorizado ? "Aprobado" : "Pendiente";
+    const buyLabel = material.comprar ? "En compra" : "Sin compra";
 
     return (
-      <View className="mb-3 overflow-hidden rounded-[28px] border border-zinc-200/70 dark:border-zinc-800 bg-componentbg dark:bg-dark-componentbg shadow-sm shadow-black/5">
+      <View className="mb-3 overflow-hidden rounded-[30px] border border-zinc-200/70 dark:border-zinc-800 bg-componentbg dark:bg-dark-componentbg shadow-sm shadow-black/5">
         <View className="h-1.5 bg-primary/90 dark:bg-dark-primary" />
         <View className="p-4">
           <View className="flex-row gap-3">
-            <View className="relative h-24 w-24 overflow-hidden rounded-[22px] border border-zinc-200/60 dark:border-zinc-800/60 bg-neutral-50 dark:bg-dark-background shrink-0">
+            <View className="relative h-28 w-28 overflow-hidden rounded-[24px] border border-zinc-200/60 dark:border-zinc-800/60 bg-neutral-50 dark:bg-dark-background shrink-0">
               <CustomImagen img={material.imagen1 ?? ""} content="cover" />
-              <View className="absolute left-1.5 top-1.5 rounded-full bg-primary dark:bg-dark-primary px-2.5 py-1">
+              <View className="absolute left-2 top-2 rounded-full bg-primary dark:bg-dark-primary px-2.5 py-1">
                 <Text className="text-[10px] font-black tracking-[0.8px] text-white dark:text-zinc-950 uppercase">
                   x{requestedQuantity}
                 </Text>
               </View>
             </View>
 
-            <View className="flex-1 min-h-24 justify-between py-0.5">
+            <View className="flex-1 min-h-28 justify-between py-0.5">
               <View>
-                <View className="flex-row items-start justify-between gap-2">
+                <View className="flex-row items-start justify-between gap-3">
                   <View className="flex-1 pr-1">
                     <Text className="text-[10px] font-semibold tracking-[1.2px] text-primary dark:text-dark-primary uppercase">
                       {material.codigomaterial || "SIN CÓDIGO"}
                     </Text>
                     <Text
-                      className="mt-1 text-[15px] font-extrabold leading-5 text-foreground dark:text-dark-foreground"
-                      numberOfLines={2}
+                      className="mt-1 text-[16px] font-black leading-5 text-foreground dark:text-dark-foreground"
+                      numberOfLines={3}
                     >
                       {materialTitle}
                     </Text>
                   </View>
-
-                  <View className="items-end gap-1 shrink-0">
-                    {price ? (
-                      <View className="items-end">
-                        <Text className="text-[10px] font-semibold text-mutedForeground dark:text-dark-mutedForeground uppercase">
-                          Total
-                        </Text>
-                        <Text className="text-sm font-black tracking-tight text-foreground dark:text-dark-foreground">
-                          {price}
-                        </Text>
-                      </View>
-                    ) : null}
-                  </View>
                 </View>
 
-                <Text
-                  className="mt-1 text-[11px] font-medium text-mutedForeground dark:text-dark-mutedForeground/80"
-                  numberOfLines={1}
-                >
+                <Text className="mt-2 text-[12px] font-medium leading-4 text-mutedForeground dark:text-dark-mutedForeground/85">
                   {lineInfo || "Sin categoría"}
                 </Text>
               </View>
@@ -331,12 +317,12 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
               <View className="mt-2 flex-row flex-wrap gap-2">
                 <View className="rounded-full bg-primary/10 dark:bg-dark-primary/20 px-2.5 py-1">
                   <Text className="text-[10px] font-bold text-primary dark:text-dark-primary uppercase">
-                    {material.autorizado ? "Aprobado" : "Pendiente"}
+                    {statusLabel}
                   </Text>
                 </View>
                 <View className="rounded-full bg-emerald-500/10 dark:bg-emerald-500/20 px-2.5 py-1">
                   <Text className="text-[10px] font-bold text-emerald-600 dark:text-emerald-300 uppercase">
-                    {material.comprar ? "En compra" : "Sin compra"}
+                    {buyLabel}
                   </Text>
                 </View>
                 {(material.coduni || material.unidad) && (
@@ -346,25 +332,75 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
                     </Text>
                   </View>
                 )}
+                {material.codart != null && (
+                  <View className="rounded-full border border-zinc-200 dark:border-zinc-800 bg-background dark:bg-dark-background px-2.5 py-1">
+                    <Text className="text-[10px] font-bold text-mutedForeground dark:text-dark-mutedForeground uppercase">
+                      CODART {material.codart}
+                    </Text>
+                  </View>
+                )}
               </View>
             </View>
           </View>
 
-          <View className="mt-4 rounded-[22px] border border-zinc-200/70 dark:border-zinc-800 bg-background dark:bg-dark-background px-3 py-3">
+          <View className="mt-4 rounded-[24px] border border-zinc-200/70 dark:border-zinc-800 bg-background dark:bg-dark-background p-3">
             <View className="flex-row items-center justify-between gap-2">
               <Text className="text-xs font-semibold text-mutedForeground dark:text-dark-mutedForeground uppercase">
-                Progreso
+                Resumen de cantidades
               </Text>
               <Text className="text-[11px] font-bold text-foreground dark:text-dark-foreground">
                 {approvedQuantity}/{requestedQuantity} aprobado
               </Text>
             </View>
 
-            <View className="mt-2.5 gap-2.5">
+            <View className="mt-3 flex-row flex-wrap gap-2">
+              <View className="basis-[48%] flex-1 min-w-[140px] rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-componentbg dark:bg-dark-componentbg px-3 py-2.5">
+                <Text className="text-[10px] font-semibold text-mutedForeground dark:text-dark-mutedForeground uppercase">
+                  Solicitado
+                </Text>
+                <Text className="mt-0.5 text-base font-black text-foreground dark:text-dark-foreground">
+                  {requestedQuantity}
+                </Text>
+              </View>
+              <View className="basis-[48%] flex-1 min-w-[140px] rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-componentbg dark:bg-dark-componentbg px-3 py-2.5">
+                <Text className="text-[10px] font-semibold text-mutedForeground dark:text-dark-mutedForeground uppercase">
+                  Aprobado
+                </Text>
+                <Text className="mt-0.5 text-base font-black text-foreground dark:text-dark-foreground">
+                  {approvedQuantity}
+                </Text>
+              </View>
+              <View className="basis-[48%] flex-1 min-w-[140px] rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-componentbg dark:bg-dark-componentbg px-3 py-2.5">
+                <Text className="text-[10px] font-semibold text-mutedForeground dark:text-dark-mutedForeground uppercase">
+                  Comprado
+                </Text>
+                <Text className="mt-0.5 text-base font-black text-foreground dark:text-dark-foreground">
+                  {purchasedQuantity}
+                </Text>
+              </View>
+              <View className="basis-[48%] flex-1 min-w-[140px] rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-componentbg dark:bg-dark-componentbg px-3 py-2.5">
+                <Text className="text-[10px] font-semibold text-mutedForeground dark:text-dark-mutedForeground uppercase">
+                  Despachado
+                </Text>
+                <Text className="mt-0.5 text-base font-black text-foreground dark:text-dark-foreground">
+                  {dispatchedQuantity}
+                </Text>
+              </View>
+              <View className="basis-[48%] flex-1 min-w-[140px] rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-componentbg dark:bg-dark-componentbg px-3 py-2.5">
+                <Text className="text-[10px] font-semibold text-mutedForeground dark:text-dark-mutedForeground uppercase">
+                  Disponible
+                </Text>
+                <Text className="mt-0.5 text-base font-black text-foreground dark:text-dark-foreground">
+                  {availableQuantity}
+                </Text>
+              </View>
+            </View>
+
+            <View className="mt-4 gap-3">
               <View>
                 <View className="flex-row items-center justify-between">
                   <Text className="text-[11px] font-semibold text-mutedForeground dark:text-dark-mutedForeground uppercase">
-                    Aprobado
+                    Aprobación
                   </Text>
                   <Text className="text-[11px] font-bold text-foreground dark:text-dark-foreground">
                     {approvedQuantity}/{requestedQuantity}
@@ -381,7 +417,7 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
               <View>
                 <View className="flex-row items-center justify-between">
                   <Text className="text-[11px] font-semibold text-mutedForeground dark:text-dark-mutedForeground uppercase">
-                    Comprado
+                    Compra
                   </Text>
                   <Text className="text-[11px] font-bold text-foreground dark:text-dark-foreground">
                     {purchasedQuantity}/{requestedQuantity}
@@ -396,53 +432,40 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
               </View>
             </View>
 
-            <View className="mt-3 flex-row gap-2">
-              <View className="flex-1 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-componentbg dark:bg-dark-componentbg px-2.5 py-2">
-                <Text className="text-[10px] font-semibold text-mutedForeground dark:text-dark-mutedForeground uppercase">
-                  Despachado
-                </Text>
-                <Text className="mt-0.5 text-sm font-black text-foreground dark:text-dark-foreground">
-                  {dispatchedQuantity}
-                </Text>
-              </View>
-              <View className="flex-1 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-componentbg dark:bg-dark-componentbg px-2.5 py-2">
-                <Text className="text-[10px] font-semibold text-mutedForeground dark:text-dark-mutedForeground uppercase">
-                  Disponible
-                </Text>
-                <Text className="mt-0.5 text-sm font-black text-foreground dark:text-dark-foreground">
-                  {availableQuantity}
-                </Text>
-              </View>
-            </View>
-
             {(material.autorizadopor ||
               material.fechaautorizado ||
               material.observacion) && (
-              <View className="mt-3 rounded-2xl border border-zinc-200/70 dark:border-zinc-800 bg-componentbg dark:bg-dark-componentbg px-3 py-2.5">
-                {material.autorizadopor ? (
-                  <Text className="text-xs text-mutedForeground dark:text-dark-mutedForeground">
-                    Autorizado por:{" "}
-                    <Text className="font-bold text-foreground dark:text-dark-foreground">
-                      {material.autorizadopor}
+              <View className="mt-4 rounded-2xl border border-zinc-200/70 dark:border-zinc-800 bg-componentbg dark:bg-dark-componentbg px-3 py-3">
+                <Text className="text-[10px] font-semibold tracking-[1.2px] text-mutedForeground dark:text-dark-mutedForeground uppercase">
+                  Información de autorización
+                </Text>
+
+                <View className="mt-2 gap-1.5">
+                  {material.autorizadopor ? (
+                    <Text className="text-xs text-mutedForeground dark:text-dark-mutedForeground">
+                      Autorizado por:{" "}
+                      <Text className="font-bold text-foreground dark:text-dark-foreground">
+                        {material.autorizadopor}
+                      </Text>
                     </Text>
-                  </Text>
-                ) : null}
-                {material.fechaautorizado ? (
-                  <Text className="mt-0.5 text-xs text-mutedForeground dark:text-dark-mutedForeground">
-                    Fecha de autorización:{" "}
-                    <Text className="font-bold text-foreground dark:text-dark-foreground">
-                      {formatDate(String(material.fechaautorizado))}
+                  ) : null}
+                  {material.fechaautorizado ? (
+                    <Text className="text-xs text-mutedForeground dark:text-dark-mutedForeground">
+                      Fecha de autorización:{" "}
+                      <Text className="font-bold text-foreground dark:text-dark-foreground">
+                        {formatDate(String(material.fechaautorizado))}
+                      </Text>
                     </Text>
-                  </Text>
-                ) : null}
-                {material.observacion ? (
-                  <Text className="mt-0.5 text-xs text-mutedForeground dark:text-dark-mutedForeground">
-                    Observación:{" "}
-                    <Text className="font-bold text-foreground dark:text-dark-foreground">
-                      {material.observacion}
+                  ) : null}
+                  {material.observacion ? (
+                    <Text className="text-xs text-mutedForeground dark:text-dark-mutedForeground">
+                      Observación:{" "}
+                      <Text className="font-bold text-foreground dark:text-dark-foreground">
+                        {material.observacion}
+                      </Text>
                     </Text>
-                  </Text>
-                ) : null}
+                  ) : null}
+                </View>
               </View>
             )}
           </View>
