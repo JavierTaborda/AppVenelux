@@ -133,11 +133,12 @@ export default function SelectedItemsFab() {
   const topOffset = Math.max(insets.top + 12, 16);
   const bottomOffset = Math.max(insets.bottom + 65, 12);
   const maxPanelHeight = Math.min(windowHeight - topOffset - bottomOffset, 900);
+  const hasItems = totalQty > 0;
 
   return (
     <>
       {/* FAB - Botón Flotante de la Bolsa */}
-      {
+      {hasItems && (
         <Animated.View
           entering={FadeInDown.duration(220)}
           exiting={FadeOutDown.duration(180)}
@@ -159,12 +160,12 @@ export default function SelectedItemsFab() {
             </View>
           </Pressable>
         </Animated.View>
-      }
+      )}
 
       <Animated.View
         entering={FadeInDown.duration(220)}
         exiting={FadeOutDown.duration(180)}
-        className="absolute right-24 bottom-48 z-50"
+        className={`absolute z-50 ${hasItems ? "right-24 bottom-48" : "right-4 bottom-48"}`}
       >
         <Pressable
           className="bg-secondary dark:bg-dark-secondary rounded-full w-16 h-16 items-center justify-center shadow-2xl"
@@ -212,6 +213,18 @@ export default function SelectedItemsFab() {
                 </View>
 
                 <View className="flex-row items-center gap-3">
+                  <Pressable
+                    onPress={() => setNewItemVisible(true)}
+                    className="h-10 px-3 flex-row items-center justify-center rounded-full bg-secondary/15 dark:bg-dark-secondary/20"
+                    accessibilityRole="button"
+                    accessibilityLabel="Agregar material nuevo"
+                  >
+                    <Ionicons name="add" size={20} color="#14B8A6" />
+                    <Text className="ml-1 text-xs font-semibold text-secondary dark:text-dark-secondary">
+                      Nuevo
+                    </Text>
+                  </Pressable>
+
                   {totalQty > 0 && (
                     <Pressable
                       onPress={handleClear}
@@ -235,11 +248,24 @@ export default function SelectedItemsFab() {
               </View>
 
               {selectedEntries.length === 0 ? (
-                <View className="flex-1 items-center justify-center py-20">
-                  <Ionicons name="bag" size={48} color="#9CA3AF" />
-                  <Text className="text-neutral-400 font-medium mt-3 text-base">
-                    Tu bolsa está vacía
-                  </Text>
+                <View className="flex-1 items-center justify-center py-20 px-6">
+                  <View className="items-center rounded-3xl border border-dashed border-neutral-200 bg-neutral-50 px-5 py-6 dark:border-neutral-800 dark:bg-neutral-900/40">
+                    <Ionicons name="bag" size={48} color="#9CA3AF" />
+                    <Text className="text-neutral-400 font-medium mt-3 text-base text-center">
+                      Tu bolsa está vacía
+                    </Text>
+                    <Text className="mt-1 text-center text-sm text-neutral-500 dark:text-neutral-400">
+                      Puedes agregar un material nuevo desde el botón +
+                    </Text>
+                    <Pressable
+                      onPress={() => setNewItemVisible(true)}
+                      className="mt-4 rounded-full bg-secondary dark:bg-dark-secondary px-4 py-2.5"
+                    >
+                      <Text className="text-sm font-semibold text-white">
+                        Agregar material nuevo
+                      </Text>
+                    </Pressable>
+                  </View>
                 </View>
               ) : (
                 <CustomFlatList

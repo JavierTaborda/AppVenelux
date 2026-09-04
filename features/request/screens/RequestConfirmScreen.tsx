@@ -511,38 +511,46 @@ export default function RequestConfirmScreen() {
                 }}
                 className="rounded-2xl border border-neutral-100 dark:border-neutral-800 px-3 py-3 mb-2 bg-componentbg dark:bg-dark-componentbg"
               >
-                <View className="flex-row gap-3">
-                  <View className="w-24 h-24 rounded-xl overflow-hidden bg-neutral-100 border border-neutral-200/50">
+                <View className="flex-row items-center gap-3 p-3 bg-white dark:bg-neutral-900 rounded-2xl border border-neutral-100 dark:border-neutral-800">
+                  <View className="w-24 h-24 rounded-xl overflow-hidden bg-neutral-100 dark:bg-neutral-800 border border-neutral-200/60 dark:border-neutral-700/50">
                     <CustomImagen img={row.item.imagen1 ?? ""} />
                   </View>
 
-                  <View className="flex-1">
-                    <View className="flex-row items-start justify-between gap-2">
+                  <View className="flex-1 justify-between py-0.5">
+                    <View className="gap-1">
                       <Text
-                        className="flex-1 text-sm font-semibold text-foreground dark:text-dark-foreground"
+                        className="text-sm font-bold uppercase tracking-wider text-primary dark:text-dark-primary"
+                        numberOfLines={1}
+                      >
+                        {row.item.codigomaterial}
+                      </Text>
+                      <Text
+                        className="text-sm font-medium text-neutral-900 dark:text-neutral-100 leading-snug"
                         numberOfLines={2}
                       >
-                        {row.item.codigomaterial} - {row.item.material}
+                        {row.item.material}
                       </Text>
-
-                      <View className="rounded-full bg-primary/10 dark:bg-dark-primary/20 px-2.5 py-1">
-                        <View className="items-center">
-                          <Text className="text-sm font-extrabold leading-4 text-primary dark:text-dark-primary">
-                            x{row.quantity}
-                          </Text>
-                          <Text className="text-[10px] font-semibold uppercase tracking-wide text-primary/80 dark:text-dark-primary/80">
-                            {row.item.coduni}
-                          </Text>
-                        </View>
-                      </View>
                     </View>
-
                     <Text
-                      className="text-[12px] text-slate-700 dark:text-dark-mutedForeground mt-0.5"
+                      className="text-[11px] text-neutral-500 dark:text-neutral-400 flex-1"
                       numberOfLines={1}
                     >
-                      Marca: {row.item.marca} · N. Parte: {row.item.noparte}
+                      <Text className="font-medium text-neutral-700 dark:text-neutral-300">
+                        {row.item.marca}
+                      </Text>
+                      {row.item.noparte ? ` · ${row.item.noparte}` : ""}
                     </Text>
+
+                    <View className="flex-row items-end justify-between mt-1 pt-1 border-t border-neutral-100 dark:border-neutral-800">
+                      <View className="flex-row items-center gap-1.5 bg-primary/10 dark:bg-neutral-800 px-2.5 py-1 rounded-lg border border-neutral-200/50 dark:border-neutral-700">
+                        <Text className="text-sm font-bold text-neutral-900 dark:text-white">
+                          {row.quantity}
+                        </Text>
+                        <Text className="text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase">
+                          {row.item.unidad}
+                        </Text>
+                      </View>
+                    </View>
                   </View>
                 </View>
               </Pressable>
