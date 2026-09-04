@@ -26,13 +26,6 @@ import {
 } from "react-native";
 import Animated, { FadeInUp, FadeOutDown } from "react-native-reanimated";
 
-type Priority = "normal" | "alta";
-
-const PRIORITY_OPTIONS: { value: Priority; label: string }[] = [
-  { value: "normal", label: "Normal" },
-  { value: "alta", label: "Alta" },
-];
-
 function keyOf(item: VeneluxMaterial) {
   return String(item.codigomaterial || item.codart || item.material);
 }
@@ -82,6 +75,14 @@ function formatDateTimeForSql(date: Date): string {
   return `${day} ${h}:${mi}:${s}`;
 }
 
+function toUpperText(value: string): string {
+  return value.toUpperCase();
+}
+
+function toUpperTrimmed(value: string): string {
+  return value.trim().toUpperCase();
+}
+
 function ShowDateIos({
   onPress,
   children,
@@ -123,7 +124,6 @@ export default function RequestConfirmScreen() {
   const [selectedObra, setSelectedObra] = useState<VeneluxObra | null>(null);
   const [partida, setPartida] = useState("");
   const [deliveryAddress, setDeliveryAddress] = useState("");
-  const [priority, setPriority] = useState<Priority>("normal");
   const [requiredDate, setRequiredDate] = useState<Date>(() => new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showAreaModal, setShowAreaModal] = useState(false);
@@ -231,13 +231,14 @@ export default function RequestConfirmScreen() {
 
     const now = new Date();
     const userLabel = truncate(
-      authName || authSession?.user?.email || "USUARIO",
+      toUpperTrimmed(authName || authSession?.user?.email || "USUARIO"),
       30,
     );
 
-    const observacionBase = notes.trim();
-    const priorityTag = priority === "alta" ? " [PRIORIDAD: ALTA]" : "";
-    const observacion = `${observacionBase}${priorityTag}`.trim();
+    const observacionBase = toUpperTrimmed(notes);
+    const observacion = observacionBase;
+    const upperPartida = toUpperTrimmed(partida);
+    const upperDeliveryAddress = toUpperTrimmed(deliveryAddress);
 
     const payload: CreateSolicitudPayload = {
       solicitud: {
@@ -251,9 +252,9 @@ export default function RequestConfirmScreen() {
         fechasolicitud: formatDateTimeForSql(now),
         fechautilizacion: formatDateForSql(requiredDate),
         observacion: observacion ? truncate(observacion, 255) : null,
-        actividad: partida.trim() ? truncate(partida.trim(), 255) : null,
-        direccionentrega: deliveryAddress.trim()
-          ? truncate(deliveryAddress.trim(), 255)
+        actividad: upperPartida ? truncate(upperPartida, 255) : null,
+        direccionentrega: upperDeliveryAddress
+          ? truncate(upperDeliveryAddress, 255)
           : null,
         registradopor: userLabel,
         autorizado: 0,
@@ -318,7 +319,6 @@ export default function RequestConfirmScreen() {
       setSelectedObra(null);
       setPartida("");
       setDeliveryAddress("");
-      setPriority("normal");
       setRequiredDate(new Date());
       setShowDatePicker(false);
       setShowAreaModal(false);
@@ -405,10 +405,13 @@ export default function RequestConfirmScreen() {
             </Text>
             <TextInput
               value={partida}
-              onChangeText={setPartida}
+              onChangeText={(text) => setPartida(toUpperText(text))}
               placeholder="Ej: Sistema electrico"
+              multiline
+              numberOfLines={4}
+              textAlignVertical="top"
               placeholderTextColor="#9CA3AF"
-              className="border border-muted rounded-xl px-4 py-3.5 bg-background dark:bg-dark-background text-base text-foreground dark:text-dark-foreground"
+              className="border border-muted rounded-xl px-4 py-3.5 min-h-28 bg-background dark:bg-dark-background text-base text-foreground dark:text-dark-foreground"
             />
           </View>
 
@@ -418,7 +421,7 @@ export default function RequestConfirmScreen() {
             </Text>
             <TextInput
               value={deliveryAddress}
-              onChangeText={setDeliveryAddress}
+              onChangeText={(text) => setDeliveryAddress(toUpperText(text))}
               multiline
               numberOfLines={4}
               textAlignVertical="top"
@@ -434,7 +437,7 @@ export default function RequestConfirmScreen() {
             </Text>
             <TextInput
               value={notes}
-              onChangeText={setNotes}
+              onChangeText={(text) => setNotes(toUpperText(text))}
               multiline
               numberOfLines={4}
               textAlignVertical="top"
@@ -442,35 +445,6 @@ export default function RequestConfirmScreen() {
               placeholderTextColor="#9CA3AF"
               className="border border-muted rounded-xl px-4 py-3.5 min-h-28 bg-background dark:bg-dark-background text-base text-foreground dark:text-dark-foreground"
             />
-          </View>
-
-          <View>
-            <Text className="text-[15px] mb-2 font-semibold text-foreground dark:text-dark-foreground">
-              Prioridad
-            </Text>
-            <View className="flex-row gap-2">
-              {PRIORITY_OPTIONS.map(({ value, label }) => (
-                <Pressable
-                  key={value}
-                  onPress={() => setPriority(value)}
-                  className={`px-5 py-2.5 rounded-full border ${
-                    priority === value
-                      ? "bg-primary border-primary"
-                      : "border-muted"
-                  }`}
-                >
-                  <Text
-                    className={
-                      priority === value
-                        ? "text-white font-semibold text-sm"
-                        : "text-foreground dark:text-dark-foreground text-sm"
-                    }
-                  >
-                    {label}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
           </View>
 
           <View>
@@ -552,9 +526,14 @@ export default function RequestConfirmScreen() {
                       </Text>
 
                       <View className="rounded-full bg-primary/10 dark:bg-dark-primary/20 px-2.5 py-1">
-                        <Text className="text-xs font-bold text-primary dark:text-dark-primary">
-                          x{row.quantity} {row.item.coduni}
-                        </Text>
+                        <View className="items-center">
+                          <Text className="text-sm font-extrabold leading-4 text-primary dark:text-dark-primary">
+                            x{row.quantity}
+                          </Text>
+                          <Text className="text-[10px] font-semibold uppercase tracking-wide text-primary/80 dark:text-dark-primary/80">
+                            {row.item.coduni}
+                          </Text>
+                        </View>
                       </View>
                     </View>
 
@@ -563,15 +542,6 @@ export default function RequestConfirmScreen() {
                       numberOfLines={1}
                     >
                       Marca: {row.item.marca} · N. Parte: {row.item.noparte}
-                    </Text>
-
-                    <Text
-                      className="text-[12px] text-slate-600 dark:text-dark-mutedForeground mt-0.5"
-                      numberOfLines={2}
-                    >
-                      {row.item.linea ?? "Sin linea"} ·{" "}
-                      {row.item.sublinea ?? "Sin sublinea"} ·{" "}
-                      {row.item.categoria ?? "Sin categoria"}
                     </Text>
                   </View>
                 </View>
@@ -695,7 +665,7 @@ export default function RequestConfirmScreen() {
               className="flex-1 h-14 rounded-xl items-center justify-center border border-muted"
             >
               <Text className="font-semibold text-foreground dark:text-dark-foreground">
-                Volver
+                Regresar
               </Text>
             </Pressable>
 

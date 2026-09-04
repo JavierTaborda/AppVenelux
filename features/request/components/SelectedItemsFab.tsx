@@ -6,7 +6,6 @@ import ProductDetail from "@/features/request/components/ProductDetail";
 import { useRequest } from "@/features/request/hooks/useRequest";
 import { useSelectedItemsStore } from "@/features/request/stores/useSelectedItemsStore";
 import type { VeneluxMaterial } from "@/features/request/types/request";
-import { appTheme } from "@/utils/appTheme";
 import { Ionicons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import { useRouter } from "expo-router";
@@ -138,7 +137,7 @@ export default function SelectedItemsFab() {
   return (
     <>
       {/* FAB - Botón Flotante de la Bolsa */}
-      {totalQty > 0 && (
+      {
         <Animated.View
           entering={FadeInDown.duration(220)}
           exiting={FadeOutDown.duration(180)}
@@ -160,7 +159,26 @@ export default function SelectedItemsFab() {
             </View>
           </Pressable>
         </Animated.View>
-      )}
+      }
+
+      <Animated.View
+        entering={FadeInDown.duration(220)}
+        exiting={FadeOutDown.duration(180)}
+        className="absolute right-24 bottom-48 z-50"
+      >
+        <Pressable
+          className="bg-secondary dark:bg-dark-secondary rounded-full w-16 h-16 items-center justify-center shadow-2xl"
+          onPress={() => setNewItemVisible(true)}
+          accessibilityRole="button"
+          accessibilityLabel="Agregar material nuevo"
+          android_ripple={{
+            color: "rgba(255,255,255,0.08)",
+            borderless: true,
+          }}
+        >
+          <Ionicons name="add" size={24} color="white" />
+        </Pressable>
+      </Animated.View>
 
       {visible && (
         <View
@@ -194,20 +212,6 @@ export default function SelectedItemsFab() {
                 </View>
 
                 <View className="flex-row items-center gap-3">
-                  <Pressable
-                    onPress={() => setNewItemVisible(true)}
-                    className="h-10 px-3 flex-row items-center justify-center rounded-full bg-primary/15 dark:bg-dark-primary/20"
-                  >
-                    <Ionicons
-                      name="add"
-                      size={22}
-                      color={appTheme.primary.DEFAULT}
-                    />
-                    <Text className="ml-1 text-xs font-semibold text-primary dark:text-dark-primary">
-                      Nuevo material
-                    </Text>
-                  </Pressable>
-
                   {totalQty > 0 && (
                     <Pressable
                       onPress={handleClear}
@@ -263,9 +267,9 @@ export default function SelectedItemsFab() {
                             >
                               {item.codigomaterial} - {item.material}
                             </Text>
-                            <Text className="text-sm text-neutral-800 font-medium mt-0.5">
+                            {/* <Text className="text-sm text-neutral-800 font-medium mt-0.5">
                               {item.linea} · {item.sublinea}
-                            </Text>
+                            </Text> */}
                             <Text
                               className="text-[13px] text-neutral-600 mt-1"
                               numberOfLines={1}

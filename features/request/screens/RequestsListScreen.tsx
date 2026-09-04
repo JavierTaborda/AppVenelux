@@ -220,11 +220,7 @@ export default function RequestsListScreen() {
         <View className="mt-3 flex-row items-center gap-2">
           <MetricPill label="Materiales" value={request.materiales.length} />
           <MetricPill label="Fecha" value={formatDate(request.createdAt)} />
-          <MetricPill
-            label="En etapa"
-            value={`${request.diasEnEstatus.toFixed(1)} d`}
-            danger={request.diasEnEstatus >= 2}
-          />
+
           <View className="h-10 w-10 rounded-2xl bg-primary/15 dark:bg-dark-primary/20 items-center justify-center">
             <Ionicons name="chevron-forward" size={18} color="#0EA5E9" />
           </View>

@@ -8,6 +8,7 @@ import {
     ScrollView,
     Text,
     TextInput,
+    useWindowDimensions,
     View,
 } from "react-native";
 
@@ -47,8 +48,10 @@ function DetailRow({
 export default function ProductDetail({ productId, item, onClose }: Props) {
   const router = useRouter();
   const params = useLocalSearchParams();
+  const { width } = useWindowDimensions();
 
   const [qty, setQty] = useState(1);
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
 
   const id =
     (productId as string | undefined) ||
@@ -78,13 +81,23 @@ export default function ProductDetail({ productId, item, onClose }: Props) {
       ?.descripcion ??
     "";
 
+  const selectedItem = found as VeneluxMaterial;
+
+  const images = [found?.imagen1, found?.imagen2, found?.imagen3].filter(
+    (image): image is string => Boolean(image && image.trim()),
+  );
+
   useEffect(() => {
     if (found) {
-      const stored = getQuantityByItem(found); // returns 0 if not selected
+      const stored = getQuantityByItem(selectedItem); // returns 0 if not selected
       const initial = Math.max(0, stored ?? 0);
       setQty(initial);
     }
-  }, [found, getQuantityByItem]);
+  }, [found, getQuantityByItem, selectedItem]);
+
+  useEffect(() => {
+    setActiveImageIndex(0);
+  }, [found?.codigomaterial]);
 
   if (!found) {
     return (
@@ -110,8 +123,52 @@ export default function ProductDetail({ productId, item, onClose }: Props) {
         contentContainerStyle={{ flexGrow: 1, paddingBottom: 180 }}
       >
         {/* IMAGE */}
-        <View className="w-full h-[190px] bg-componentbg dark:bg-bgimages items-center justify-center rounded-b-[40px] overflow-hidden">
-          <CustomImagen img={found.imagen1 ?? ""} content="contain" />
+        <View className="w-full h-[230px] bg-componentbg dark:bg-bgimages rounded-b-[40px] overflow-hidden">
+          <ScrollView
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            onMomentumScrollEnd={(event) => {
+              const nextIndex = Math.round(
+                event.nativeEvent.contentOffset.x / Math.max(width, 1),
+              );
+              setActiveImageIndex(nextIndex);
+            }}
+            scrollEventThrottle={16}
+            style={{ width }}
+            contentContainerStyle={{ alignItems: "center" }}
+          >
+            {(images.length > 0 ? images : [null]).map((image, index) => (
+              <View
+                key={`${image ?? "placeholder"}-${index}`}
+                style={{ width, height: 230 }}
+                className="items-center justify-center"
+              >
+                {image ? (
+                  <CustomImagen img={image} content="contain" />
+                ) : (
+                  <View className="h-full w-full items-center justify-center bg-componentbg dark:bg-bgimages px-8">
+                    <Text className="text-center text-sm font-semibold text-mutedForeground dark:text-dark-mutedForeground">
+                      No hay imágenes disponibles
+                    </Text>
+                  </View>
+                )}
+              </View>
+            ))}
+          </ScrollView>
+
+          <View className="absolute bottom-4 left-0 right-0 flex-row items-center justify-center gap-2">
+            {(images.length > 0 ? images : [null]).map((image, index) => (
+              <View
+                key={`${image ?? "placeholder"}-${index}-dot`}
+                className={`h-2 rounded-full ${
+                  activeImageIndex === index
+                    ? "w-6 bg-primary dark:bg-dark-primary"
+                    : "w-2 bg-zinc-300 dark:bg-zinc-600"
+                }`}
+              />
+            ))}
+          </View>
         </View>
 
         {/* CONTENT */}
@@ -197,7 +254,7 @@ export default function ProductDetail({ productId, item, onClose }: Props) {
                         style: "destructive",
                         onPress: () => {
                           if (!found) return;
-                          removeByItem(found);
+                          removeByItem(selectedItem);
                           setQty(0);
                         },
                       },

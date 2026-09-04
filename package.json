@@ -27,6 +27,7 @@
     "expo": "~57.0.18",
     "expo-auth-session": "~57.0.10",
     "expo-battery": "~57.0.2",
+    "expo-blob": "^57.0.1",
     "expo-blur": "~57.0.2",
     "expo-camera": "~57.0.4",
     "expo-clipboard": "^57.0.1",
