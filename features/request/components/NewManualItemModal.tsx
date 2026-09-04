@@ -126,8 +126,8 @@ export default function NewManualItemModal({
     }
 
     const quantity = Math.max(1, Number(formQty.replace(/[^0-9]/g, "")) || 1);
-    const code =
-      toUpperTrimmed(formCodigo) || `MAN-${Date.now().toString().slice(-6)}`;
+    const code = "NUEVO";
+    const uniquePart = `NUEVO-${Date.now().toString().slice(-6)}`;
 
     let uploadedImages: (string | null)[] = [null, null, null];
 
@@ -162,7 +162,7 @@ export default function NewManualItemModal({
       codigomaterial: code,
       material: cleanMaterial,
       coduni: toUpperTrimmed(formUnidad) || null,
-      nroparte: toUpperTrimmed(formNoParte) || null,
+      nroparte: toUpperTrimmed(formNoParte) || uniquePart,
       codbarra: null,
       unidad: toUpperTrimmed(formUnidad) || null,
       linea: toUpperTrimmed(formLinea) || null,
@@ -176,7 +176,7 @@ export default function NewManualItemModal({
       imagen2: uploadedImages[1],
       imagen3: uploadedImages[2],
       observacion: null,
-      materialnuevo: false,
+      materialnuevo: true,
       autorizado: false,
       fechaautorizado: null,
       autorizadopor: null,

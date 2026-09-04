@@ -27,7 +27,9 @@ import {
 import Animated, { FadeInUp, FadeOutDown } from "react-native-reanimated";
 
 function keyOf(item: VeneluxMaterial) {
-  return String(item.codigomaterial || item.codart || item.material);
+  return item.codigomaterial === "NUEVO"
+    ? String(item.noparte || item.nroparte || item.material)
+    : String(item.codigomaterial || item.codart || item.material);
 }
 
 function truncate(value: string, maxLength: number): string {

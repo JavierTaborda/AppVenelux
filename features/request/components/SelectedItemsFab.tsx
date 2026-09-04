@@ -43,7 +43,9 @@ export default function SelectedItemsFab() {
   const items = useMemo(() => materials || [], [materials]);
 
   const keyOf = (it: VeneluxMaterial) =>
-    String(it.codigomaterial || it.codart || it.noparte);
+    it.codigomaterial === "NUEVO"
+      ? String(it.noparte || it.nroparte || it.material)
+      : String(it.codigomaterial || it.codart || it.noparte);
 
   const getQuantityByItem = useSelectedItemsStore((s) => s.getQuantityByItem);
 
