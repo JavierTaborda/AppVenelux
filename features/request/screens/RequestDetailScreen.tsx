@@ -149,9 +149,7 @@ function getMaterialProcess(
     currentKey = "authorized";
   }
 
-  const requestedLabel = `${requestedQuantity} ${
-    requestedQuantity === 1 ? "unidad" : "unidades"
-  } solicitadas`;
+  const requestedLabel = `${requestedQuantity} en ${`${material.unidad?.toLocaleLowerCase()}`} `;
 
   const authorizedLabel =
     approvedQuantity > 0
@@ -295,9 +293,9 @@ function RequestDetailSkeleton() {
 
 function MaterialEmptyState() {
   return (
-    <View className="items-center rounded-3xl border border-dashed border-zinc-300 dark:border-zinc-700 bg-componentbg dark:bg-dark-componentbg p-6">
-      <View className="h-14 w-14 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800">
-        <Ionicons name="cube-outline" size={26} color="#9CA3AF" />
+    <View className="items-center rounded-3xl border border-dashed border-sky-200/70 dark:border-sky-900/30 bg-sky-50/60 dark:bg-slate-950/25 p-6">
+      <View className="h-14 w-14 items-center justify-center rounded-full border border-sky-100 dark:border-sky-900/40 bg-white/90 dark:bg-slate-950/70">
+        <Ionicons name="cube-outline" size={26} color="#0EA5E9" />
       </View>
 
       <Text className="mt-3 text-sm font-semibold text-foreground dark:text-dark-foreground text-center">
@@ -543,21 +541,30 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
     material: Request["items"][number];
   }) => {
     const process = getMaterialProcess(material);
+    const currentStep = process.find((step) => step.current) ?? process[0];
 
     return (
-      <View className="mt-4 rounded-2xl border border-sky-100/80 dark:border-sky-900/40 bg-sky-50/40 dark:bg-slate-950/20 p-3">
-        <View className="flex-row items-center gap-2">
-          <View className="h-8 w-8 items-center justify-center rounded-full bg-sky-500/10 dark:bg-sky-400/15">
-            <Ionicons name="git-network-outline" size={16} color="#0EA5E9" />
+      <View className="mt-4 rounded-3xl border border-sky-100/80 dark:border-sky-900/35 bg-sky-50/50 dark:bg-slate-950/25 p-4">
+        <View className="flex-row items-start justify-between gap-3">
+          <View className="flex-row items-center gap-3 flex-1">
+            <View className="h-9 w-9 items-center justify-center rounded-full border border-sky-100 dark:border-sky-900/40 bg-white/90 dark:bg-slate-950/70">
+              <Ionicons name="git-network-outline" size={16} color="#0EA5E9" />
+            </View>
+
+            <View className="flex-1">
+              <Text className="text-[13px] font-extrabold uppercase text-foreground dark:text-dark-foreground">
+                Proceso del material
+              </Text>
+
+              <Text className="text-[10px] uppercase text-mutedForeground dark:text-dark-mutedForeground">
+                Seguimiento individual
+              </Text>
+            </View>
           </View>
 
-          <View className="flex-1">
-            <Text className="text-[13px] font-extrabold text-foreground dark:text-dark-foreground">
-              Proceso del material
-            </Text>
-
-            <Text className="text-[10px] text-mutedForeground dark:text-dark-mutedForeground">
-              Seguimiento individual
+          <View className="rounded-full border border-sky-200/70 dark:border-sky-900/40 bg-white/90 dark:bg-slate-950/70 px-2.5 py-1">
+            <Text className="text-[9px] font-black uppercase tracking-wider text-sky-700 dark:text-sky-200">
+              {currentStep.label}
             </Text>
           </View>
         </View>
@@ -565,12 +572,10 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
         <View className="mt-4">
           {process.map((step, index) => {
             const isLast = index === process.length - 1;
-
             const isAnActiveStep = step.current && step.done;
 
             return (
               <View key={step.key} className="flex-row">
-                {/* Línea + indicador */}
                 <View className="items-center mr-3">
                   {isAnActiveStep ? (
                     <View className="h-7 w-7 rounded-full border-2 border-sky-500 dark:border-sky-400 bg-sky-500/20 dark:bg-sky-400/20 items-center justify-center">
@@ -597,7 +602,6 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
                   )}
                 </View>
 
-                {/* Contenido */}
                 <View className={`flex-1 ${!isLast ? "pb-3" : "pb-1"}`}>
                   <View
                     className={`rounded-2xl border p-3 ${
@@ -623,7 +627,7 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
                         />
 
                         <Text
-                          className={`text-[12px] font-extrabold ${
+                          className={`text-[12px] font-extrabold uppercase ${
                             step.current
                               ? "text-sky-700 dark:text-sky-200"
                               : step.done
@@ -639,7 +643,7 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
                       {step.current && (
                         <View className="rounded-full bg-sky-500/15 dark:bg-sky-400/20 px-2 py-0.5">
                           <Text className="text-[9px] font-black text-sky-700 dark:text-sky-200 uppercase tracking-wider">
-                            Actual
+                            ACTUAL
                           </Text>
                         </View>
                       )}
@@ -647,7 +651,7 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
                       {!step.current && step.done && (
                         <View className="rounded-full bg-emerald-500/10 dark:bg-emerald-400/10 px-2 py-0.5">
                           <Text className="text-[9px] font-bold text-emerald-700 dark:text-emerald-300 uppercase">
-                            Listo
+                            LISTO
                           </Text>
                         </View>
                       )}
@@ -682,6 +686,8 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
   ) => {
     const key = renderMaterialKey(material, index);
 
+    const rawPrice = Number(material.precio ?? 0);
+
     const price = formatMoney(material.precio);
 
     const requestedQuantity = Math.max(
@@ -689,100 +695,52 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
       Number(material.quantity ?? material.cantidadsolicitada ?? 1),
     );
 
-    const approvedQuantity = Math.max(
-      0,
-      Number(material.cantidadautorizada ?? 0),
-    );
-
-    const purchasedQuantity = Math.max(0, Number(material.cantidadcompra ?? 0));
-
-    const dispatchedQuantity = Math.max(
-      0,
-      Number(material.cantidaddespacho ?? 0),
-    );
-
-    const availableQuantity = Math.max(
-      0,
-      Number(material.cantidaddisponible ?? 0),
-    );
-
     const materialTitle =
       material.description || material.material || "Material sin descripción";
 
-    const unitLabel = material.coduni || material.unidad || "No indicada";
-
     const authorizerLabel = material.autorizadopor || "No indicado";
-
-    const process = getMaterialProcess(material);
-
-    const currentProcessStep =
-      process.find((step) => step.current) ?? process[0];
-
-    const statusBarClass =
-      currentProcessStep.key === "purchase" ||
-      currentProcessStep.key === "purchaseAuthorized"
-        ? "bg-sky-500"
-        : currentProcessStep.key === "dispatch"
-          ? "bg-violet-500"
-          : currentProcessStep.key === "authorized"
-            ? "bg-emerald-500"
-            : "bg-amber-400";
 
     return (
       <View
         key={key}
         className="mb-3 overflow-hidden rounded-[28px] border border-zinc-200/70 dark:border-zinc-800 bg-componentbg dark:bg-dark-componentbg shadow-sm shadow-black/5"
       >
-        {/* Indicador superior del estado */}
-        <View className={`h-1 ${statusBarClass}`} />
-
         <View className="p-4">
-          {/* Header */}
           <View className="flex-row gap-3">
             <View className="relative h-24 w-24 overflow-hidden rounded-2xl border border-zinc-200/60 dark:border-zinc-800/60 bg-neutral-50 dark:bg-dark-background shrink-0">
               <CustomImagen img={material.imagen1 ?? ""} content="cover" />
-
-              <View className="absolute left-1.5 top-1.5 rounded-full bg-primary dark:bg-dark-primary px-2 py-0.5">
-                <Text className="text-[10px] font-black text-white dark:text-zinc-950">
-                  x{requestedQuantity}
-                </Text>
-              </View>
             </View>
 
             <View className="flex-1 justify-center">
-              <Text className="text-[10px] font-semibold tracking-[1px] text-primary dark:text-dark-primary uppercase">
-                {material.codigomaterial || "SIN CÓDIGO"}
-              </Text>
-
               <Text
-                className="mt-0.5 text-[15px] font-black leading-5 text-foreground dark:text-dark-foreground"
+                className="mt-0.5 text-[15px] font-bold uppercase leading-5 text-foreground dark:text-dark-foreground"
                 numberOfLines={2}
               >
-                {materialTitle}
+                {material.codigomaterial + " - " + materialTitle}
               </Text>
 
               <View className="mt-2 flex-row flex-wrap gap-1.5">
-                <View className="rounded-full bg-sky-500/10 dark:bg-sky-500/20 px-2 py-1">
-                  <Text className="text-[10px] font-bold text-sky-600 dark:text-sky-300 uppercase">
-                    Unidad: {unitLabel}
+                <View className="rounded-full border border-sky-100 dark:border-sky-900/35 bg-sky-50/70 dark:bg-sky-950/25 px-2 py-1">
+                  <Text className="text-[12px] font-black uppercase text-sky-700 dark:text-sky-200">
+                    x{requestedQuantity} {material.unidad}
                   </Text>
                 </View>
 
-                <View className="rounded-full bg-emerald-500/10 dark:bg-emerald-500/20 px-2 py-1">
-                  <Text className="text-[10px] font-bold text-emerald-600 dark:text-emerald-300 uppercase">
-                    Autorizó: {authorizerLabel}
+                <View className="rounded-full border border-emerald-100 dark:border-emerald-900/30 bg-emerald-50/70 dark:bg-emerald-950/20 px-2 py-1">
+                  <Text className="text-[12px] font-bold uppercase tracking-wide text-emerald-700 dark:text-emerald-200">
+                    AUTORIZÓ: {authorizerLabel}
                   </Text>
                 </View>
 
                 {material.comprar && (
-                  <View className="rounded-full bg-sky-500/10 dark:bg-sky-500/20 px-2 py-1">
-                    <Text className="text-[10px] font-bold text-sky-600 dark:text-sky-300 uppercase">
-                      Compra autorizada
+                  <View className="rounded-full border border-sky-100 dark:border-sky-900/35 bg-sky-50/70 dark:bg-sky-950/25 px-2 py-1">
+                    <Text className="text-[10px] font-bold uppercase tracking-wide text-sky-700 dark:text-sky-200">
+                      COMPRA AUTORIZADA
                     </Text>
                   </View>
                 )}
 
-                {price && (
+                {rawPrice > 0 && price && (
                   <View className="rounded-full border border-zinc-200 dark:border-zinc-800 px-2 py-1">
                     <Text className="text-[10px] font-bold text-mutedForeground dark:text-dark-mutedForeground">
                       ${price}
@@ -793,10 +751,9 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
             </View>
           </View>
 
-          {/* Resumen de cantidades */}
-          <View className="mt-4 flex-row gap-2">
+          {/* <View className="mt-4 flex-row gap-2">
             <View className="flex-1 rounded-2xl bg-zinc-50 dark:bg-slate-950/30 border border-zinc-100 dark:border-zinc-800 px-3 py-2.5">
-              <Text className="text-[9px] font-bold text-mutedForeground dark:text-dark-mutedForeground uppercase">
+              <Text className="text-[9px] font-bold text-mutedForeground dark:text-dark-mutedForeground uppercase tracking-wide">
                 Solicitado
               </Text>
 
@@ -806,7 +763,7 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
             </View>
 
             <View className="flex-1 rounded-2xl bg-emerald-50/60 dark:bg-emerald-950/10 border border-emerald-100 dark:border-emerald-900/30 px-3 py-2.5">
-              <Text className="text-[9px] font-bold text-emerald-600 dark:text-emerald-300 uppercase">
+              <Text className="text-[9px] font-bold text-emerald-600 dark:text-emerald-300 uppercase tracking-wide">
                 Autorizado
               </Text>
 
@@ -816,7 +773,7 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
             </View>
 
             <View className="flex-1 rounded-2xl bg-violet-50/60 dark:bg-violet-950/10 border border-violet-100 dark:border-violet-900/30 px-3 py-2.5">
-              <Text className="text-[9px] font-bold text-violet-600 dark:text-violet-300 uppercase">
+              <Text className="text-[9px] font-bold text-violet-600 dark:text-violet-300 uppercase tracking-wide">
                 Despachado
               </Text>
 
@@ -826,7 +783,7 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
             </View>
 
             <View className="flex-1 rounded-2xl bg-sky-50/60 dark:bg-sky-950/10 border border-sky-100 dark:border-sky-900/30 px-3 py-2.5">
-              <Text className="text-[9px] font-bold text-sky-600 dark:text-sky-300 uppercase">
+              <Text className="text-[9px] font-bold text-sky-600 dark:text-sky-300 uppercase tracking-wide">
                 Comprado
               </Text>
 
@@ -834,9 +791,8 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
                 {purchasedQuantity}
               </Text>
             </View>
-          </View>
+          </View> */}
 
-          {/* NUEVO: proceso individual del material */}
           <MaterialProcessTimeline material={material} />
         </View>
       </View>
@@ -942,7 +898,7 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
         </View>
 
         {/* Seguimiento de solicitud */}
-        <View className="mt-3 rounded-3xl border border-sky-100/70 dark:border-sky-900/30 bg-componentbg/80 dark:bg-slate-950/25 p-4">
+        <View className="mt-3 mb-3 rounded-3xl border border-sky-100/70 dark:border-sky-900/30 bg-componentbg/80 dark:bg-slate-950/25 p-4">
           <Pressable
             onPress={() => setShowStatusTracking((prev) => !prev)}
             className="flex-row items-center justify-between active:opacity-70"
@@ -959,18 +915,18 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
               </View>
 
               <View>
-                <Text className="text-[14px] font-extrabold text-foreground dark:text-dark-foreground">
+                <Text className="text-[14px] font-extrabold uppercase text-foreground dark:text-dark-foreground">
                   Seguimiento de estados
                 </Text>
 
-                <Text className="text-xs text-mutedForeground dark:text-dark-mutedForeground">
+                <Text className="text-xs uppercase text-mutedForeground dark:text-dark-mutedForeground">
                   Línea de tiempo de la solicitud
                 </Text>
               </View>
             </View>
 
             <View className="flex-row items-center gap-1 rounded-full bg-sky-100/90 dark:bg-sky-900/35 px-3 py-1.5">
-              <Text className="text-xs font-extrabold text-sky-700 dark:text-sky-200">
+              <Text className="text-xs font-extrabold uppercase text-sky-700 dark:text-sky-200">
                 {showStatusTracking ? "Ocultar" : "Ver todo"}
               </Text>
 
@@ -1061,7 +1017,7 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
                             />
 
                             <Text
-                              className={`text-sm font-extrabold ${
+                              className={`text-sm font-extrabold uppercase ${
                                 isCurrent
                                   ? "text-sky-700 dark:text-sky-200"
                                   : isDone
@@ -1076,7 +1032,7 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
                           {isCurrent && (
                             <View className="rounded-full bg-sky-500/15 dark:bg-sky-400/20 px-2 py-0.5">
                               <Text className="text-[10px] font-black text-sky-700 dark:text-sky-200 uppercase tracking-wider">
-                                Actual
+                                ACTUAL
                               </Text>
                             </View>
                           )}
@@ -1084,14 +1040,16 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
 
                         <View className="mt-2 rounded-xl bg-componentbg dark:bg-slate-950/35 px-3 py-2">
                           <View className="flex-row items-start justify-between gap-2">
-                            <Text className="flex-1 text-xs font-medium text-sky-800/70 dark:text-sky-100/65 leading-4">
+                            <Text className="flex-1 text-xs font-medium uppercase text-sky-800/70 dark:text-sky-100/65 leading-4">
                               {act
-                                ? `${act.label}: ${act.value || "No indicado"}`
-                                : "No indicado"}
+                                ? `${act.label.toUpperCase()}: ${(
+                                    act.value || "No indicado"
+                                  ).toUpperCase()}`
+                                : "NO INDICADO"}
                             </Text>
 
                             <Text
-                              className={`shrink-0 text-xs font-bold text-right ${
+                              className={`shrink-0 text-xs font-bold uppercase text-right ${
                                 isDone
                                   ? "text-sky-900 dark:text-sky-100"
                                   : "text-sky-700/55 dark:text-sky-200/50"
@@ -1122,8 +1080,8 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
 
                               <Text className="text-[11px] font-bold text-sky-700 dark:text-sky-200">
                                 {item.status === 5
-                                  ? "Copiar compra"
-                                  : "Copiar pedido"}
+                                  ? "COPIAR COMPRA"
+                                  : "COPIAR PEDIDO"}
                               </Text>
                             </Pressable>
                           ) : null}
@@ -1137,11 +1095,11 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
           )}
 
           <View className="mt-5 mb-3 flex-row items-center justify-between">
-            <Text className="text-base font-extrabold text-foreground dark:text-dark-foreground">
+            <Text className="text-base font-extrabold uppercase text-foreground dark:text-dark-foreground">
               Materiales
             </Text>
 
-            <Text className="text-xs font-semibold text-mutedForeground dark:text-dark-mutedForeground">
+            <Text className="text-xs font-semibold uppercase text-mutedForeground dark:text-dark-mutedForeground">
               {materialCount} {materialCount === 1 ? "ítem" : "ítems"}
             </Text>
           </View>
