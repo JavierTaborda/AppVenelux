@@ -172,6 +172,7 @@ export default function NewManualItemModal({
       codart: null,
       marca: toUpperTrimmed(formMarca) || null,
       noparte: toUpperTrimmed(formNoParte) || null,
+
       imagen1: uploadedImages[0],
       imagen2: uploadedImages[1],
       imagen3: uploadedImages[2],

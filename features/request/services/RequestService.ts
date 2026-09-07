@@ -716,24 +716,20 @@ export const RequestService = {
   },
 
   async getById(id: string): Promise<Request | null> {
-    try {
-      const response = await api.get(`venelux/solicitudes/${id}`);
-      const parsed = parseRequestsResponse(response.data);
-      if (parsed.length > 0) return parsed[0];
-    } catch (error) {
-      if (!isAxiosError(error) || error.response?.status !== 404) {
-        throw error;
-      }
-    }
+ 
+    // try {
+    //   const response = await api.get(`venelux/solicitudes/${id}`);
+    //   const parsed = parseRequestsResponse(response.data);
+    //   if (parsed.length > 0) return parsed[0];
+    // } catch (error) {
+    //   if (!isAxiosError(error) || error.response?.status !== 404) {
+    //     throw error;
+    //   }
+    // }
 
-    try {
-      const response = await api.get(`requests/${id}`);
-      const parsed = parseRequestsResponse(response.data);
-      return parsed[0] ?? null;
-    } catch {
       const found = requestCache.find((r) => r.id === id) || null;
       return found ? { ...found } : null;
-    }
+    
   },
 
   subscribe(cb: Listener) {
