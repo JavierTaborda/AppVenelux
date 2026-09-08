@@ -327,6 +327,10 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
 
   const [showStatusTracking, setShowStatusTracking] = useState(true);
 
+  const [expandedMaterials, setExpandedMaterials] = useState<
+    Record<string, boolean>
+  >({});
+
   const resolvedId = useMemo(
     () => requestId ?? params.id ?? request?.id ?? null,
     [params.id, request?.id, requestId],
@@ -686,6 +690,8 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
   ) => {
     const key = renderMaterialKey(material, index);
 
+    const isMaterialInfoVisible = expandedMaterials[key] ?? false;
+
     const rawPrice = Number(material.precio ?? 0);
 
     const price = formatMoney(material.precio);
@@ -700,6 +706,13 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
 
     const authorizerLabel = material.autorizadopor || "No indicado";
 
+    const toggleMaterialInfo = () => {
+      setExpandedMaterials((current) => ({
+        ...current,
+        [key]: !(current[key] ?? false),
+      }));
+    };
+
     return (
       <View
         key={key}
@@ -711,15 +724,14 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
               <CustomImagen img={material.imagen1 ?? ""} content="cover" />
             </View>
 
-            <View className="flex-1 justify-center">
+            <View className="flex-1 min-w-0 justify-center">
               <Text
                 className="mt-0.5 text-[15px] font-bold uppercase leading-5 text-foreground dark:text-dark-foreground"
                 numberOfLines={2}
               >
                 {material.codigomaterial + " - " + materialTitle}
               </Text>
-
-              <View className="mt-2 flex-row flex-wrap gap-1.5">
+              <View className="flex-col flex-wrap gap-1.5">
                 <View className="rounded-full border border-sky-100 dark:border-sky-900/35 bg-sky-50/70 dark:bg-sky-950/25 px-2 py-1">
                   <Text className="text-[12px] font-black uppercase text-sky-700 dark:text-sky-200">
                     x{requestedQuantity} {material.unidad}
@@ -739,61 +751,33 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
                     </Text>
                   </View>
                 )}
-
-                {rawPrice > 0 && price && (
-                  <View className="rounded-full border border-zinc-200 dark:border-zinc-800 px-2 py-1">
-                    <Text className="text-[10px] font-bold text-mutedForeground dark:text-dark-mutedForeground">
-                      ${price}
-                    </Text>
-                  </View>
-                )}
               </View>
             </View>
           </View>
 
-          {/* <View className="mt-4 flex-row gap-2">
-            <View className="flex-1 rounded-2xl bg-zinc-50 dark:bg-slate-950/30 border border-zinc-100 dark:border-zinc-800 px-3 py-2.5">
-              <Text className="text-[9px] font-bold text-mutedForeground dark:text-dark-mutedForeground uppercase tracking-wide">
-                Solicitado
+          <Pressable
+            onPress={toggleMaterialInfo}
+            className="mt-1 flex-row items-center justify-between  px-3 py-2.5 active:opacity-70"
+            accessibilityRole="button"
+          >
+            <View className="flex-row items-center gap-1 rounded-full bg-sky-100/90 dark:bg-sky-900/35 0 px-3 py-1.5">
+              <Text className="text-xs font-extrabold uppercase text-sky-700 dark:text-sky-200">
+                {isMaterialInfoVisible ? "Ocultar" : "Ver todo seguimiento"}
               </Text>
 
-              <Text className="mt-0.5 text-sm font-black text-foreground dark:text-dark-foreground">
-                {requestedQuantity}
-              </Text>
+              <Ionicons
+                name={isMaterialInfoVisible ? "chevron-up" : "chevron-down"}
+                size={14}
+                color="#0EA5E9"
+              />
             </View>
+          </Pressable>
 
-            <View className="flex-1 rounded-2xl bg-emerald-50/60 dark:bg-emerald-950/10 border border-emerald-100 dark:border-emerald-900/30 px-3 py-2.5">
-              <Text className="text-[9px] font-bold text-emerald-600 dark:text-emerald-300 uppercase tracking-wide">
-                Autorizado
-              </Text>
-
-              <Text className="mt-0.5 text-sm font-black text-emerald-700 dark:text-emerald-200">
-                {approvedQuantity}
-              </Text>
+          {isMaterialInfoVisible && (
+            <View className="mt-4 gap-3 rounded-2xl border border-sky-100/60 dark:border-sky-900/25 bg-gradient-to-b from-sky-50/70 to-white dark:from-slate-950/30 dark:to-slate-950/20 p-3">
+              <MaterialProcessTimeline material={material} />
             </View>
-
-            <View className="flex-1 rounded-2xl bg-violet-50/60 dark:bg-violet-950/10 border border-violet-100 dark:border-violet-900/30 px-3 py-2.5">
-              <Text className="text-[9px] font-bold text-violet-600 dark:text-violet-300 uppercase tracking-wide">
-                Despachado
-              </Text>
-
-              <Text className="mt-0.5 text-sm font-black text-violet-700 dark:text-violet-200">
-                {dispatchedQuantity}
-              </Text>
-            </View>
-
-            <View className="flex-1 rounded-2xl bg-sky-50/60 dark:bg-sky-950/10 border border-sky-100 dark:border-sky-900/30 px-3 py-2.5">
-              <Text className="text-[9px] font-bold text-sky-600 dark:text-sky-300 uppercase tracking-wide">
-                Comprado
-              </Text>
-
-              <Text className="mt-0.5 text-sm font-black text-sky-700 dark:text-sky-200">
-                {purchasedQuantity}
-              </Text>
-            </View>
-          </View> */}
-
-          <MaterialProcessTimeline material={material} />
+          )}
         </View>
       </View>
     );
@@ -1093,16 +1077,6 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
               })}
             </View>
           )}
-
-          <View className="mt-5 mb-3 flex-row items-center justify-between">
-            <Text className="text-base font-extrabold uppercase text-foreground dark:text-dark-foreground">
-              Materiales
-            </Text>
-
-            <Text className="text-xs font-semibold uppercase text-mutedForeground dark:text-dark-mutedForeground">
-              {materialCount} {materialCount === 1 ? "ítem" : "ítems"}
-            </Text>
-          </View>
         </View>
       </View>
     );
