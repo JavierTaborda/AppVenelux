@@ -716,7 +716,7 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
     return (
       <View
         key={key}
-        className="mb-3 overflow-hidden rounded-[28px] border border-zinc-200/70 dark:border-zinc-800 bg-componentbg dark:bg-dark-componentbg shadow-sm shadow-black/5"
+        className="mb-3 overflow-hidden rounded-3xl border border-zinc-200/70 dark:border-zinc-800 bg-componentbg dark:bg-dark-componentbg shadow-sm shadow-black/5"
       >
         <View className="p-4">
           <View className="flex-row gap-3">
@@ -726,28 +726,28 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
 
             <View className="flex-1 min-w-0 justify-center">
               <Text
-                className="mt-0.5 text-[15px] font-bold uppercase leading-5 text-foreground dark:text-dark-foreground"
+                className="text-[15px] font-bold uppercase leading-5 text-foreground dark:text-dark-foreground"
                 numberOfLines={2}
               >
                 {material.codigomaterial + " - " + materialTitle}
               </Text>
-              <View className="flex-col flex-wrap gap-1.5">
-                <View className="rounded-full border border-sky-100 dark:border-sky-900/35 bg-sky-50/70 dark:bg-sky-950/25 px-2 py-1">
-                  <Text className="text-[12px] font-black uppercase text-sky-700 dark:text-sky-200">
+              <View className="mt-2 flex-row flex-wrap gap-2">
+                <View className="rounded-full border border-sky-100 dark:border-sky-900/35 bg-sky-50/70 dark:bg-sky-950/25 px-2.5 py-1">
+                  <Text className="text-[11px] font-black uppercase text-sky-700 dark:text-sky-200">
                     x{requestedQuantity} {material.unidad}
                   </Text>
                 </View>
 
-                <View className="rounded-full border border-emerald-100 dark:border-emerald-900/30 bg-emerald-50/70 dark:bg-emerald-950/20 px-2 py-1">
-                  <Text className="text-[12px] font-bold uppercase tracking-wide text-emerald-700 dark:text-emerald-200">
-                    AUTORIZÓ: {authorizerLabel}
+                <View className="rounded-full border border-emerald-100 dark:border-emerald-900/30 bg-emerald-50/70 dark:bg-emerald-950/20 px-2.5 py-1">
+                  <Text className="text-[11px] font-bold uppercase tracking-wide text-emerald-700 dark:text-emerald-200">
+                    {authorizerLabel}
                   </Text>
                 </View>
 
                 {material.comprar && (
-                  <View className="rounded-full border border-sky-100 dark:border-sky-900/35 bg-sky-50/70 dark:bg-sky-950/25 px-2 py-1">
+                  <View className="rounded-full border border-sky-100 dark:border-sky-900/35 bg-sky-50/70 dark:bg-sky-950/25 px-2.5 py-1">
                     <Text className="text-[10px] font-bold uppercase tracking-wide text-sky-700 dark:text-sky-200">
-                      COMPRA AUTORIZADA
+                      Compra autorizada
                     </Text>
                   </View>
                 )}
@@ -757,19 +757,21 @@ export default function RequestDetailScreen({ request, requestId }: Props) {
 
           <Pressable
             onPress={toggleMaterialInfo}
-            className="mt-1 flex-row items-center justify-between  px-3 py-2.5 active:opacity-70"
+            className="mt-3 flex-row items-center justify-between rounded-2xl border border-sky-100/70 dark:border-sky-900/30 bg-sky-50/50 dark:bg-sky-950/15 px-3 py-2.5 active:opacity-70"
             accessibilityRole="button"
           >
-            <View className="flex-row items-center gap-1 rounded-full bg-sky-100/90 dark:bg-sky-900/35 0 px-3 py-1.5">
-              <Text className="text-xs font-extrabold uppercase text-sky-700 dark:text-sky-200">
-                {isMaterialInfoVisible ? "Ocultar" : "Ver todo seguimiento"}
-              </Text>
-
+            <View className="flex-row items-center gap-1.5">
               <Ionicons
                 name={isMaterialInfoVisible ? "chevron-up" : "chevron-down"}
                 size={14}
                 color="#0EA5E9"
               />
+
+              <Text className="text-xs font-extrabold uppercase text-sky-700 dark:text-sky-200">
+                {isMaterialInfoVisible
+                  ? "Ocultar seguimiento"
+                  : "Ver seguimiento"}
+              </Text>
             </View>
           </Pressable>
 
