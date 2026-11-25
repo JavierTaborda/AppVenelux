@@ -7,7 +7,7 @@ type OTPInputProps = {
 
 const OTPInput: React.FC<OTPInputProps> = ({ onCodeFilled }) => {
   const [code, setCode] = useState<string[]>(Array(6).fill(''));
-  const inputsRef = useRef<Array<TextInput | null>>([]);
+  const inputsRef = useRef<Array<React.ComponentRef<typeof TextInput> | null>>([]);
 
   const handleChange = (text: string, index: number) => {
     if (!/^\d$/.test(text) && text !== '') return;

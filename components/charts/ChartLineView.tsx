@@ -1,5 +1,5 @@
+import React, { useEffect, useRef } from "react";
 import { appTheme } from "@/utils/appTheme";
-import { useEffect, useRef } from "react";
 import { Dimensions, ScrollView, Text, View } from "react-native";
 import { LineChart } from "react-native-chart-kit";
 
@@ -49,7 +49,7 @@ export const ChartLineView = ({
       strokeWidth: "3",
     },
   };
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<React.ComponentRef<typeof ScrollView>>(null);
 
   useEffect(() => {
     if (values.length > 0) {

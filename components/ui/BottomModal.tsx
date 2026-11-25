@@ -67,7 +67,7 @@ export default function BottomModal({
   const { isDark } = useThemeStore();
   const translateY = useSharedValue(modalHeight);
   const keyboardOffset = useSharedValue(0);
-  const targetRef = useRef<View | null>(null);
+  const targetRef = useRef<React.ComponentRef<typeof View> | null>(null);
   const MIN_MODAL_HEIGHT = 120 + insets.bottom;
 
   const [keyboardHeight, setKeyboardHeight] = useState(0);

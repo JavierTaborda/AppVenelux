@@ -1,15 +1,16 @@
 import { useThemeStore } from "@/stores/useThemeStore";
 import { appTheme } from "@/utils/appTheme";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@react-native-vector-icons/ionicons";
 import { Tabs } from "expo-router";
-import { DrawerToggleButton } from "expo-router/build/react-navigation/drawer";
+import { DrawerToggleButton } from "expo-router/drawer";
+import type { ComponentProps } from "react";
 import { Pressable, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 function getTabIcon(
   routeName: string,
   focused: boolean,
-): keyof typeof Ionicons.glyphMap {
+): ComponentProps<typeof Ionicons>["name"] {
   switch (routeName) {
     case "(home)/index":
       return focused ? "home" : "home-outline";
@@ -36,7 +37,12 @@ export default function TabLayout() {
           <Ionicons
             name={getTabIcon(route.name, focused)}
             size={size}
-            color={color}
+            color={
+              color ??
+              (isDark
+                ? appTheme.dark.primary.DEFAULT
+                : appTheme.primary.DEFAULT)
+            }
           />
         ),
         //Button styles of tab
@@ -145,7 +151,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="(request)/index"
         options={{
-          href: null,
+          tabBarItemStyle: { display: "none" },
           headerShown: true,
           title: "Solicitudes  ",
         }}
@@ -153,7 +159,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="(request)/create"
         options={{
-          href: null,
+          tabBarItemStyle: { display: "none" },
           headerShown: true,
           title: "Crear Solicitud",
         }}
@@ -161,7 +167,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="(request)/[id]"
         options={{
-          href: null,
+          tabBarItemStyle: { display: "none" },
           headerShown: true,
           title: "Estado Solicitud ",
         }}
@@ -169,7 +175,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="(request)/product/[id]"
         options={{
-          href: null,
+          tabBarItemStyle: { display: "none" },
           headerShown: true,
           title: "Detalle Producto",
         }}
@@ -177,7 +183,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="(request)/confirm"
         options={{
-          href: null,
+          tabBarItemStyle: { display: "none" },
           headerShown: true,
           title: "Confirmar Solicitud",
         }}

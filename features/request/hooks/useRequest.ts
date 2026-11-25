@@ -31,7 +31,7 @@ export function useRequest({
     setLoading(true);
     try {
       setError(null);
-      const allMaterials = await RequestService.getMaterialsAll();
+      const allMaterials = await RequestService.getMaterials();
       setMaterials(allMaterials);
       setTotalMaterials(allMaterials.length);
       setMaterialsPage(1);

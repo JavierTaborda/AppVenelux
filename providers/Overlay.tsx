@@ -5,7 +5,6 @@ import { useEffect, useRef } from "react";
 import {
   Dimensions,
   Pressable,
-  StatusBar,
   StyleSheet,
   Text,
   View,
@@ -99,8 +98,6 @@ export default function Overlay() {
 
   return (
     <>
-      <StatusBar translucent backgroundColor="transparent" />
-
       <View pointerEvents="auto" style={StyleSheet.absoluteFill}>
         {/* BACKDROP */}
         <Animated.View
